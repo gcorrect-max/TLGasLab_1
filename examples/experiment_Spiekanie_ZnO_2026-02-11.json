@@ -1,0 +1,55 @@
+{
+  "type": "experiment",
+  "ver": "3.0",
+  "app": "Laboratorium badania cienkich warstw dla sensorów gazu",
+  "exportedAt": "2026-02-11T13:31:30.656Z",
+  "exportedBy": {
+    "username": "admin",
+    "role": "admin",
+    "name": "Administrator",
+    "firstName": "Jan",
+    "lastName": "Kowalski"
+  },
+  "profile": {
+    "name": "Spiekanie ZnO",
+    "segments": [
+      {
+        "name": "Rampa grzania",
+        "sp": 200,
+        "ramp": 5,
+        "hold": 0
+      },
+      {
+        "name": "Wygrzewanie",
+        "sp": 400,
+        "ramp": 3,
+        "hold": 60
+      },
+      {
+        "name": "Chłodzenie",
+        "sp": 25,
+        "ramp": -10,
+        "hold": 0
+      }
+    ]
+  },
+  "sample": {
+    "sampleId": "",
+    "material": "",
+    "substrate": "",
+    "method": "",
+    "thickness": "",
+    "targetGas": "",
+    "processTemp": "",
+    "pressure": "",
+    "atmosphere": "",
+    "sourcePower": "",
+    "processTime": "",
+    "gasFlow": "",
+    "operator": "",
+    "batchNo": "",
+    "goal": "",
+    "notes": "",
+    "photos": []
+  }
+}

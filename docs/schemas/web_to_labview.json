@@ -1,0 +1,118 @@
+[
+  {
+    "type": "setpoint_command",
+    "desc": "Ustawienie SP (głównie SP1) oraz opcjonalnie SP2/SP3.",
+    "example": {
+      "type": "setpoint_command",
+      "ts": "2026-02-09T12:00:10Z",
+      "user": "operator",
+      "data": {
+        "sp1_C": 250.0,
+        "sp2": 0,
+        "sp3": 0
+      }
+    }
+  },
+  {
+    "type": "mode_command",
+    "desc": "START/STOP regulacji + przełączenie AUTO/MANUAL.",
+    "example": {
+      "type": "mode_command",
+      "ts": "2026-02-09T12:00:11Z",
+      "user": "operator",
+      "data": {
+        "regStatus": "RUN",
+        "manualMode": false
+      }
+    }
+  },
+  {
+    "type": "manual_mv",
+    "desc": "Ręczne ustawienie MV w trybie MANUAL (0–100%).",
+    "example": {
+      "type": "manual_mv",
+      "ts": "2026-02-09T12:00:12Z",
+      "user": "operator",
+      "data": {
+        "mv_pct": 35.0
+      }
+    }
+  },
+  {
+    "type": "pid_command",
+    "desc": "Aktualizacja parametrów regulatora PID.",
+    "example": {
+      "type": "pid_command",
+      "ts": "2026-02-09T12:00:13Z",
+      "user": "admin",
+      "data": {
+        "pidPb": 12.0,
+        "pidTi": 140.0,
+        "pidTd": 20.0,
+        "hyst": 1.2,
+        "limitPower": 85.0
+      }
+    }
+  },
+  {
+    "type": "profile_command",
+    "desc": "Wysłanie profilu oraz START/STOP programu.",
+    "example": {
+      "type": "profile_command",
+      "ts": "2026-02-09T12:00:20Z",
+      "user": "operator",
+      "data": {
+        "profileName": "Thin-film cycle A",
+        "action": "START",
+        "segments": [
+          {
+            "name": "RampUp",
+            "sp_C": 200,
+            "ramp_C_per_min": 10,
+            "hold_min": 5
+          },
+          {
+            "name": "Soak",
+            "sp_C": 250,
+            "ramp_C_per_min": 5,
+            "hold_min": 30
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "sample_info",
+    "desc": "Metadane próbki i procesu (do logowania / bazy).",
+    "example": {
+      "type": "sample_info",
+      "ts": "2026-02-09T12:05:00Z",
+      "user": "student",
+      "data": {
+        "sampleId": "S-2026-02-09-01",
+        "material": "SnO2",
+        "substrate": "Al2O3",
+        "method": "Sol-gel",
+        "thickness_nm": 200,
+        "targetGas": "NO2",
+        "notes": "First run"
+      }
+    }
+  },
+  {
+    "type": "config_update",
+    "desc": "Aktualizacja konfiguracji komunikacji (Modbus/ETH/MQTT/WS).",
+    "example": {
+      "type": "config_update",
+      "ts": "2026-02-09T12:06:00Z",
+      "user": "admin",
+      "data": {
+        "wsUrl": "ws://127.0.0.1:8081/ws",
+        "modbusAddr": 1,
+        "baudRate": 9600,
+        "ethIP": "192.168.1.10",
+        "ethPort": 502
+      }
+    }
+  }
+]

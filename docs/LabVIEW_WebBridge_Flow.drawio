@@ -1,0 +1,142 @@
+<mxfile host="app.diagrams.net" modified="2026-02-09T21:43:49.000Z" agent="ChatGPT" version="24.7.8" type="device">
+  <diagram id="423ecc32-6454-4c13-b824-f4ef4ba741c6" name="LabVIEW ↔ Web Bridge Flow">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="2" value="WebUI_Main.vi
+(start/stop orchestration)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="40" y="40" width="220" height="70" as="geometry"/>
+</mxCell>
+<mxCell id="3" value="WebUI_CreateUserEvent.vi
+(Create User Event: JSON string)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="40" y="140" width="220" height="70" as="geometry"/>
+</mxCell>
+<mxCell id="4" value="WebUI_OpenWebView.vi
+(load URL / dist)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="40" y="240" width="220" height="70" as="geometry"/>
+</mxCell>
+<mxCell id="5" value="WebUI_InjectHandshakeRefnum.vi
+Execute JS: setRefnum(refnum)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="40" y="340" width="220" height="70" as="geometry"/>
+</mxCell>
+<mxCell id="6" value="WebUI_CommandEventLoop.vi
+(Event Structure: User Event)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="40" y="460" width="220" height="80" as="geometry"/>
+</mxCell>
+<mxCell id="7" value="WebUI_ParseCommandJSON.vi
+parse {tag,data}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="300" y="470" width="220" height="60" as="geometry"/>
+</mxCell>
+<mxCell id="8" value="WebUI_DispatchCommand.vi
+case by tag
+(setpoints, toggles, commands)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="560" y="470" width="260" height="70" as="geometry"/>
+</mxCell>
+<mxCell id="9" value="WebUI_PublishLoop.vi
+(5–30 Hz) read measurements" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="40" y="580" width="220" height="80" as="geometry"/>
+</mxCell>
+<mxCell id="10" value="WebUI_BuildUpdateJSON.vi
+build {tag,value,timestamp}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="300" y="600" width="220" height="60" as="geometry"/>
+</mxCell>
+<mxCell id="11" value="WebUI_InvokeUpdateStateJS.vi
+Execute JS: updateState(json)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="560" y="600" width="260" height="60" as="geometry"/>
+</mxCell>
+<mxCell id="12" value="WebUI_Shutdown.vi
+stop loops, destroy UE, close WebView" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="40" y="700" width="220" height="70" as="geometry"/>
+</mxCell>
+<mxCell id="13" value="JS: bridge.ts
+store + subscribe + sendToLabVIEW" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="900" y="220" width="260" height="80" as="geometry"/>
+</mxCell>
+<mxCell id="14" value="window.labviewBridge.updateState(json)
+(LV → Web push)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="900" y="340" width="260" height="70" as="geometry"/>
+</mxCell>
+<mxCell id="15" value="React hook: useLabVIEW(tag)
+subscribe(tag) → setState()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="900" y="440" width="260" height="70" as="geometry"/>
+</mxCell>
+<mxCell id="16" value="Charts / UI components
+re-render on state change" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="900" y="540" width="260" height="70" as="geometry"/>
+</mxCell>
+<mxCell id="17" value="UI action → bridge.sendToLabVIEW(tag,data)
+optimistic setState + FireUserEvent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="900" y="640" width="260" height="80" as="geometry"/>
+</mxCell>
+<mxCell id="18" value="window.LabVIEW.FireUserEvent(refnum, json)
+(Web → LV)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+  <mxGeometry x="900" y="750" width="260" height="70" as="geometry"/>
+</mxCell>
+<mxCell id="19" value="Wykresy aktualizują się event-driven:
+LV woła updateState() → hook setState() → React re-render.
+Polling dotyczy tylko statusu „Connected”." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+  <mxGeometry x="300" y="40" width="520" height="80" as="geometry"/>
+</mxCell>
+<mxCell id="20" value="Tip: dla sygnałów szybkich wysyłaj batch (number[]) zamiast pojedynczych próbek,
+żeby zmniejszyć narzut ExecuteJS." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+  <mxGeometry x="300" y="140" width="520" height="60" as="geometry"/>
+</mxCell>
+<mxCell id="200" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="2" target="3">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="201" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="3" target="4">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="202" value="po załadowaniu strony" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="4" target="5">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="203" value="setRefnum(refnum)" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="5" target="13">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="204" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="17" target="18">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="205" value="User Event (JSON string)" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="18" target="6">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="206" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="6" target="7">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="207" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="7" target="8">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="208" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="9" target="10">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="209" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="10" target="11">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="210" value="updateState(json)" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="11" target="14">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="211" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="14" target="15">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="212" value="re-render" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="15" target="16">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="213" value="start loop" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="2" target="6">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="214" value="start loop" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="2" target="9">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="215" value="stop" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="2" target="12">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="216" value="stop loop" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="12" target="6">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="217" value="stop loop" style="endArrow=block;html=1;rounded=0;strokeColor=#4b5563;" edge="1" parent="1" source="12" target="9">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
