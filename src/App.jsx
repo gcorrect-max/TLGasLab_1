@@ -17,7 +17,7 @@ function dlBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.
 function nowISO(){return new Date().toISOString()}
 
 const JSON_LV2WEB=[
-  {type:"measurement_update",desc:"Pomiary co interwał",ex:{type:"measurement_update",ts:"ISO",data:{pv1:156.3,pv2:45.2,mv:67.4,out1:true,outAnalog:12.8}}},
+  {type:"measurement_update",desc:"Pomiary co interwał",ex:{type:"measurement_update",ts:"ISO",data:{pv1:156.3,pv2:45.2,mv:67.4,out1:true,outAnalog:12.8,mfc:[{id:1,pv:120.5,sp:150,enabled:true},{id:2,pv:85.0,sp:100,enabled:true}]}}},
   {type:"status_update",desc:"Status regulacji",ex:{type:"status_update",ts:"ISO",data:{regMode:"PID",regStatus:"RUN",progStage:2}}},
   {type:"alarm_event",desc:"Alarm",ex:{type:"alarm_event",ts:"ISO",data:{alarmId:"AL_HI",severity:"danger",pv1:210.5}}},
   {type:"profile_status",desc:"Status profilu",ex:{type:"profile_status",ts:"ISO",data:{profileName:"Spiekanie ZnO",stage:2,stageName:"Wygrzewanie"}}},
@@ -30,9 +30,17 @@ const JSON_WEB2LV=[
   {type:"pid_command",desc:"PID",ex:{type:"pid_command",ts:"ISO",data:{pidPb:4.2,pidTi:95,pidTd:24},user:"admin"}},
   {type:"sample_info",desc:"Próbka",ex:{type:"sample_info",ts:"ISO",data:{sampleId:"ZnO-001",material:"ZnO"},user:"admin"}},
   {type:"config_update",desc:"Konfiguracja",ex:{type:"config_update",ts:"ISO",data:{ethIP:"192.168.1.100"},user:"admin"}},
+  {type:"mfc_config",desc:"Konfiguracja MFC",ex:{type:"mfc_config",ts:"ISO",data:{mfc:[{id:1,name:"MFC-1",gas:"N\u2082",gasComposition:"100% N\u2082",ip:"192.168.1.101",port:502,slaveAddr:1,maxFlow:500,unit:"sccm",enabled:false}]},user:"admin"}},
+  {type:"mfc_setpoint",desc:"SP MFC",ex:{type:"mfc_setpoint",ts:"ISO",data:{id:1,sp:100},user:"operator"}},
 ];
 
-function initMb(){return{pv1:25+Math.random()*2,pv2:45+Math.random()*3,ch3:0,mv:0,mvManual:50,manualMode:false,sp1:100,sp2:60,sp3:80,out1:false,out2:false,outAnalog:0,alarm1:false,alarm2:false,alarmSTB:false,alarmLATCH:false,regMode:"PID",regStatus:"RUN",pidPb:5,pidTi:120,pidTd:30,pidI:0,pidPrevE:0,limitPower:100,hyst:1,progStage:0,progStatus:"STOP",progElapsed:0,modbusAddr:1,baudRate:9600,charFmt:"8N1",ethIP:"192.168.1.100",ethPort:502,mqttBroker:"192.168.1.1",mqttPort:1883,mqttTopic:"LAB/ThinFilm",recStatus:"REC",recInterval:5,memUsed:42,rtc:new Date(),inType1:"TC-K",wsUrl:"ws://localhost:8080",wsConnected:false}}
+function initMb(){return{pv1:25+Math.random()*2,pv2:45+Math.random()*3,ch3:0,mv:0,mvManual:50,manualMode:false,sp1:100,sp2:60,sp3:80,out1:false,out2:false,outAnalog:0,alarm1:false,alarm2:false,alarmSTB:false,alarmLATCH:false,regMode:"PID",regStatus:"RUN",pidPb:5,pidTi:120,pidTd:30,pidI:0,pidPrevE:0,limitPower:100,hyst:1,progStage:0,progStatus:"STOP",progElapsed:0,modbusAddr:1,baudRate:9600,charFmt:"8N1",ethIP:"192.168.1.100",ethPort:502,mqttBroker:"192.168.1.1",mqttPort:1883,mqttTopic:"LAB/ThinFilm",recStatus:"REC",recInterval:5,memUsed:42,rtc:new Date(),inType1:"TC-K",wsUrl:"ws://localhost:8080",wsConnected:false,
+mfc:[
+  {id:1,name:"MFC-1",gas:"N\u2082",gasComposition:"100% N\u2082",ip:"192.168.1.101",port:502,slaveAddr:1,maxFlow:500,unit:"sccm",pv:0,sp:0,enabled:false},
+  {id:2,name:"MFC-2",gas:"Ar",gasComposition:"100% Ar",ip:"192.168.1.102",port:502,slaveAddr:1,maxFlow:200,unit:"sccm",pv:0,sp:0,enabled:false},
+  {id:3,name:"MFC-3",gas:"O\u2082",gasComposition:"100% O\u2082",ip:"192.168.1.103",port:502,slaveAddr:1,maxFlow:100,unit:"sccm",pv:0,sp:0,enabled:false},
+  {id:4,name:"MFC-4",gas:"H\u2082S",gasComposition:"10 ppm H\u2082S/N\u2082",ip:"192.168.1.104",port:502,slaveAddr:1,maxFlow:50,unit:"sccm",pv:0,sp:0,enabled:false},
+]}}
 
 function mkS(T){return{
   card:{background:T.cardBg,borderRadius:12,padding:16,border:`1px solid ${T.cardBorder}`},
@@ -114,21 +122,29 @@ const confirmExp=()=>{if(!pendingExp)return;const ex=pendingExp;
   toast("Eksperyment uruchomiony!","success");setShowConfirm(false);setPendingExp(null)};
 
 const pe=pendingExp;
-return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:`${rowH} ${rowH}`,gap:10}}>
+return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:`${rowH} auto ${rowH}`,gap:10}}>
   <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Schemat stanowiska</span><span style={{fontSize:10,color:mb.out1?"#ff6644":T.textD}}>{mb.out1?"🔥 GRZANIE":"○ IDLE"}</span></div>
     <div style={{flex:1,minHeight:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
     {customSvg?<div dangerouslySetInnerHTML={{__html:customSvg}} style={{width:"100%",maxHeight:"100%",overflow:"hidden"}}/>:
-    <svg viewBox="0 0 400 170" style={{width:"100%",maxHeight:"100%"}}>
-      <rect x="8" y="55" width="50" height="44" rx="5" fill={T.svgBg} stroke={T.svgS} strokeWidth="1.5"/><text x="33" y="74" textAnchor="middle" fill={T.textA} fontSize="8" fontWeight="600">{D.gas}</text><text x="33" y="87" textAnchor="middle" fill={T.textD} fontSize="7">{D.gasType}</text>
-      <line x1="58" y1="77" x2="120" y2="77" stroke={T.svgS} strokeWidth="2.5"/>
-      <rect x="120" y="63" width="36" height="26" rx="4" fill={T.svgBg} stroke={T.svgS}/><text x="138" y="78" textAnchor="middle" fill="#00ccff" fontSize="7" fontWeight="600">{D.flow}</text>
-      <line x1="156" y1="77" x2="200" y2="77" stroke={T.svgS} strokeWidth="2.5"/>
-      <rect x="200" y="32" width="95" height="88" rx="9" fill={T.fFill} stroke={mb.out1?"#ff4400":T.fStroke} strokeWidth="2"/>
-      <text x="247" y="52" textAnchor="middle" fill="#cc4422" fontSize="8" fontWeight="700">{D.furnace}</text>
-      <text x="247" y="72" textAnchor="middle" fill={T.pv1} fontSize="16" fontWeight="700">{mb.pv1.toFixed(1)}°C</text>
-      <text x="247" y="88" textAnchor="middle" fill={T.textD} fontSize="7">SP:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</text>
-      <rect x="316" y="55" width="55" height="44" rx="4" fill={T.svgBg} stroke="#00aadd" strokeWidth="1.5"/><text x="343" y="72" textAnchor="middle" fill="#00ccff" fontSize="7" fontWeight="700">{D.bridge}</text><text x="343" y="84" textAnchor="middle" fill={T.textD} fontSize="5">{D.bridgeSub}</text>
-      <line x1="295" y1="77" x2="316" y2="77" stroke="#00aadd44" strokeWidth="1.5" strokeDasharray="3 2"/>
+    <svg viewBox="0 0 440 200" style={{width:"100%",maxHeight:"100%"}}>
+      {mb.mfc.map((d,i)=>{const y=22+i*44;const col=["#00aaff","#ffaa00","#00cc66","#cc44ff"][i];return(<g key={d.id} opacity={d.enabled?1:.3}>
+        <rect x="4" y={y} width="46" height="32" rx="4" fill={T.svgBg} stroke={col} strokeWidth="1"/>
+        <text x="27" y={y+14} textAnchor="middle" fill={col} fontSize="7" fontWeight="600">{d.gas}</text>
+        <text x="27" y={y+24} textAnchor="middle" fill={T.textD} fontSize="5">{d.pv.toFixed(1)} {d.unit}</text>
+        <rect x="62" y={y+5} width="32" height="22" rx="3" fill={T.svgBg} stroke={T.svgS}/>
+        <text x="78" y={y+18} textAnchor="middle" fill={col} fontSize="6" fontWeight="600">MFC</text>
+        <line x1="50" y1={y+16} x2="62" y2={y+16} stroke={col} strokeWidth="1.5"/>
+        <line x1="94" y1={y+16} x2="170" y2={100} stroke={col} strokeWidth="1.2"/>
+      </g>)})}
+      <rect x="170" y="52" width="105" height="96" rx="9" fill={T.fFill} stroke={mb.out1?"#ff4400":T.fStroke} strokeWidth="2"/>
+      <text x="222" y="72" textAnchor="middle" fill="#cc4422" fontSize="9" fontWeight="700">{D.furnace}</text>
+      <text x="222" y="94" textAnchor="middle" fill={T.pv1} fontSize="18" fontWeight="700">{mb.pv1.toFixed(1)}°C</text>
+      <text x="222" y="110" textAnchor="middle" fill={T.textD} fontSize="7">SP:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</text>
+      <text x="222" y="140" textAnchor="middle" fill={T.textD} fontSize="6">{mb.mfc.filter(d=>d.enabled).length} gaz{mb.mfc.filter(d=>d.enabled).length===1?"":"ów"} aktywn.</text>
+      <line x1="275" y1="100" x2="340" y2="100" stroke="#00aadd44" strokeWidth="1.5" strokeDasharray="3 2"/>
+      <rect x="340" y="78" width="60" height="44" rx="4" fill={T.svgBg} stroke="#00aadd" strokeWidth="1.5"/>
+      <text x="370" y="96" textAnchor="middle" fill="#00ccff" fontSize="8" fontWeight="700">{D.bridge}</text>
+      <text x="370" y="108" textAnchor="middle" fill={T.textD} fontSize="5">{D.bridgeSub}</text>
     </svg>}</div></div>
 
   <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Temperatura — {profileName||"brak profilu"}</span><span style={{fontSize:10,color:mb.regStatus==="RUN"?"#00cc66":"#ff6644"}}>● {mb.regStatus}{mb.manualMode?" MAN":" AUTO"}</span></div>
@@ -140,12 +156,32 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
       <Line type="monotone" dataKey="mv" stroke="#ffaa00" strokeWidth={1} dot={false} name="MV%" isAnimationActive={false}/>
       <Legend wrapperStyle={{fontSize:9}}/></LineChart></ResponsiveContainer></div></div>
 
-  <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Przepływ gazu</span></div>
+  <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Przepływ gazu — 4 kanały MFC</span>
+    <div style={{display:"flex",gap:4}}>{mb.mfc.map((d,i)=>d.enabled&&<span key={d.id} style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:["#00aaff22","#ffaa0022","#00cc6622","#cc44ff22"][i],color:["#44bbff","#ffbb33","#33dd77","#dd66ff"][i],fontWeight:600}}>{d.gas}</span>)}</div></div>
     <div style={{flex:1,minHeight:0}}>
-    <ResponsiveContainer width="100%" height="100%"><AreaChart data={hist.slice(-80)}>
+    <ResponsiveContainer width="100%" height="100%"><LineChart data={hist.slice(-80)}>
       <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:9}} stroke={T.grid} interval="preserveStartEnd"/><YAxis tick={{fill:T.tick,fontSize:9}} stroke={T.grid}/><Tooltip {...TT}/>
-      <Area type="monotone" dataKey="pv2" stroke="#00aaff" fill="#00aaff15" strokeWidth={2} name="l/min" isAnimationActive={false}/>
-      <Legend wrapperStyle={{fontSize:9}}/></AreaChart></ResponsiveContainer></div></div>
+      <Line type="monotone" dataKey="mfc1" stroke="#00aaff" strokeWidth={2} dot={false} name={mb.mfc[0]?.gas||"MFC1"} isAnimationActive={false}/>
+      <Line type="monotone" dataKey="mfc2" stroke="#ffaa00" strokeWidth={2} dot={false} name={mb.mfc[1]?.gas||"MFC2"} isAnimationActive={false}/>
+      <Line type="monotone" dataKey="mfc3" stroke="#00cc66" strokeWidth={2} dot={false} name={mb.mfc[2]?.gas||"MFC3"} isAnimationActive={false}/>
+      <Line type="monotone" dataKey="mfc4" stroke="#cc44ff" strokeWidth={2} dot={false} name={mb.mfc[3]?.gas||"MFC4"} isAnimationActive={false}/>
+      <Legend wrapperStyle={{fontSize:9}}/></LineChart></ResponsiveContainer></div></div>
+
+  <div style={{...S.card,gridColumn:"1 / -1"}}>
+    <div style={S.title}><span>Panel MFC — status przepływomierzy</span></div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+      {mb.mfc.map((d,i)=>{const col=["#00aaff","#ffaa00","#00cc66","#cc44ff"][i];return(
+        <div key={d.id} style={{...S.box,borderColor:d.enabled?col:T.boxBorder,opacity:d.enabled?1:.5}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <span style={{fontSize:11,fontWeight:700,color:col}}>{d.name}</span>
+            <span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:d.enabled?`${col}22`:T.badgeOff,color:d.enabled?col:T.badgeOffT,fontWeight:600}}>{d.enabled?"ON":"OFF"}</span></div>
+          <div style={{fontSize:9,color:T.textM,marginBottom:4}}>{d.gas} — {d.gasComposition}</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+            <div><span style={{fontSize:18,fontWeight:700,color:col,fontFamily:"monospace"}}>{d.pv.toFixed(1)}</span><span style={{fontSize:9,color:T.textD,marginLeft:2}}>{d.unit}</span></div>
+            <div style={{textAlign:"right"}}><div style={{fontSize:8,color:T.textD}}>SP</div><span style={{fontSize:12,fontWeight:600,color:T.textM,fontFamily:"monospace"}}>{d.sp.toFixed(1)}</span></div></div>
+          <div style={{marginTop:4,height:3,borderRadius:2,background:T.gTrack}}><div style={{height:"100%",borderRadius:2,background:col,width:`${d.maxFlow>0?Math.min(100,(d.pv/d.maxFlow)*100):0}%`}}/></div>
+        </div>)})}
+    </div></div>
 
   <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Sterowanie eksperymentem</span>
     <span style={{fontSize:10,color:mb.progStatus==="RUN"?"#00cc66":T.textD}}>{mb.progStatus==="RUN"?`▶ Etap ${mb.progStage}`:"STOP"}</span></div>
@@ -397,8 +433,10 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
     setUsers(u=>({...u,[l]:{password:newUser.password,role:newUser.role,name:newUser.name||l,firstName:newUser.firstName,lastName:newUser.lastName,email:newUser.email,phone:newUser.phone}}));setNewUser(emptyUser);setShowAdd(false);addLog(`Nowy użytkownik: ${l}`,"config");toast(`Dodano: ${l}`,"success")};
   const delUser=(login)=>{if(login==="admin"){toast("Nie można usunąć admina","error");return;}setUsers(u=>{const n={...u};delete n[login];return n});addLog(`Usunięto użytkownika: ${login}`,"config");toast(`Usunięto: ${login}`,"info");if(editUser===login)setEditUser(null)};
 
-  const tabs=[["ctrl","🌡 Kontroler"],["diag","🖼 Diagram"],["ws","🔌 WebSocket"],["db","🗄 Baza"]];
+  const tabs=[["ctrl","🌡 Kontroler"],["mfc","🔧 MFC"],["diag","🖼 Diagram"],["ws","🔌 WebSocket"],["db","🗄 Baza"]];
   if(isAdmin)tabs.push(["users","👥 Użytkownicy"]);
+  const mfcUnits=["sccm","slm","l/min"];
+  const updMfc=(idx,k,v)=>setMb(m=>({...m,mfc:m.mfc.map((d,i)=>i===idx?{...d,[k]:v}:d)}));
 
   return(<div>
     <div style={{display:"flex",gap:4,marginBottom:10}}>
@@ -407,6 +445,29 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
       {[["Addr MODBUS",mb.modbusAddr,"modbusAddr","number"],["Baud",mb.baudRate,"baudRate","number"],["IP",mb.ethIP,"ethIP","text"],["Port TCP",mb.ethPort,"ethPort","number"],["MQTT Broker",mb.mqttBroker,"mqttBroker","text"],["MQTT Port",mb.mqttPort,"mqttPort","number"]].map(([l,v,k,t])=>
         <F key={l} label={l}><input type={t} defaultValue={v} style={S.input} onChange={e=>setMb(m=>({...m,[k]:t==="number"?parseFloat(e.target.value)||0:e.target.value}))}/></F>)}</div>
       <button style={{...S.btn,marginTop:8,background:"#0077b6"}} onClick={()=>{addLog("Config kontroler zapisana","config");toast("OK","success")}}>💾 Zapisz</button></div>}
+    {tab==="mfc"&&<div style={{display:"grid",gap:12}}>
+      <div style={{...S.title,margin:0,border:"none",paddingBottom:0}}><span>Przepływomierze MFC MKS — MODBUS Ethernet</span><span style={{fontSize:10,color:T.textD}}>{mb.mfc.filter(d=>d.enabled).length}/{mb.mfc.length} aktywnych</span></div>
+      {mb.mfc.map((d,i)=>(<div key={d.id} style={{...S.card,opacity:d.enabled?1:.6}}>
+        <div style={{...S.title,marginBottom:8}}><span style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:14}}>{d.enabled?"🟢":"⚪"}</span>
+          <span>{d.name} — {d.gas}</span></span>
+          <label style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:T.textM,cursor:"pointer"}}>
+            <input type="checkbox" checked={d.enabled} onChange={e=>updMfc(i,"enabled",e.target.checked)}/> Aktywny</label></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+          <F label="Nazwa urządzenia"><input value={d.name} onChange={e=>updMfc(i,"name",e.target.value)} style={S.input}/></F>
+          <F label="Gaz — nazwa"><input value={d.gas} onChange={e=>updMfc(i,"gas",e.target.value)} style={S.input} placeholder="N₂, Ar, O₂..."/></F>
+          <F label="Gaz — skład"><input value={d.gasComposition} onChange={e=>updMfc(i,"gasComposition",e.target.value)} style={S.input} placeholder="100% N₂"/></F>
+          <F label="IP Address"><input value={d.ip} onChange={e=>updMfc(i,"ip",e.target.value)} style={S.input} placeholder="192.168.1.x"/></F>
+          <F label="Port TCP"><input type="number" value={d.port} onChange={e=>updMfc(i,"port",parseInt(e.target.value)||502)} style={S.input}/></F>
+          <F label="Slave Address"><input type="number" value={d.slaveAddr} onChange={e=>updMfc(i,"slaveAddr",parseInt(e.target.value)||1)} style={S.input}/></F>
+          <F label="Max Flow"><input type="number" value={d.maxFlow} onChange={e=>updMfc(i,"maxFlow",parseFloat(e.target.value)||0)} style={S.input}/></F>
+          <F label="Jednostka"><select value={d.unit} onChange={e=>updMfc(i,"unit",e.target.value)} style={S.input}>{mfcUnits.map(u=><option key={u} value={u}>{u}</option>)}</select></F>
+          <F label="Setpoint"><input type="number" value={d.sp} onChange={e=>{const v=parseFloat(e.target.value)||0;updMfc(i,"sp",v)}} style={S.input}/></F>
+        </div></div>))}
+      <div style={{display:"flex",gap:8}}>
+        <button style={{...S.btn,background:"#0077b6"}} onClick={()=>{sendCmd("mfc_config",{mfc:mb.mfc});addLog("MFC config wysłana","config");toast("Konfiguracja MFC zapisana","success")}}>💾 Zapisz konfigurację MFC</button>
+        <button style={{...S.btn,background:"#226644"}} onClick={()=>{mb.mfc.forEach(d=>{if(d.enabled)sendCmd("mfc_setpoint",{id:d.id,sp:d.sp})});toast("SP MFC wysłane","success")}}>📤 Wyślij SP wszystkich</button>
+      </div></div>}
     {tab==="diag"&&<div style={{display:"grid",gap:12}}>
       <div style={S.card}><div style={S.title}><span>Nazwy elementów schematu</span></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
@@ -714,9 +775,16 @@ export default function App(){
   const applyLvMessage=useCallback((msg)=>{
     const type=msg?.type||msg?.kind;const data=msg?.data??msg?.payload??msg;
     if(!type)return;wsLastMsg.current=Date.now();
-    if(type==="measurement_update"){setMb(m=>({...m,...data}));
+    if(type==="measurement_update"){
+      const mfcData=Array.isArray(data.mfc)?data.mfc:null;
+      const rest={...data};delete rest.mfc;
+      setMb(m=>{const next={...m,...rest};
+        if(mfcData){next.mfc=m.mfc.map(d=>{const upd=mfcData.find(x=>x.id===d.id);return upd?{...d,pv:upd.pv??d.pv,sp:upd.sp??d.sp,enabled:upd.enabled??d.enabled}:d})}
+        return next});
       const t=new Date();const label=`${String(t.getMinutes()).padStart(2,"0")}:${String(t.getSeconds()).padStart(2,"0")}`;
-      setHist(h=>[...h,{t:label,pv1:+(data.pv1??0),pv2:+(data.pv2??0),sp1:+(data.sp1??0),ch3:+(data.ch3??0),mv:+(data.mv??0),outA:+(data.outAnalog??0)}].slice(-150));return;}
+      const hp={t:label,pv1:+(data.pv1??0),pv2:+(data.pv2??0),sp1:+(data.sp1??0),ch3:+(data.ch3??0),mv:+(data.mv??0),outA:+(data.outAnalog??0)};
+      if(mfcData){mfcData.forEach(x=>{if(x.id>=1&&x.id<=4)hp[`mfc${x.id}`]=+(x.pv??0)})}
+      setHist(h=>[...h,hp].slice(-150));return;}
     if(type==="status_update"){setMb(m=>({...m,...data}));return;}
     if(type==="alarm_event"){const sev=data?.sev||"warning";const msgT=data?.msg||"alarm";const latch=!!data?.latch;
       setMb(m=>({...m,alarmSTB:true,alarmLATCH:latch?true:m.alarmLATCH}));sAlog(a=>[...a,{time:new Date().toLocaleTimeString("pl-PL"),sev,msg:msgT}].slice(-100));return;}
@@ -782,10 +850,13 @@ export default function App(){
       else if(m.regStatus==="RUN"&&m.manualMode){mv=m.mvManual;pv1+=(mv/100)*.6-.12+n1*.15;}else{pv1-=.08-n1*.1;mv=0;intg=0;}
       const pv2=Math.max(0,m.pv2+n2*.2);const outAnalog=4+(Math.max(0,Math.min(1,pv1/500))*16);
       const alarm1=pv1>sp1+m.hyst*5,alarm2=pv1<sp1-m.hyst*10,alarmSTB=alarm1||alarm2,alarmLATCH=m.alarmLATCH||alarmSTB;
-      return{...base,pv1,pv2,ch3:(pv1+pv2)/2,mv,sp1,out1:mv>3,out2:alarm1,outAnalog,alarm1,alarm2,alarmSTB,alarmLATCH,pidI:intg,pidPrevE:pErr,progStage:pStg,progStatus:pSt,progElapsed:pEl};});
+      const mfcSim=m.mfc.map(d=>{if(!d.enabled)return{...d,pv:0};const drift=(Math.random()-.5)*d.maxFlow*0.02;return{...d,pv:Math.max(0,Math.min(d.maxFlow,d.sp+drift))}});
+      return{...base,pv1,pv2,ch3:(pv1+pv2)/2,mv,sp1,out1:mv>3,out2:alarm1,outAnalog,alarm1,alarm2,alarmSTB,alarmLATCH,pidI:intg,pidPrevE:pErr,progStage:pStg,progStatus:pSt,progElapsed:pEl,mfc:mfcSim};});
     // History point (works for both demo and WS modes — WS updates via applyLvMessage also push history)
     const m=mbRef.current;if(!m.wsConnected){const now=new Date();const t=`${now.getMinutes().toString().padStart(2,"0")}:${now.getSeconds().toString().padStart(2,"0")}`;
-    setHist(h=>[...h.slice(-150),{t,pv1:m.pv1,pv2:m.pv2,sp1:m.sp1,ch3:m.ch3,mv:m.manualMode?m.mvManual:m.mv,outA:m.outAnalog}]);}
+    const hp={t,pv1:m.pv1,pv2:m.pv2,sp1:m.sp1,ch3:m.ch3,mv:m.manualMode?m.mvManual:m.mv,outA:m.outAnalog};
+    m.mfc.forEach(d=>{hp[`mfc${d.id}`]=d.pv});
+    setHist(h=>[...h.slice(-150),hp]);}
     if(m.alarm1&&!prevA.current.a1)addAlm(`HI: PV=${m.pv1.toFixed(1)}°C`,"danger");
     if(m.alarm2&&!prevA.current.a2)addAlm(`LO: PV=${m.pv1.toFixed(1)}°C`,"warning");
     prevA.current={a1:m.alarm1,a2:m.alarm2};
@@ -835,7 +906,16 @@ export default function App(){
             <div style={{fontSize:17,fontWeight:700,color:mb.alarm1?T.pv1A:T.pv1,fontFamily:"monospace"}}>{mb.pv1.toFixed(1)}<span style={{fontSize:9,color:T.textD}}>°C</span></div>
             <div style={{fontSize:9,color:T.textD}}>SP:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</div>
             <div style={{fontSize:12,fontWeight:600,color:T.pv2,fontFamily:"monospace",marginTop:3}}>{mb.pv2.toFixed(1)}<span style={{fontSize:9,color:T.textD}}> l/min</span></div>
-          </div></nav>
+          </div>
+          <div style={{marginTop:8,padding:6,borderTop:`1px solid ${T.titleB}`}}>
+            <div style={{color:T.textD,fontSize:8,fontWeight:700,letterSpacing:1,marginBottom:4,textTransform:"uppercase"}}>MFC Flow</div>
+            <div style={{display:"flex",flexDirection:"column",gap:3}}>
+              {mb.mfc.map((d,i)=>{const col=["#00aaff","#ffaa00","#00cc66","#cc44ff"][i];return(
+                <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",opacity:d.enabled?1:.35}}>
+                  <span style={{fontSize:9,color:col,fontWeight:600}}>{d.gas}</span>
+                  <span style={{fontSize:10,fontFamily:"monospace",color:d.enabled?col:T.textD}}>{d.pv.toFixed(1)}<span style={{fontSize:7,color:T.textD}}> {d.unit}</span></span>
+                </div>)})}
+            </div></div></nav>
         <main style={{flex:1,padding:12,minHeight:0,overflowY:"auto",overflowX:"hidden"}}>
           {ac===1&&<P1 mb={mb} setMb={setMb} hist={hist} alog={alog} profileName={profileName} setProfileName={setProfileName} diagram={diagram} customSvg={customSvg} segs={segs} setSegs={setSegs} sample={sample} setSample={setSample} user={user} addLog={addLog} toast={toast} goPage={sAc} sendCmd={sendCmd} experiments={experiments} setExperiments={setExperiments} T={T}/>}
           {ac===2&&<P2 mb={mb} setMb={setMb} toast={toast} segs={segs} setSegs={setSegs} profileName={profileName} setProfileName={setProfileName} addLog={addLog} goPage={sAc} sendCmd={sendCmd} T={T}/>}

@@ -107,7 +107,7 @@ Gdy WS jest rozłączony, dashboard przechodzi w tryb symulacji:
 
 ---
 
-## TX: Komendy Web → LabVIEW (10 typów)
+## TX: Komendy Web → LabVIEW (12 typów)
 
 ### 1. `setpoint_command` — Zmiana setpointu
 
@@ -422,6 +422,66 @@ Struktura identyczna jak `report_create`. Pole `id` identyfikuje istniejący rap
 
 ---
 
+### 11. `mfc_config` — Konfiguracja przepływomierzy MFC
+
+**Wyzwalacz:** P4 Konfiguracja MFC → przycisk Zapisz / Wyślij konfigurację MFC
+
+```json
+{
+  "type": "mfc_config",
+  "ts": "2026-02-11T10:30:00.000Z",
+  "user": {"username": "admin", "role": "admin"},
+  "data": {
+    "mfc": [
+      {"id": 1, "name": "MFC-1", "gas": "N₂", "gasComposition": "100% N₂", "ip": "192.168.1.101", "port": 502, "slaveAddr": 1, "maxFlow": 500, "unit": "sccm", "enabled": true},
+      {"id": 2, "name": "MFC-2", "gas": "Ar", "gasComposition": "100% Ar", "ip": "192.168.1.102", "port": 502, "slaveAddr": 1, "maxFlow": 200, "unit": "sccm", "enabled": true},
+      {"id": 3, "name": "MFC-3", "gas": "O₂", "gasComposition": "100% O₂", "ip": "192.168.1.103", "port": 502, "slaveAddr": 1, "maxFlow": 100, "unit": "sccm", "enabled": false},
+      {"id": 4, "name": "MFC-4", "gas": "H₂S", "gasComposition": "10 ppm H₂S/N₂", "ip": "192.168.1.104", "port": 502, "slaveAddr": 1, "maxFlow": 50, "unit": "sccm", "enabled": false}
+    ]
+  }
+}
+```
+
+| Pole data             | Typ     | Opis                                      |
+|-----------------------|---------|-------------------------------------------|
+| `mfc`                 | array   | Tablica 4 przepływomierzy MFC MKS         |
+| `mfc[].id`            | number  | ID przepływomierza (1–4)                   |
+| `mfc[].name`          | string  | Nazwa urządzenia                           |
+| `mfc[].gas`           | string  | Nazwa gazu (N₂, Ar, O₂, H₂S)             |
+| `mfc[].gasComposition`| string  | Skład gazu (np. "100% N₂", "10 ppm H₂S/N₂") |
+| `mfc[].ip`            | string  | IP MODBUS Ethernet                         |
+| `mfc[].port`          | number  | Port TCP (domyślnie 502)                   |
+| `mfc[].slaveAddr`     | number  | Adres slave MODBUS                         |
+| `mfc[].maxFlow`       | number  | Maksymalny przepływ                        |
+| `mfc[].unit`          | string  | Jednostka (sccm/slm/l/min)                |
+| `mfc[].enabled`       | boolean | Czy aktywny                                |
+
+> Wysyłana jest **pełna konfiguracja** wszystkich 4 MFC jednocześnie.
+
+---
+
+### 12. `mfc_setpoint` — Setpoint pojedynczego MFC
+
+**Wyzwalacz:** P2 / Panel MFC → zmiana setpointu przepływomierza
+
+```json
+{
+  "type": "mfc_setpoint",
+  "ts": "2026-02-11T10:31:00.000Z",
+  "user": {"username": "operator", "role": "user"},
+  "data": {"id": 1, "sp": 150.0}
+}
+```
+
+| Pole data | Typ    | Jednostka | Opis                                    |
+|-----------|--------|-----------|-----------------------------------------|
+| `id`      | number | —         | ID przepływomierza (1–4)                 |
+| `sp`      | float  | sccm      | Żądany setpoint przepływu                |
+
+> Wysyłana jest zmiana setpointu dla **pojedynczego** MFC.
+
+---
+
 ## RX: Wiadomości LabVIEW → Web (5 typów)
 
 ### 1. `measurement_update` — Dane pomiarowe (cykliczne)
@@ -440,7 +500,11 @@ Struktura identyczna jak `report_create`. Pole `id` identyfikuje istniejący rap
     "mv": 67.4,
     "outAnalog": 12.8,
     "out1": true,
-    "manualMode": false
+    "manualMode": false,
+    "mfc": [
+      {"id": 1, "pv": 148.5, "sp": 150.0, "enabled": true},
+      {"id": 2, "pv": 95.2, "sp": 100.0, "enabled": true}
+    ]
   }
 }
 ```
@@ -455,6 +519,13 @@ Struktura identyczna jak `report_create`. Pole `id` identyfikuje istniejący rap
 | `outAnalog`  | float   | mA        | Wyjście analogowe (4–20 mA)    |
 | `out1`       | boolean | —         | Wyjście cyfrowe 1 (grzanie)    |
 | `manualMode` | boolean | —         | Aktualny tryb                  |
+| `mfc`        | array   | —         | Tablica aktywnych MFC (opcjonalne) |
+| `mfc[].id`   | number  | —         | ID przepływomierza (1–4)       |
+| `mfc[].pv`   | float   | sccm      | Aktualny przepływ              |
+| `mfc[].sp`   | float   | sccm      | Setpoint przepływu             |
+| `mfc[].enabled`| boolean| —        | Czy aktywny                    |
+
+> Pole `mfc` jest **opcjonalne** — pojawia się tylko gdy przepływomierze MFC są skonfigurowane i aktywne.
 
 **Efekt w UI:**
 - Aktualizuje wskaźniki, gauge'e, wykresy
@@ -600,7 +671,7 @@ Alias: `mb_snapshot`
 
 ## Podsumowanie — mapa komend
 
-### TX (Web → LabVIEW): 10 typów
+### TX (Web → LabVIEW): 12 typów
 
 | # | type                | Źródło     | Wyzwalacz                        |
 |---|---------------------|------------|----------------------------------|
@@ -615,16 +686,18 @@ Alias: `mb_snapshot`
 | 8 | `report_create`     | P7         | Nowy raport pomiarowy            |
 | 9 | `report_update`     | P7         | Edycja istniejącego raportu      |
 | 10| `config_update`     | P4         | Zapisanie konfiguracji           |
+| 11| `mfc_config`        | P4         | Konfiguracja przepływomierzy MFC |
+| 12| `mfc_setpoint`      | P2/MFC     | Zmiana setpointu pojedynczego MFC|
 
 ### RX (LabVIEW → Web): 5 typów
 
-| # | type                 | Efekt                                      |
-|---|----------------------|--------------------------------------------|
-| 1 | `measurement_update` | Aktualizacja PV/SP/MV + wykres (cykliczne) |
-| 2 | `status_update`      | Status regulacji, program, PID             |
-| 3 | `alarm_event`        | Dodanie alarmu, latch                      |
-| 4 | `profile_status`     | Status profilu segmentowego                |
-| 5 | `state_snapshot`     | Pełna synchronizacja stanu (bulk)          |
+| # | type                 | Efekt                                              |
+|---|----------------------|----------------------------------------------------|
+| 1 | `measurement_update` | Aktualizacja PV/SP/MV + wykres + MFC (cykliczne)   |
+| 2 | `status_update`      | Status regulacji, program, PID                     |
+| 3 | `alarm_event`        | Dodanie alarmu, latch                              |
+| 4 | `profile_status`     | Status profilu segmentowego                        |
+| 5 | `state_snapshot`     | Pełna synchronizacja stanu (bulk)                  |
 
 ---
 
@@ -689,6 +762,24 @@ Obiekt `mb` jest centralnym stanem sterującym całym UI. Poniżej wszystkie pol
 | `progStage`  | int    | 0         | Aktualny etap (0 = nie działa)|
 | `progStatus` | string | "STOP"    | "RUN" / "STOP"                |
 | `progElapsed`| int    | 0         | Czas w aktualnym etapie [s]   |
+
+### Przepływomierze MFC
+
+| Pole               | Typ      | Domyślnie | Opis                                    |
+|--------------------|----------|-----------|------------------------------------------|
+| `mfc`              | Array[4] | []        | Tablica 4 przepływomierzy MFC MKS        |
+| `mfc[].id`         | number   | —         | ID przepływomierza (1–4)                 |
+| `mfc[].name`       | string   | —         | Nazwa urządzenia                          |
+| `mfc[].gas`        | string   | —         | Nazwa gazu (N₂, Ar, O₂, H₂S)            |
+| `mfc[].gasComposition` | string | —      | Skład gazu                                |
+| `mfc[].ip`         | string   | —         | IP MODBUS Ethernet                        |
+| `mfc[].port`       | number   | 502       | Port TCP (domyślnie 502)                  |
+| `mfc[].slaveAddr`  | number   | 1         | Adres slave MODBUS                        |
+| `mfc[].maxFlow`    | number   | —         | Maksymalny przepływ                       |
+| `mfc[].unit`       | string   | "sccm"    | Jednostka (sccm/slm/l/min)               |
+| `mfc[].pv`         | number   | 0         | Aktualny przepływ                         |
+| `mfc[].sp`         | number   | 0         | Setpoint                                  |
+| `mfc[].enabled`    | boolean  | false     | Czy aktywny                               |
 
 ### Komunikacja
 

@@ -10,13 +10,14 @@
 6. [Odbiór komend Web→LV — parser i dispatcher](#6-odbiór-komend-weblv--parser-i-dispatcher)
 7. [Budowanie i wysyłanie telemetrii LV→Web](#7-budowanie-i-wysyłanie-telemetrii-lvweb)
 8. [Pętla pomiarowa i PID](#8-pętla-pomiarowa-i-pid)
-9. [Profil segmentowy (program temperaturowy)](#9-profil-segmentowy-program-temperaturowy)
-10. [Alarmy](#10-alarmy)
-11. [Logowanie danych](#11-logowanie-danych)
-12. [WebView2 (tryb kiosk)](#12-webview2-tryb-kiosk)
-13. [Shutdown i cleanup](#13-shutdown-i-cleanup)
-14. [Diagram przepływu danych](#14-diagram-przepływu-danych)
-15. [Checklist implementacji](#15-checklist-implementacji)
+9. [Komunikacja z MFC MKS przez MODBUS Ethernet](#9-komunikacja-z-mfc-mks-przez-modbus-ethernet)
+10. [Profil segmentowy (program temperaturowy)](#10-profil-segmentowy-program-temperaturowy)
+11. [Alarmy](#11-alarmy)
+12. [Logowanie danych](#12-logowanie-danych)
+13. [WebView2 (tryb kiosk)](#13-webview2-tryb-kiosk)
+14. [Shutdown i cleanup](#14-shutdown-i-cleanup)
+15. [Diagram przepływu danych](#15-diagram-przepływu-danych)
+16. [Checklist implementacji](#16-checklist-implementacji)
 
 ---
 
@@ -514,7 +515,114 @@ K  = współczynnik skalowania (dostosuj do procesu, np. 20)
 
 ---
 
-## 9. Profil segmentowy (program temperaturowy)
+## 9. Komunikacja z MFC MKS przez MODBUS Ethernet
+
+### Architektura
+
+Dashboard obsługuje 4 przepływomierze MFC MKS podłączone przez MODBUS TCP/IP (Ethernet). Każdy MFC ma indywidualny adres IP i adres slave.
+
+### Typowa mapa rejestrów MODBUS dla MKS MFC
+
+| Rejestr | Typ | Opis |
+|---------|-----|------|
+| 40001 (0x0000) | Holding | Process Variable (PV) — aktualny przepływ |
+| 40002 (0x0001) | Holding | Setpoint (SP) — zadany przepływ |
+| 40003 (0x0002) | Holding | Valve position — pozycja zaworu |
+| 40005 (0x0004) | Holding | Gas correction factor |
+| 40010 (0x0009) | Holding | Full scale range |
+| 40101 (0x0064) | Holding | Device status / error code |
+
+> **Uwaga:** Dokładna mapa rejestrów zależy od modelu MFC MKS. Należy zweryfikować z dokumentacją konkretnego urządzenia.
+
+### VI: MFC_Init.vi
+
+Inicjalizacja połączeń MODBUS TCP do 4 przepływomierzy.
+
+**Wejścia:**
+- `MFC Config` (cluster array [4]): IP, port, slaveAddr, maxFlow, unit, enabled
+
+**Wyjścia:**
+- `TCP Connections` (array [4] of refnum): Otwarte połączenia TCP
+- `Error Out`
+
+**Działanie:**
+1. Iteruj po 4 konfiguracjach MFC
+2. Dla każdego enabled=true → TCP Open Connection (IP, port)
+3. Zapisz refnum do tablicy
+4. Dla enabled=false → refnum = 0 (nie łącz)
+
+### VI: MFC_ReadFlow.vi
+
+Odczyt aktualnego przepływu z jednego MFC.
+
+**Wejścia:**
+- `TCP Connection` (refnum)
+- `Slave Address` (U8)
+- `Register Address` (U16, domyślnie 0x0000)
+
+**Wyjścia:**
+- `Flow PV` (DBL) — aktualny przepływ
+- `Error Out`
+
+**Działanie:**
+1. MODBUS TCP Frame: Transaction ID (2B) + Protocol ID (2B, 0x0000) + Length (2B) + Unit ID (1B) + Function Code 0x03 (Read Holding Registers) + Start Register (2B) + Qty (2B, 1)
+2. TCP Write → TCP Read (odpowiedź)
+3. Parse: wyciągnij 2 bajty danych → skaluj do jednostki przepływu
+4. Jeśli odpowiedź zawiera exception code → raportuj błąd
+
+### VI: MFC_WriteSetpoint.vi
+
+Zapis setpointu do jednego MFC.
+
+**Wejścia:**
+- `TCP Connection` (refnum)
+- `Slave Address` (U8)
+- `Setpoint` (DBL)
+- `Register Address` (U16, domyślnie 0x0001)
+
+**Wyjścia:**
+- `Error Out`
+
+**Działanie:**
+1. Skaluj setpoint do wartości rejestrowej (0–65535 odpowiada 0–maxFlow)
+2. MODBUS TCP Frame: Function Code 0x06 (Write Single Register) + Register (2B) + Value (2B)
+3. TCP Write → TCP Read (potwierdzenie echo)
+4. Weryfikuj echo odpowiedzi
+
+### Integracja w pętli głównej
+
+W pętli Control Loop (co 500ms):
+
+```
+For Each MFC (i = 0..3):
+  If MFC[i].enabled:
+    PV = MFC_ReadFlow(conn[i], slaveAddr[i])
+    FGV("mfc_pv", i, PV)
+
+    If newSetpoint[i]:
+      MFC_WriteSetpoint(conn[i], slaveAddr[i], SP[i])
+```
+
+W pętli Publish (co recInterval):
+- Dodaj do `measurement_update.data.mfc` tablicę [{id, pv, sp, enabled}, ...]
+
+### Obsługa komend z Dashboard
+
+W Command Processor, nowe case'y:
+
+- **`mfc_config`**: Aktualizuj FGV z konfiguracją 4 MFC. Zamknij stare połączenia TCP i otwórz nowe przez MFC_Init.vi.
+- **`mfc_setpoint`**: Zapisz nowy SP dla danego MFC (identyfikuj po `data.id`). Wyślij przez MFC_WriteSetpoint.vi.
+
+### Diagnostyka i bezpieczeństwo
+
+- **Timeout TCP**: 2000ms na odpowiedź MODBUS. Po 3 timeout → oznacz MFC jako offline.
+- **Limit przepływu**: Przed zapisem SP sprawdź czy wartość <= maxFlow.
+- **Reconnect**: Jeśli TCP disconnect → auto-reconnect co 5s.
+- **Logging**: Każda zmiana SP logowana do CSV z timestamp i user.
+
+---
+
+## 10. Profil segmentowy (program temperaturowy)
 
 ### Ctrl_Profile_Engine.vi
 
@@ -594,7 +702,7 @@ Po każdej zmianie etapu wyślij:
 
 ---
 
-## 10. Alarmy
+## 11. Alarmy
 
 ### Ctrl_Alarm_Manager.vi
 
@@ -647,7 +755,7 @@ prev_alarm_LO = alarm_LO
 
 ---
 
-## 11. Logowanie danych
+## 12. Logowanie danych
 
 ### Data_LogWriter.vi
 
@@ -690,7 +798,7 @@ Lub INSERT do bazy PostgreSQL/SQLite
 
 ---
 
-## 12. WebView2 (tryb kiosk)
+## 13. WebView2 (tryb kiosk)
 
 ### WebUI_OpenWebView.vi
 
@@ -719,7 +827,7 @@ System Exec.vi:
 
 ---
 
-## 13. Shutdown i cleanup
+## 14. Shutdown i cleanup
 
 ### WebUI_Shutdown.vi
 
@@ -746,7 +854,7 @@ System Exec.vi:
 
 ---
 
-## 14. Diagram przepływu danych
+## 15. Diagram przepływu danych
 
 ```
                     ┌───────────────────────┐
@@ -793,7 +901,7 @@ System Exec.vi:
 
 ---
 
-## 15. Checklist implementacji
+## 16. Checklist implementacji
 
 ### Faza 1: Minimalna komunikacja (dzień 1–2)
 
