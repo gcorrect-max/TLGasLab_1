@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const APP_NAME = "Laboratorium badania cienkich warstw dla sensorów gazu";
@@ -9,7 +9,7 @@ const TH={
   light:{bg:"linear-gradient(180deg,#f0f4f8,#e8ecf0)",headerBg:"linear-gradient(90deg,#fff,#f5f7fa,#fff)",sidebarBg:"#f5f7fa",cardBg:"linear-gradient(145deg,#fff,#f8fafc)",cardBorder:"#d0d8e0",inputBg:"#fff",inputBorder:"#c0c8d0",inputText:"#2a3040",boxBg:"#f5f7fa",boxBorder:"#d0d8e0",text:"#2a3040",textM:"#5a6a7a",textD:"#8a9aaa",textB:"#1a2030",textA:"#0077b6",titleC:"#5a6a7a",titleB:"#e0e4e8",gTrack:"#e0e4e8",gText:"#1a2030",gUnit:"#6a7a8a",grid:"#e0e4e8",tick:"#8a9aaa",badgeOff:"#f0f2f4",badgeOffB:"#d8dce0",badgeOffT:"#a0a8b0",ledOff:"#d0d8e0",ledOffB:"#b0b8c0",ledOn:"#2a3040",ledOffT:"#8a9aaa",tblB:"#e8ecf0",tblH:"#f5f7fa",tblT:"#3a4a5a",scroll:"#c0c8d0",selBg:"#fff",logoBg:"linear-gradient(135deg,#0077b6,#005f8a)",userBg:"#e8ecf0",userB:"#d0d8e0",userT:"#4a6a8a",loBg:"#fff0f0",loB:"#f0c0c0",loT:"#cc4455",footBg:"#e8ecf0",footB:"#d0d8e0",footT:"#7a8a9a",footL:"#0077b6",svgBg:"#e8f0f8",svgS:"#b0c8d8",fFill:"#fff0ee",fStroke:"#d0a8a0",pv1:"#dd5522",pv1A:"#cc2233",pv2:"#2277cc",tEr:"#fff0f0",tOk:"#f0fff4",tIn:"#f0f6ff",loginBg:"linear-gradient(135deg,#e8ecf0,#f0f4f8,#e4e8ec)",loginCard:"linear-gradient(145deg,#fff,#f5f7fa)",loginCardB:"#d0d8e0",actTab:"linear-gradient(135deg,#e0f0ff,#d0e8f8)",ttBg:"#fff",codeBg:"#f5f7fa",codeB:"#d0d8e0",codeT:"#226644",logAlt:"#f5f7fa"}
 };
 
-const USERS_INIT={admin:{password:"admin123",role:"admin",name:"Administrator",firstName:"Jan",lastName:"Kowalski",email:"admin@lab.pl",phone:"+48 600 100 100"},operator:{password:"oper123",role:"user",name:"Operator",firstName:"Anna",lastName:"Nowak",email:"operator@lab.pl",phone:""},student:{password:"stud123",role:"student",name:"Student",firstName:"",lastName:"",email:"",phone:""},guest:{password:"guest",role:"guest",name:"Gość",firstName:"",lastName:"",email:"",phone:""}};
+const USERS_INIT={admin:{password:"admin123",role:"admin",name:"Administrator",firstName:"Jan",lastName:"Kowalski",email:"admin@lab.pl",phone:"+48 600 100 100",theme:"dark"},operator:{password:"oper123",role:"user",name:"Operator",firstName:"Anna",lastName:"Nowak",email:"operator@lab.pl",phone:"",theme:"dark"},student:{password:"stud123",role:"student",name:"Student",firstName:"",lastName:"",email:"",phone:"",theme:"dark"},guest:{password:"guest",role:"guest",name:"Gość",firstName:"",lastName:"",email:"",phone:"",theme:"dark"}};
 const ROLE_ACCESS={admin:[1,2,3,7,4,5,6],user:[1,2,3,7,4,5,6],student:[1,2,3,7],guest:[1]};
 
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
@@ -83,6 +83,8 @@ const crd={...S.card,display:"flex",flexDirection:"column",overflow:"hidden",hei
 const[showConfirm,setShowConfirm]=useState(false);
 const[pendingExp,setPendingExp]=useState(null);
 const fileRef=useRef(null);
+const[chartVis,setChartVis]=useState({profSP:true,pv1:true,pv2:true,sp1:true,mv:true});
+const togVis=k=>setChartVis(v=>({...v,[k]:!v[k]}));
 
 // ── eksport bieżącego eksperymentu do JSON ──
 const exportExp=()=>{const exp={type:"experiment",ver:APP_VER,app:APP_NAME,exportedAt:new Date().toISOString(),
@@ -142,7 +144,7 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
       <text x="227" y="88" textAnchor="middle" fill={T.pv1} fontSize="16" fontWeight="700">{mb.pv1.toFixed(1)}°C</text>
       <text x="196" y="100" textAnchor="start" fill={T.textD} fontSize="5">{mb.pv2Name||"PV2"}</text>
       <text x="227" y="114" textAnchor="middle" fill="#aa44ff" fontSize="14" fontWeight="700">{mb.pv2.toFixed(1)}°C</text>
-      <text x="227" y="128" textAnchor="middle" fill={T.textD} fontSize="6">SP:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</text>
+      <text x="227" y="128" textAnchor="middle" fill={T.textD} fontSize="6">Nastawa:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</text>
       <text x="227" y="152" textAnchor="middle" fill={T.textD} fontSize="5">{mb.mfc.filter(d=>d.enabled).length} gaz aktywn.</text>
       <line x1="275" y1="100" x2="340" y2="100" stroke="#00aadd44" strokeWidth="1.5" strokeDasharray="3 2"/>
       <rect x="340" y="78" width="60" height="44" rx="4" fill={T.svgBg} stroke="#00aadd" strokeWidth="1.5"/>
@@ -154,12 +156,16 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
     <div style={{flex:1,minHeight:0}}>
     <ResponsiveContainer width="100%" height="100%"><LineChart data={hist.slice(-80)}>
       <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:9}} stroke={T.grid} interval="preserveStartEnd"/><YAxis tick={{fill:T.tick,fontSize:9}} stroke={T.grid} domain={["auto","auto"]}/><Tooltip {...TT}/>
-      <Line type="stepAfter" dataKey="profSP" stroke="#555577" strokeWidth={2.5} strokeDasharray="8 4" dot={false} name="Profil temp." isAnimationActive={false}/>
-      <Line type="monotone" dataKey="pv1" stroke="#ff6644" strokeWidth={2} dot={false} name={mb.pv1Name||"PV1"} isAnimationActive={false}/>
-      <Line type="monotone" dataKey="pv2" stroke="#aa44ff" strokeWidth={2} dot={false} name={mb.pv2Name||"PV2"} isAnimationActive={false}/>
-      <Line type="monotone" dataKey="sp1" stroke="#00cc66" strokeWidth={1.5} strokeDasharray="5 3" dot={false} name="SP aktualny" isAnimationActive={false}/>
-      <Line type="monotone" dataKey="mv" stroke="#ffaa00" strokeWidth={1} dot={false} name="MV%" isAnimationActive={false}/>
-      <Legend wrapperStyle={{fontSize:9}}/></LineChart></ResponsiveContainer></div></div>
+      {chartVis.profSP&&<Line type="stepAfter" dataKey="profSP" stroke="#555577" strokeWidth={2.5} strokeDasharray="8 4" dot={false} name="Profil temp." isAnimationActive={false}/>}
+      {chartVis.pv1&&<Line type="monotone" dataKey="pv1" stroke="#ff6644" strokeWidth={2} dot={false} name={mb.pv1Name||"PV1"} isAnimationActive={false}/>}
+      {chartVis.pv2&&<Line type="monotone" dataKey="pv2" stroke="#aa44ff" strokeWidth={2} dot={false} name={mb.pv2Name||"PV2"} isAnimationActive={false}/>}
+      {chartVis.sp1&&<Line type="monotone" dataKey="sp1" stroke="#00cc66" strokeWidth={1.5} strokeDasharray="5 3" dot={false} name="Nastawa temperatury" isAnimationActive={false}/>}
+      {chartVis.mv&&<Line type="monotone" dataKey="mv" stroke="#ffaa00" strokeWidth={1} dot={false} name="MV%" isAnimationActive={false}/>}
+    </LineChart></ResponsiveContainer></div>
+    <div style={{display:"flex",gap:8,flexWrap:"wrap",padding:"4px 0",flexShrink:0}}>
+      {[["profSP","#555577","Profil temp."],["pv1","#ff6644",mb.pv1Name||"PV1"],["pv2","#aa44ff",mb.pv2Name||"PV2"],["sp1","#00cc66","Nastawa temp."],["mv","#ffaa00","MV%"]].map(([k,c,l])=>(
+        <label key={k} style={{display:"flex",alignItems:"center",gap:3,cursor:"pointer",fontSize:9,color:chartVis[k]?c:T.textD,opacity:chartVis[k]?1:.45,userSelect:"none"}}>
+          <input type="checkbox" checked={chartVis[k]} onChange={()=>togVis(k)} style={{width:10,height:10,accentColor:c}}/>{l}</label>))}</div></div>
 
   <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Przepływ gazu — 4 kanały MFC</span>
     <div style={{display:"flex",gap:4}}>{mb.mfc.map((d,i)=>d.enabled&&<span key={d.id} style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:["#00aaff22","#ffaa0022","#00cc6622","#cc44ff22"][i],color:["#44bbff","#ffbb33","#33dd77","#dd66ff"][i],fontWeight:600}}>{d.gas}</span>)}</div></div>
@@ -419,6 +425,12 @@ function P3({sample,setSample,toast,addLog,sendCmd,T}){const S=mkS(T);
     </div>
   </div>);}
 
+const StableInput=memo(function StableInput({value,onCommit,placeholder}){const[v,setV]=useState(value);const focused=useRef(false);const cbRef=useRef(onCommit);cbRef.current=onCommit;
+  useEffect(()=>{if(!focused.current)setV(value)},[value]);
+  return <input value={v} onChange={e=>setV(e.target.value)} onFocus={()=>{focused.current=true}} onBlur={e=>{focused.current=false;cbRef.current(e.target.value)}} placeholder={placeholder}
+    style={{width:"100%",padding:"8px 10px",borderRadius:6,border:"1px solid #1a2a3a",fontSize:13,outline:"none",background:"inherit",color:"inherit"}}/>;
+},function(p,n){return p.value===n.value&&p.placeholder===n.placeholder});
+
 // ═══ P4 KONFIGURACJA ═══
 function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,user,users,setUsers,connectWs,disconnectWs,T}){const S=mkS(T);const[tab,sTab]=useState("ctrl");
   const isAdmin=user?.role==="admin";
@@ -448,8 +460,8 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
       {tabs.map(([id,l])=><button key={id} onClick={()=>sTab(id)} style={{padding:"6px 12px",borderRadius:8,border:"none",background:tab===id?"#0077b6":T.boxBg,color:tab===id?"#fff":T.textM,fontSize:11,fontWeight:600,cursor:"pointer"}}>{l}</button>)}</div>
     {tab==="ctrl"&&<div style={{display:"grid",gap:12}}>
       <div style={S.card}><div style={S.title}><span>Nazwy kanałów temperaturowych</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-        <F label="Nazwa PV1 (termopara 1)"><input value={mb.pv1Name} onChange={e=>setMb(m=>({...m,pv1Name:e.target.value}))} style={S.input} placeholder="Termopara 1 (piec)"/></F>
-        <F label="Nazwa PV2 (termopara 2)"><input value={mb.pv2Name} onChange={e=>setMb(m=>({...m,pv2Name:e.target.value}))} style={S.input} placeholder="Termopara 2 (próbka)"/></F></div></div>
+        <div style={S.box}><div style={S.lbl}>Nazwa PV1 (termopara 1)</div><StableInput value={mb.pv1Name} onCommit={v=>setMb(m=>({...m,pv1Name:v}))} placeholder="Termopara 1 (piec)"/></div>
+        <div style={S.box}><div style={S.lbl}>Nazwa PV2 (termopara 2)</div><StableInput value={mb.pv2Name} onCommit={v=>setMb(m=>({...m,pv2Name:v}))} placeholder="Termopara 2 (próbka)"/></div></div></div>
       <div style={S.card}><div style={S.title}><span>Komunikacja AR200.B</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
         {[["Addr MODBUS",mb.modbusAddr,"modbusAddr","number"],["Baud",mb.baudRate,"baudRate","number"],["IP",mb.ethIP,"ethIP","text"],["Port TCP",mb.ethPort,"ethPort","number"],["MQTT Broker",mb.mqttBroker,"mqttBroker","text"],["MQTT Port",mb.mqttPort,"mqttPort","number"]].map(([l,v,k,t])=>
           <F key={l} label={l}><input type={t} defaultValue={v} style={S.input} onChange={e=>setMb(m=>({...m,[k]:t==="number"?parseFloat(e.target.value)||0:e.target.value}))}/></F>)}</div>
@@ -767,7 +779,7 @@ export default function App(){
   const[reports,setReports]=useState([]);
   const[experiments,setExperiments]=useState([]);
   const[users,setUsers]=useState(USERS_INIT);
-  const[wsCon,setWsCon]=useState({rx:[],tx:[]});const[showWsCon,setShowWsCon]=useState(false);
+  const[wsCon,setWsCon]=useState({rx:[],tx:[]});const[showWsCon,setShowWsCon]=useState(false);const[showUserMenu,setShowUserMenu]=useState(false);
   const mbRef=useRef(mb);mbRef.current=mb;const segRef=useRef(segs);segRef.current=segs;const prevA=useRef({a1:false,a2:false});
   const wsRef=useRef(null);const wsUrlRef=useRef(mb.wsUrl);const wsLastMsg=useRef(Date.now());const wsRecon=useRef({tries:0,timer:null});
   const T=dark?TH.dark:TH.light;const curUser=useRef("system");
@@ -871,7 +883,7 @@ export default function App(){
     prevA.current={a1:m.alarm1,a2:m.alarm2};
   },1000);return()=>clearInterval(iv);},[user,addAlm]);
 
-  if(!user)return(<div style={{height:"100vh",overflow:"hidden"}}><style>{`@keyframes si{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}`}</style><LoginScreen onLogin={u=>{setUser(u);addLog(`Login: ${u.name} (${u.role})`,"auth")}} users={users} T={T}/></div>);
+  if(!user)return(<div style={{height:"100vh",overflow:"hidden"}}><style>{`@keyframes si{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}`}</style><LoginScreen onLogin={u=>{setUser(u);setDark(u.theme!=="light");addLog(`Login: ${u.name} (${u.role})`,"auth")}} users={users} T={T}/></div>);
 
   const pages=[{id:1,label:"Eksperyment",icon:"📊"},{id:2,label:"Ustawienia temp.",icon:"🌡"},{id:3,label:"Próbka i proces",icon:"🧪"},{id:7,label:"Raporty pomiarowe",icon:"📑"},{id:4,label:"Konfiguracja",icon:"⚙"},{id:5,label:"Protokół JSON",icon:"📋"},{id:6,label:"Logi akcji",icon:"📜"}];
   const acc=pages.filter(p=>ROLE_ACCESS[user.role]?.includes(p.id));
@@ -895,10 +907,28 @@ export default function App(){
           <Led on={mb.alarmSTB} color="#ff3366" label="ALM" T={T}/>
           {mb.progStatus==="RUN"&&<Led on={true} color="#ffaa00" label={`P${mb.progStage}`} T={T}/>}
           <div style={{color:T.textD,fontSize:10,borderLeft:`1px solid ${T.cardBorder}`,paddingLeft:8,fontFamily:"monospace"}}>{mb.rtc.toLocaleTimeString("pl-PL")}</div>
-          <button onClick={()=>setDark(d=>!d)} title="Motyw" style={{width:36,height:20,borderRadius:10,border:`1px solid ${T.cardBorder}`,background:dark?"#1a2a3a":"#d0d8e0",cursor:"pointer",position:"relative",padding:0,flexShrink:0}}>
+          <button onClick={()=>{const nxt=dark?"light":"dark";setDark(d=>!d);setUser(u=>u?{...u,theme:nxt}:u);if(user)setUsers(us=>({...us,[user.username]:{...us[user.username],theme:nxt}}))}} title="Motyw" style={{width:36,height:20,borderRadius:10,border:`1px solid ${T.cardBorder}`,background:dark?"#1a2a3a":"#d0d8e0",cursor:"pointer",position:"relative",padding:0,flexShrink:0}}>
             <div style={{width:14,height:14,borderRadius:"50%",background:dark?"#00b4d8":"#ff9900",position:"absolute",top:2,left:dark?2:18,transition:"left .3s",fontSize:8,display:"flex",alignItems:"center",justifyContent:"center"}}>{dark?"🌙":"☀️"}</div></button>
-          <div style={{padding:"2px 6px",borderRadius:5,background:T.userBg,border:`1px solid ${T.userB}`,fontSize:10,color:T.userT}}>👤 {user.name}</div>
-          <button onClick={()=>{addLog(`Logout: ${user.name}`,"auth");setUser(null)}} style={{padding:"3px 8px",borderRadius:5,border:`1px solid ${T.loB}`,background:T.loBg,color:T.loT,fontSize:10,cursor:"pointer"}}>Wyloguj</button>
+          <div style={{position:"relative"}}>
+            <button onClick={()=>setShowUserMenu(v=>!v)} style={{padding:"2px 8px",borderRadius:5,background:T.userBg,border:`1px solid ${T.userB}`,fontSize:10,color:T.userT,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>👤 {user.name} <span style={{fontSize:7,opacity:.6}}>▼</span></button>
+            {showUserMenu&&<><div style={{position:"fixed",inset:0,zIndex:9998}} onClick={()=>setShowUserMenu(false)}/>
+              <div style={{position:"absolute",top:"100%",right:0,marginTop:6,width:280,background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:12,boxShadow:"0 12px 40px rgba(0,0,0,.3)",zIndex:9999,animation:"si .15s ease-out",overflow:"hidden"}}>
+                <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.cardBorder}`,display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:36,height:36,borderRadius:8,background:T.logoBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:"#fff",fontWeight:700}}>{(user.firstName||user.name||"?")[0].toUpperCase()}</div>
+                  <div><div style={{fontSize:12,fontWeight:700,color:T.textB}}>{user.firstName&&user.lastName?`${user.firstName} ${user.lastName}`:user.name}</div>
+                    <div style={{fontSize:9,color:T.textD}}>@{user.username} • <span style={{padding:"1px 4px",borderRadius:3,background:user.role==="admin"?"#ff880022":"#00aaff15",color:user.role==="admin"?"#ffaa44":"#44aadd",fontWeight:600}}>{user.role}</span></div></div></div>
+                <div style={{padding:"8px 12px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,fontSize:10,borderBottom:`1px solid ${T.cardBorder}`}}>
+                  {[["Email",user.email],["Telefon",user.phone],["Motyw",dark?"🌙 Ciemny":"☀️ Jasny"]].map(([l,v])=>v?<div key={l}><div style={{color:T.textD,fontSize:8,fontWeight:600}}>{l}</div><div style={{color:T.textM}}>{v}</div></div>:null)}</div>
+                <div style={{padding:"6px 8px",display:"flex",flexDirection:"column",gap:2}}>
+                  <button onClick={()=>{setShowUserMenu(false);sAc(4);}} style={{width:"100%",padding:"7px 10px",borderRadius:6,border:"none",background:"transparent",color:T.textM,fontSize:10,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:6}}
+                    onMouseEnter={e=>{e.currentTarget.style.background=T.boxBg}} onMouseLeave={e=>{e.currentTarget.style.background="transparent"}}>⚙ Konfiguracja konta</button>
+                  <button onClick={()=>{setShowUserMenu(false);const nxt=dark?"light":"dark";setDark(d=>!d);setUser(u=>({...u,theme:nxt}));setUsers(us=>({...us,[user.username]:{...us[user.username],theme:nxt}}))}} style={{width:"100%",padding:"7px 10px",borderRadius:6,border:"none",background:"transparent",color:T.textM,fontSize:10,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:6}}
+                    onMouseEnter={e=>{e.currentTarget.style.background=T.boxBg}} onMouseLeave={e=>{e.currentTarget.style.background="transparent"}}>{dark?"☀️ Jasny motyw":"🌙 Ciemny motyw"}</button>
+                  <div style={{borderTop:`1px solid ${T.cardBorder}`,margin:"2px 0"}}/>
+                  <button onClick={()=>{setShowUserMenu(false);addLog(`Logout: ${user.name}`,"auth");setUser(null)}} style={{width:"100%",padding:"7px 10px",borderRadius:6,border:"none",background:"transparent",color:"#ff5566",fontSize:10,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:6,fontWeight:600}}
+                    onMouseEnter={e=>{e.currentTarget.style.background=T.loBg}} onMouseLeave={e=>{e.currentTarget.style.background="transparent"}}>⏏ Wyloguj</button>
+                </div></div></>}
+          </div>
         </div></header>
 
       <div style={{display:"flex",flex:1,minHeight:0,overflow:"hidden"}}>
@@ -914,7 +944,7 @@ export default function App(){
           <div style={{marginTop:8,padding:6,borderTop:`1px solid ${T.titleB}`}}>
             <div style={{fontSize:8,color:T.textD,fontWeight:600,marginBottom:2}}>{mb.pv1Name||"PV1"}</div>
             <div style={{fontSize:17,fontWeight:700,color:mb.alarm1?T.pv1A:T.pv1,fontFamily:"monospace"}}>{mb.pv1.toFixed(1)}<span style={{fontSize:9,color:T.textD}}>°C</span></div>
-            <div style={{fontSize:9,color:T.textD}}>SP:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</div>
+            <div style={{fontSize:9,color:T.textD}}>Nastawa:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</div>
             <div style={{fontSize:8,color:T.textD,fontWeight:600,marginTop:5,marginBottom:2}}>{mb.pv2Name||"PV2"}</div>
             <div style={{fontSize:14,fontWeight:600,color:"#aa44ff",fontFamily:"monospace"}}>{mb.pv2.toFixed(1)}<span style={{fontSize:9,color:T.textD}}>°C</span></div>
           </div>
