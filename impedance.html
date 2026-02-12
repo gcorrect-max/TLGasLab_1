@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impedance Spectroscopy — ThinFilmLab</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
+<style>
+/* ── Reset & Base ─────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a1929;--card:#0d2137;--border:#1a2a3a;--text:#e0e8f0;--textD:#8899aa;
+  --accent:#3399ff;--pv1:#ff6644;--pv2:#44aaff;--nyq:#00cc66;--cole:#ffaa00;
+  --input-bg:#0b1a2e;--btn:#1a3a5c;--btn-hover:#245080;--radius:8px;
+}
+html{font-size:14px}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+
+/* ── Header ───────────────────────────────────── */
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--border)}
+.header h1{font-size:1.25rem;font-weight:700;letter-spacing:-0.5px}
+.header h1 span{color:var(--accent)}
+
+/* ── SIM/LIVE Toggle ──────────────────────────── */
+.mode-switch{display:flex;align-items:center;gap:10px;font-size:0.85rem;font-weight:600}
+.mode-switch .label{color:var(--textD)}
+.mode-switch .label.active{color:var(--text)}
+.toggle{position:relative;width:48px;height:26px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.toggle .slider{position:absolute;inset:0;background:var(--border);border-radius:13px;transition:.3s}
+.toggle .slider::before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:var(--accent);border-radius:50%;transition:.3s}
+.toggle input:checked+.slider{background:var(--btn)}
+.toggle input:checked+.slider::before{transform:translateX(22px);background:#00cc66}
+
+/* ── Layout ───────────────────────────────────── */
+.main{display:flex;flex:1;overflow:hidden}
+.sidebar{width:260px;min-width:260px;background:var(--card);border-right:1px solid var(--border);padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.sidebar.hidden{display:none}
+.content{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+
+/* ── Sidebar Groups ───────────────────────────── */
+.sb-title{font-size:0.8rem;font-weight:700;text-transform:uppercase;color:var(--accent);letter-spacing:0.5px;margin-bottom:4px}
+.sb-group{display:flex;flex-direction:column;gap:6px}
+.sb-row{display:flex;flex-direction:column;gap:2px}
+.sb-row label{font-size:0.72rem;color:var(--textD);font-weight:600}
+.sb-row .input-wrap{display:flex;align-items:center;gap:4px}
+.sb-row input[type=number]{width:100%;padding:6px 8px;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:0.82rem;font-family:monospace;outline:none}
+.sb-row input[type=number]:focus{border-color:var(--accent)}
+.sb-row .unit{font-size:0.7rem;color:var(--textD);white-space:nowrap;min-width:28px}
+.sb-sep{height:1px;background:var(--border);margin:4px 0}
+.btn{padding:8px 16px;background:var(--btn);color:var(--text);border:none;border-radius:var(--radius);cursor:pointer;font-size:0.82rem;font-weight:600;transition:background .2s}
+.btn:hover{background:var(--btn-hover)}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:#2288ee}
+
+/* ── Cards ────────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;position:relative}
+.card-title{font-size:0.82rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.card-title .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+
+/* ── Charts Grid ──────────────────────────────── */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chart-wrap{position:relative;width:100%;min-height:280px}
+.chart-wrap canvas{width:100%!important;height:100%!important}
+
+/* ── Data Table ───────────────────────────────── */
+.tbl-wrap{max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse;font-size:0.78rem;font-family:monospace}
+thead{position:sticky;top:0;z-index:1}
+th{background:var(--btn);color:var(--text);padding:8px 10px;text-align:right;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border)}
+th:hover{background:var(--btn-hover)}
+th:first-child{text-align:left}
+th .sort-arrow{font-size:0.65rem;margin-left:3px;color:var(--accent)}
+td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--border);color:var(--textD)}
+td:first-child{text-align:left;color:var(--text)}
+tr:hover td{background:rgba(51,153,255,0.06)}
+.tbl-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+
+/* ── Status Bar ───────────────────────────────── */
+.status{display:flex;align-items:center;justify-content:space-between;padding:6px 24px;background:var(--card);border-top:1px solid var(--border);font-size:0.75rem;color:var(--textD)}
+.status .dot-status{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+
+/* ── Hamburger ────────────────────────────────── */
+.hamburger{display:none;background:none;border:none;color:var(--text);font-size:1.3rem;cursor:pointer;padding:4px 8px}
+
+/* ── Responsive ───────────────────────────────── */
+@media(max-width:900px){
+  .sidebar{position:fixed;left:0;top:52px;bottom:28px;z-index:100;transform:translateX(-100%);transition:transform .3s}
+  .sidebar.show{transform:translateX(0)}
+  .sidebar.hidden{display:flex;transform:translateX(-100%)}
+  .hamburger{display:block}
+  .charts-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────── -->
+<header class="header">
+  <div style="display:flex;align-items:center;gap:12px">
+    <button class="hamburger" id="menuBtn" onclick="toggleSidebar()">&#9776;</button>
+    <h1>Impedance <span>Spectroscopy</span></h1>
+  </div>
+  <div class="mode-switch">
+    <span class="label active" id="lblSim">SIM</span>
+    <label class="toggle">
+      <input type="checkbox" id="modeToggle" onchange="onModeChange()">
+      <span class="slider"></span>
+    </label>
+    <span class="label" id="lblLive">LIVE</span>
+  </div>
+</header>
+
+<!-- ── Main Layout ─────────────────────────────── -->
+<div class="main">
+
+  <!-- ── Sidebar ────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-title">Obwod Randles</div>
+    <div class="sb-group">
+      <div class="sb-row"><label>R_sol</label><div class="input-wrap"><input type="number" id="pR_sol" value="50" step="1" min="0" onchange="onParamChange()"><span class="unit">&Omega;</span></div></div>
+      <div class="sb-row"><label>R_ct</label><div class="input-wrap"><input type="number" id="pR_ct" value="200" step="1" min="0" onchange="onParamChange()"><span class="unit">&Omega;</span></div></div>
+      <div class="sb-row"><label>C_dl</label><div class="input-wrap"><input type="number" id="pC_dl" value="1e-6" step="1e-7" min="0" onchange="onParamChange()"><span class="unit">F</span></div></div>
+      <div class="sb-row"><label>&sigma;_w (Warburg)</label><div class="input-wrap"><input type="number" id="pSigma" value="100" step="1" min="0" onchange="onParamChange()"><span class="unit">&Omega;/&radic;s</span></div></div>
+    </div>
+    <div class="sb-sep"></div>
+    <div class="sb-title">Zakres pomiarowy</div>
+    <div class="sb-group">
+      <div class="sb-row"><label>f_min</label><div class="input-wrap"><input type="number" id="pFmin" value="0.01" step="0.01" min="0.001" onchange="onParamChange()"><span class="unit">Hz</span></div></div>
+      <div class="sb-row"><label>f_max</label><div class="input-wrap"><input type="number" id="pFmax" value="1000000" step="1000" min="1" onchange="onParamChange()"><span class="unit">Hz</span></div></div>
+      <div class="sb-row"><label>Liczba punktow</label><div class="input-wrap"><input type="number" id="pN" value="60" step="1" min="5" max="500" onchange="onParamChange()"><span class="unit">pts</span></div></div>
+    </div>
+    <div class="sb-sep"></div>
+    <div class="sb-title">Cole-Cole</div>
+    <div class="sb-group">
+      <div class="sb-row"><label>Cell constant</label><div class="input-wrap"><input type="number" id="pCell" value="1.0" step="0.1" min="0.01" onchange="onParamChange()"><span class="unit">cm</span></div></div>
+    </div>
+    <div class="sb-sep"></div>
+    <button class="btn btn-accent" style="width:100%" onclick="simulate()">&#128260; Symuluj</button>
+  </aside>
+
+  <!-- ── Content ────────────────────────────────── -->
+  <main class="content">
+    <!-- Charts Row: Bode + Nyquist -->
+    <div class="charts-row">
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--pv1)"></span> Wykres Bodego</div>
+        <div class="chart-wrap"><canvas id="chartBode"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--nyq)"></span> Wykres Nyquista</div>
+        <div class="chart-wrap"><canvas id="chartNyquist"></canvas></div>
+      </div>
+    </div>
+    <!-- Cole-Cole -->
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--cole)"></span> Cole-Cole (&epsilon;'' vs &epsilon;')</div>
+      <div class="chart-wrap" style="max-width:700px;margin:0 auto"><canvas id="chartCole"></canvas></div>
+    </div>
+    <!-- Data Table -->
+    <div class="card">
+      <div class="tbl-toolbar">
+        <div class="card-title" style="margin:0"><span class="dot" style="background:var(--accent)"></span> Dane pomiarowe</div>
+        <button class="btn" onclick="exportCSV()">&#128203; CSV</button>
+      </div>
+      <div class="tbl-wrap">
+        <table id="dataTable">
+          <thead>
+            <tr>
+              <th data-col="f" onclick="sortTable('f')">f [Hz] <span class="sort-arrow"></span></th>
+              <th data-col="Z_mag" onclick="sortTable('Z_mag')">|Z| [&Omega;] <span class="sort-arrow"></span></th>
+              <th data-col="Z_phase" onclick="sortTable('Z_phase')">&phi; [&deg;] <span class="sort-arrow"></span></th>
+              <th data-col="Z_re" onclick="sortTable('Z_re')">Re(Z) [&Omega;] <span class="sort-arrow"></span></th>
+              <th data-col="Z_im_neg" onclick="sortTable('Z_im_neg')">&minus;Im(Z) [&Omega;] <span class="sort-arrow"></span></th>
+              <th data-col="eps_re" onclick="sortTable('eps_re')">&epsilon;' <span class="sort-arrow"></span></th>
+              <th data-col="eps_im" onclick="sortTable('eps_im')">&epsilon;'' <span class="sort-arrow"></span></th>
+            </tr>
+          </thead>
+          <tbody id="dataBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ── Status Bar ──────────────────────────────── -->
+<footer class="status">
+  <div id="wsStatus"><span class="dot-status" style="background:#ffaa00"></span> Tryb: Symulacja</div>
+  <div id="lastUpdate">Ostatnia aktualizacja: &mdash;</div>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   Impedance Spectroscopy — ThinFilmLab
+   Standalone viewer: Randles simulation + WS live
+   ═══════════════════════════════════════════════════ */
+
+// ── Constants ─────────────────────────────────────
+const EPS0 = 8.854187817e-12; // F/m
+
+// ── State ─────────────────────────────────────────
+let impedanceData = [];
+let sortCol = 'f';
+let sortAsc = true;
+let wsConn = null;
+let wsRetryDelay = 1000;
+let wsRetryTimer = null;
+let isLive = false;
+let debounceTimer = null;
+
+// ── DOM refs ──────────────────────────────────────
+const $=id=>document.getElementById(id);
+
+// ── Read parameters ───────────────────────────────
+function getParams(){
+  return {
+    R_sol:  parseFloat($('pR_sol').value)  || 50,
+    R_ct:   parseFloat($('pR_ct').value)   || 200,
+    C_dl:   parseFloat($('pC_dl').value)   || 1e-6,
+    sigma:  parseFloat($('pSigma').value)  || 100,
+    f_min:  parseFloat($('pFmin').value)   || 0.01,
+    f_max:  parseFloat($('pFmax').value)   || 1e6,
+    N:      parseInt($('pN').value)        || 60,
+    cell:   parseFloat($('pCell').value)   || 1.0,
+  };
+}
+
+// ── Randles Circuit Simulation ────────────────────
+function simulateRandles(p){
+  const data = [];
+  const logMin = Math.log10(p.f_min);
+  const logMax = Math.log10(p.f_max);
+  for(let i = 0; i < p.N; i++){
+    const f = Math.pow(10, logMin + (logMax - logMin) * i / (p.N - 1));
+    const omega = 2 * Math.PI * f;
+    // Warburg: Z_w = sigma/sqrt(omega) * (1 - j)
+    const zw_mag = p.sigma / Math.sqrt(omega);
+    const Zw_re = zw_mag;
+    const Zw_im = -zw_mag;
+    // Parallel branch: 1/R_ct + jwC_dl + 1/Z_w
+    // Y_ct = 1/R_ct
+    const Y_ct_re = 1 / p.R_ct;
+    const Y_ct_im = 0;
+    // Y_cdl = jwC_dl = 0 + j*w*C_dl
+    const Y_cdl_re = 0;
+    const Y_cdl_im = omega * p.C_dl;
+    // Y_w = 1/Z_w = (Zw_re + j*Zw_im_neg) / |Z_w|^2  where Z_w = Zw_re + j*Zw_im
+    const Zw_mag2 = Zw_re * Zw_re + Zw_im * Zw_im;
+    const Y_w_re = Zw_re / Zw_mag2;
+    const Y_w_im = -Zw_im / Zw_mag2;
+    // Total admittance of parallel branch
+    const Y_re = Y_ct_re + Y_cdl_re + Y_w_re;
+    const Y_im = Y_ct_im + Y_cdl_im + Y_w_im;
+    // Z_parallel = 1/Y
+    const Y_mag2 = Y_re * Y_re + Y_im * Y_im;
+    const Zp_re = Y_re / Y_mag2;
+    const Zp_im = -Y_im / Y_mag2;
+    // Z_total = R_sol + Z_parallel
+    const Z_re = p.R_sol + Zp_re;
+    const Z_im = Zp_im; // negative = capacitive
+    const Z_mag = Math.sqrt(Z_re * Z_re + Z_im * Z_im);
+    const Z_phase = Math.atan2(Z_im, Z_re) * 180 / Math.PI;
+    // Permittivity: eps* = 1 / (j*omega*C0*Z*)  where C0 = cell*eps0
+    const C0 = (p.cell / 100) * EPS0; // cell in cm -> m
+    // 1/(j*omega*C0*(Z_re+jZ_im)) = 1/(j*omega*C0*Z_re - omega*C0*Z_im)
+    // denom = -omega*C0*Z_im + j*(omega*C0*Z_re)
+    const wC0 = omega * C0;
+    const d_re = -wC0 * Z_im;
+    const d_im = wC0 * Z_re;
+    const d_mag2 = d_re * d_re + d_im * d_im;
+    const eps_re = d_re / d_mag2;
+    const eps_im = -d_im / d_mag2; // note: eps'' is positive for lossy
+
+    data.push({
+      f, omega, Z_re, Z_im, Z_mag, Z_phase,
+      Z_im_neg: -Z_im,
+      eps_re, eps_im: Math.abs(eps_im)
+    });
+  }
+  return data;
+}
+
+// ── Compute permittivity from raw z data ──────────
+function computeFromRaw(rawData){
+  const p = getParams();
+  return rawData.map(pt => {
+    const f = pt.f;
+    const Z_re = pt.z_re;
+    const Z_im = pt.z_im;
+    const omega = 2 * Math.PI * f;
+    const Z_mag = Math.sqrt(Z_re*Z_re + Z_im*Z_im);
+    const Z_phase = Math.atan2(Z_im, Z_re) * 180 / Math.PI;
+    const C0 = (p.cell / 100) * EPS0;
+    const wC0 = omega * C0;
+    const d_re = -wC0 * Z_im;
+    const d_im = wC0 * Z_re;
+    const d_mag2 = d_re * d_re + d_im * d_im;
+    const eps_re = d_re / d_mag2;
+    const eps_im = -d_im / d_mag2;
+    return {
+      f, omega, Z_re, Z_im, Z_mag, Z_phase,
+      Z_im_neg: -Z_im,
+      eps_re, eps_im: Math.abs(eps_im)
+    };
+  });
+}
+
+// ── Charts ────────────────────────────────────────
+const chartColors = {
+  grid: 'rgba(26,42,58,0.8)', tick: '#8899aa',
+  pv1: '#ff6644', pv2: '#44aaff', nyq: '#00cc66', cole: '#ffaa00'
+};
+
+const zoomOpts = {
+  pan: { enabled: true, mode: 'xy' },
+  zoom: {
+    wheel: { enabled: true },
+    pinch: { enabled: true },
+    mode: 'xy',
+    onZoomComplete({chart}){ chart.update('none'); }
+  }
+};
+
+// ── Bode Chart ────────────────────────────────────
+let bodeChart, nyquistChart, coleChart;
+
+function initCharts(){
+  // Bode
+  bodeChart = new Chart($('chartBode'), {
+    type: 'line',
+    data: {
+      datasets: [
+        {
+          label: '|Z| [\u03A9]',
+          data: [],
+          borderColor: chartColors.pv1,
+          backgroundColor: 'rgba(255,102,68,0.1)',
+          borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          yAxisID: 'yMag',
+          tension: 0.1
+        },
+        {
+          label: '\u03C6 [\u00B0]',
+          data: [],
+          borderColor: chartColors.pv2,
+          backgroundColor: 'rgba(68,170,255,0.1)',
+          borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          yAxisID: 'yPhase',
+          tension: 0.1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: chartColors.tick, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            title: items => 'f = ' + Number(items[0].parsed.x).toExponential(2) + ' Hz',
+            label: item => item.dataset.label + ': ' + Number(item.parsed.y).toExponential(3)
+          }
+        },
+        zoom: zoomOpts
+      },
+      scales: {
+        x: {
+          type: 'logarithmic',
+          title: { display: true, text: 'f [Hz]', color: chartColors.tick },
+          grid: { color: chartColors.grid },
+          ticks: { color: chartColors.tick, callback: v => {
+            const e = Math.log10(v);
+            return Number.isInteger(e) ? '10^' + e : '';
+          }}
+        },
+        yMag: {
+          type: 'logarithmic',
+          position: 'left',
+          title: { display: true, text: '|Z| [\u03A9]', color: chartColors.pv1 },
+          grid: { color: chartColors.grid },
+          ticks: { color: chartColors.pv1 }
+        },
+        yPhase: {
+          position: 'right',
+          title: { display: true, text: '\u03C6 [\u00B0]', color: chartColors.pv2 },
+          grid: { drawOnChartArea: false },
+          ticks: { color: chartColors.pv2 },
+          min: -90, max: 0
+        }
+      }
+    }
+  });
+
+  // Nyquist
+  nyquistChart = new Chart($('chartNyquist'), {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: 'Nyquist',
+        data: [],
+        borderColor: chartColors.nyq,
+        backgroundColor: 'rgba(0,204,102,0.3)',
+        pointRadius: 3,
+        pointHoverRadius: 6,
+        showLine: true,
+        borderWidth: 2,
+        tension: 0.1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: item => `Re(Z)=${item.parsed.x.toFixed(1)}\u03A9  \u2212Im(Z)=${item.parsed.y.toFixed(1)}\u03A9`
+          }
+        },
+        zoom: zoomOpts
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Re(Z) [\u03A9]', color: chartColors.tick },
+          grid: { color: chartColors.grid },
+          ticks: { color: chartColors.tick }
+        },
+        y: {
+          title: { display: true, text: '\u2212Im(Z) [\u03A9]', color: chartColors.tick },
+          grid: { color: chartColors.grid },
+          ticks: { color: chartColors.tick },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  // Cole-Cole
+  coleChart = new Chart($('chartCole'), {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: 'Cole-Cole',
+        data: [],
+        borderColor: chartColors.cole,
+        backgroundColor: 'rgba(255,170,0,0.3)',
+        pointRadius: 3,
+        pointHoverRadius: 6,
+        showLine: true,
+        borderWidth: 2,
+        tension: 0.1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: item => `\u03B5'=${item.parsed.x.toExponential(3)}  \u03B5''=${item.parsed.y.toExponential(3)}`
+          }
+        },
+        zoom: zoomOpts
+      },
+      scales: {
+        x: {
+          title: { display: true, text: "\u03B5' (real)", color: chartColors.tick },
+          grid: { color: chartColors.grid },
+          ticks: { color: chartColors.tick }
+        },
+        y: {
+          title: { display: true, text: "\u03B5'' (imag)", color: chartColors.tick },
+          grid: { color: chartColors.grid },
+          ticks: { color: chartColors.tick },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  // Double-click reset zoom
+  ['chartBode','chartNyquist','chartCole'].forEach(id=>{
+    $(id).addEventListener('dblclick', ()=>{
+      const c = id === 'chartBode' ? bodeChart : id === 'chartNyquist' ? nyquistChart : coleChart;
+      c.resetZoom();
+    });
+  });
+}
+
+// ── Update Charts ─────────────────────────────────
+function updateCharts(data){
+  impedanceData = data;
+  // Bode
+  bodeChart.data.datasets[0].data = data.map(d => ({ x: d.f, y: d.Z_mag }));
+  bodeChart.data.datasets[1].data = data.map(d => ({ x: d.f, y: d.Z_phase }));
+  bodeChart.update('none');
+  // Nyquist
+  nyquistChart.data.datasets[0].data = data.map(d => ({ x: d.Z_re, y: d.Z_im_neg }));
+  nyquistChart.update('none');
+  // Cole-Cole
+  coleChart.data.datasets[0].data = data.map(d => ({ x: d.eps_re, y: d.eps_im }));
+  coleChart.update('none');
+  // Table
+  updateTable(data);
+  // Timestamp
+  $('lastUpdate').textContent = 'Ostatnia aktualizacja: ' + new Date().toLocaleTimeString('pl-PL');
+}
+
+// ── Table ─────────────────────────────────────────
+function updateTable(data){
+  const sorted = [...data].sort((a,b) => sortAsc ? a[sortCol]-b[sortCol] : b[sortCol]-a[sortCol]);
+  const tbody = $('dataBody');
+  tbody.innerHTML = sorted.map(d => `<tr>
+    <td>${d.f.toExponential(3)}</td>
+    <td>${d.Z_mag.toExponential(3)}</td>
+    <td>${d.Z_phase.toFixed(2)}</td>
+    <td>${d.Z_re.toExponential(3)}</td>
+    <td>${d.Z_im_neg.toExponential(3)}</td>
+    <td>${d.eps_re.toExponential(3)}</td>
+    <td>${d.eps_im.toExponential(3)}</td>
+  </tr>`).join('');
+  // Update sort arrows
+  document.querySelectorAll('#dataTable th').forEach(th => {
+    const arrow = th.querySelector('.sort-arrow');
+    const col = th.dataset.col;
+    arrow.textContent = col === sortCol ? (sortAsc ? '\u25B2' : '\u25BC') : '';
+  });
+}
+
+function sortTable(col){
+  if(sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
+  updateTable(impedanceData);
+}
+
+// ── CSV Export ────────────────────────────────────
+function exportCSV(){
+  if(!impedanceData.length) return;
+  const hdr = 'f [Hz],|Z| [Ohm],Phase [deg],Re(Z) [Ohm],-Im(Z) [Ohm],eps_re,eps_im\n';
+  const rows = impedanceData.map(d =>
+    [d.f, d.Z_mag, d.Z_phase, d.Z_re, d.Z_im_neg, d.eps_re, d.eps_im]
+    .map(v => v.toExponential(6)).join(',')
+  ).join('\n');
+  const blob = new Blob([hdr + rows], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'impedance_data_' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ── Simulate ──────────────────────────────────────
+function simulate(){
+  if(isLive) return;
+  const p = getParams();
+  const data = simulateRandles(p);
+  updateCharts(data);
+}
+
+function onParamChange(){
+  if(isLive) return;
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(simulate, 500);
+}
+
+// ── WebSocket ─────────────────────────────────────
+function connectWS(){
+  if(wsConn && wsConn.readyState <= 1) return;
+  setStatus('reconnecting');
+  try {
+    wsConn = new WebSocket('ws://localhost:9090');
+    wsConn.onopen = () => {
+      wsRetryDelay = 1000;
+      setStatus('connected');
+    };
+    wsConn.onmessage = (ev) => {
+      try {
+        const msg = JSON.parse(ev.data);
+        if(msg.type === 'impedance_data' && Array.isArray(msg.data)){
+          const data = computeFromRaw(msg.data);
+          updateCharts(data);
+        }
+      } catch(e){ console.warn('WS parse error:', e); }
+    };
+    wsConn.onclose = () => {
+      setStatus('disconnected');
+      if(isLive) retryWS();
+    };
+    wsConn.onerror = () => {
+      wsConn.close();
+    };
+  } catch(e){
+    setStatus('disconnected');
+    if(isLive) retryWS();
+  }
+}
+
+function retryWS(){
+  clearTimeout(wsRetryTimer);
+  wsRetryTimer = setTimeout(() => {
+    wsRetryDelay = Math.min(wsRetryDelay * 2, 30000);
+    connectWS();
+  }, wsRetryDelay);
+}
+
+function disconnectWS(){
+  clearTimeout(wsRetryTimer);
+  if(wsConn){ wsConn.onclose = null; wsConn.close(); wsConn = null; }
+  setStatus('sim');
+}
+
+function setStatus(s){
+  const el = $('wsStatus');
+  const dot = el.querySelector('.dot-status');
+  if(s === 'connected'){      dot.style.background='#00cc66'; el.childNodes[1].textContent=' Tryb: LIVE \u2014 Po\u0142\u0105czony'; }
+  else if(s === 'disconnected'){ dot.style.background='#ff4444'; el.childNodes[1].textContent=' Tryb: LIVE \u2014 Roz\u0142\u0105czony'; }
+  else if(s === 'reconnecting'){ dot.style.background='#ffaa00'; el.childNodes[1].textContent=' Tryb: LIVE \u2014 \u0141\u0105czenie...'; }
+  else{                       dot.style.background='#ffaa00'; el.childNodes[1].textContent=' Tryb: Symulacja'; }
+}
+
+// ── Mode Switch ───────────────────────────────────
+function onModeChange(){
+  isLive = $('modeToggle').checked;
+  $('lblSim').classList.toggle('active', !isLive);
+  $('lblLive').classList.toggle('active', isLive);
+  if(isLive){
+    connectWS();
+  } else {
+    disconnectWS();
+    simulate();
+  }
+}
+
+// ── Sidebar Toggle (mobile) ──────────────────────
+function toggleSidebar(){
+  $('sidebar').classList.toggle('show');
+}
+
+// ── Init ──────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initCharts();
+  simulate();
+});
+</script>
+</body>
+</html>
