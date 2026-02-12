@@ -12,7 +12,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#0a1929;--card:#0d2137;--border:#1a2a3a;--text:#e0e8f0;--textD:#8899aa;
-  --accent:#3399ff;--pv1:#ff6644;--pv2:#44aaff;--nyq:#00cc66;--cole:#ffaa00;
+  --accent:#3399ff;--pv1:#ff6644;--pv2:#44aaff;--nyq:#00cc66;--res:#ffaa00;
   --input-bg:#0b1a2e;--btn:#1a3a5c;--btn-hover:#245080;--radius:8px;
 }
 html{font-size:14px}
@@ -133,11 +133,6 @@ tr:hover td{background:rgba(51,153,255,0.06)}
       <div class="sb-row"><label>Liczba punktow</label><div class="input-wrap"><input type="number" id="pN" value="60" step="1" min="5" max="500" onchange="onParamChange()"><span class="unit">pts</span></div></div>
     </div>
     <div class="sb-sep"></div>
-    <div class="sb-title">Cole-Cole</div>
-    <div class="sb-group">
-      <div class="sb-row"><label>Cell constant</label><div class="input-wrap"><input type="number" id="pCell" value="1.0" step="0.1" min="0.01" onchange="onParamChange()"><span class="unit">cm</span></div></div>
-    </div>
-    <div class="sb-sep"></div>
     <button class="btn btn-accent" style="width:100%" onclick="simulate()">&#128260; Symuluj</button>
   </aside>
 
@@ -154,10 +149,10 @@ tr:hover td{background:rgba(51,153,255,0.06)}
         <div class="chart-wrap"><canvas id="chartNyquist"></canvas></div>
       </div>
     </div>
-    <!-- Cole-Cole -->
+    <!-- Resistance vs Frequency -->
     <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--cole)"></span> Cole-Cole (&epsilon;'' vs &epsilon;')</div>
-      <div class="chart-wrap" style="max-width:700px;margin:0 auto"><canvas id="chartCole"></canvas></div>
+      <div class="card-title"><span class="dot" style="background:var(--res)"></span> Rezystancja R(f)</div>
+      <div class="chart-wrap" style="max-width:900px;margin:0 auto"><canvas id="chartResF"></canvas></div>
     </div>
     <!-- Data Table -->
     <div class="card">
@@ -174,8 +169,6 @@ tr:hover td{background:rgba(51,153,255,0.06)}
               <th data-col="Z_phase" onclick="sortTable('Z_phase')">&phi; [&deg;] <span class="sort-arrow"></span></th>
               <th data-col="Z_re" onclick="sortTable('Z_re')">Re(Z) [&Omega;] <span class="sort-arrow"></span></th>
               <th data-col="Z_im_neg" onclick="sortTable('Z_im_neg')">&minus;Im(Z) [&Omega;] <span class="sort-arrow"></span></th>
-              <th data-col="eps_re" onclick="sortTable('eps_re')">&epsilon;' <span class="sort-arrow"></span></th>
-              <th data-col="eps_im" onclick="sortTable('eps_im')">&epsilon;'' <span class="sort-arrow"></span></th>
             </tr>
           </thead>
           <tbody id="dataBody"></tbody>
@@ -198,7 +191,6 @@ tr:hover td{background:rgba(51,153,255,0.06)}
    ═══════════════════════════════════════════════════ */
 
 // ── Constants ─────────────────────────────────────
-const EPS0 = 8.854187817e-12; // F/m
 
 // ── State ─────────────────────────────────────────
 let impedanceData = [];
@@ -223,7 +215,6 @@ function getParams(){
     f_min:  parseFloat($('pFmin').value)   || 0.01,
     f_max:  parseFloat($('pFmax').value)   || 1e6,
     N:      parseInt($('pN').value)        || 60,
-    cell:   parseFloat($('pCell').value)   || 1.0,
   };
 }
 
@@ -262,29 +253,17 @@ function simulateRandles(p){
     const Z_im = Zp_im; // negative = capacitive
     const Z_mag = Math.sqrt(Z_re * Z_re + Z_im * Z_im);
     const Z_phase = Math.atan2(Z_im, Z_re) * 180 / Math.PI;
-    // Permittivity: eps* = 1 / (j*omega*C0*Z*)  where C0 = cell*eps0
-    const C0 = (p.cell / 100) * EPS0; // cell in cm -> m
-    // 1/(j*omega*C0*(Z_re+jZ_im)) = 1/(j*omega*C0*Z_re - omega*C0*Z_im)
-    // denom = -omega*C0*Z_im + j*(omega*C0*Z_re)
-    const wC0 = omega * C0;
-    const d_re = -wC0 * Z_im;
-    const d_im = wC0 * Z_re;
-    const d_mag2 = d_re * d_re + d_im * d_im;
-    const eps_re = d_re / d_mag2;
-    const eps_im = -d_im / d_mag2; // note: eps'' is positive for lossy
 
     data.push({
       f, omega, Z_re, Z_im, Z_mag, Z_phase,
-      Z_im_neg: -Z_im,
-      eps_re, eps_im: Math.abs(eps_im)
+      Z_im_neg: -Z_im
     });
   }
   return data;
 }
 
-// ── Compute permittivity from raw z data ──────────
+// ── Compute impedance from raw WS data ────────────
 function computeFromRaw(rawData){
-  const p = getParams();
   return rawData.map(pt => {
     const f = pt.f;
     const Z_re = pt.z_re;
@@ -292,17 +271,9 @@ function computeFromRaw(rawData){
     const omega = 2 * Math.PI * f;
     const Z_mag = Math.sqrt(Z_re*Z_re + Z_im*Z_im);
     const Z_phase = Math.atan2(Z_im, Z_re) * 180 / Math.PI;
-    const C0 = (p.cell / 100) * EPS0;
-    const wC0 = omega * C0;
-    const d_re = -wC0 * Z_im;
-    const d_im = wC0 * Z_re;
-    const d_mag2 = d_re * d_re + d_im * d_im;
-    const eps_re = d_re / d_mag2;
-    const eps_im = -d_im / d_mag2;
     return {
       f, omega, Z_re, Z_im, Z_mag, Z_phase,
-      Z_im_neg: -Z_im,
-      eps_re, eps_im: Math.abs(eps_im)
+      Z_im_neg: -Z_im
     };
   });
 }
@@ -310,7 +281,7 @@ function computeFromRaw(rawData){
 // ── Charts ────────────────────────────────────────
 const chartColors = {
   grid: 'rgba(26,42,58,0.8)', tick: '#8899aa',
-  pv1: '#ff6644', pv2: '#44aaff', nyq: '#00cc66', cole: '#ffaa00'
+  pv1: '#ff6644', pv2: '#44aaff', nyq: '#00cc66', res: '#ffaa00'
 };
 
 const zoomOpts = {
@@ -324,7 +295,7 @@ const zoomOpts = {
 };
 
 // ── Bode Chart ────────────────────────────────────
-let bodeChart, nyquistChart, coleChart;
+let bodeChart, nyquistChart, resFChart;
 
 function initCharts(){
   // Bode
@@ -442,19 +413,18 @@ function initCharts(){
     }
   });
 
-  // Cole-Cole
-  coleChart = new Chart($('chartCole'), {
-    type: 'scatter',
+  // Resistance vs Frequency (log-log)
+  resFChart = new Chart($('chartResF'), {
+    type: 'line',
     data: {
       datasets: [{
-        label: 'Cole-Cole',
+        label: 'Re(Z) [\u03A9]',
         data: [],
-        borderColor: chartColors.cole,
-        backgroundColor: 'rgba(255,170,0,0.3)',
-        pointRadius: 3,
-        pointHoverRadius: 6,
-        showLine: true,
+        borderColor: chartColors.res,
+        backgroundColor: 'rgba(255,170,0,0.1)',
         borderWidth: 2,
+        pointRadius: 2,
+        pointHoverRadius: 5,
         tension: 0.1
       }]
     },
@@ -462,34 +432,39 @@ function initCharts(){
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: false },
+        legend: { labels: { color: chartColors.tick, font: { size: 11 } } },
         tooltip: {
           callbacks: {
-            label: item => `\u03B5'=${item.parsed.x.toExponential(3)}  \u03B5''=${item.parsed.y.toExponential(3)}`
+            title: items => 'f = ' + Number(items[0].parsed.x).toExponential(2) + ' Hz',
+            label: item => 'Re(Z) = ' + Number(item.parsed.y).toExponential(3) + ' \u03A9'
           }
         },
         zoom: zoomOpts
       },
       scales: {
         x: {
-          title: { display: true, text: "\u03B5' (real)", color: chartColors.tick },
+          type: 'logarithmic',
+          title: { display: true, text: 'f [Hz]', color: chartColors.tick },
           grid: { color: chartColors.grid },
-          ticks: { color: chartColors.tick }
+          ticks: { color: chartColors.tick, callback: v => {
+            const e = Math.log10(v);
+            return Number.isInteger(e) ? '10^' + e : '';
+          }}
         },
         y: {
-          title: { display: true, text: "\u03B5'' (imag)", color: chartColors.tick },
+          type: 'logarithmic',
+          title: { display: true, text: 'Re(Z) [\u03A9]', color: chartColors.res },
           grid: { color: chartColors.grid },
-          ticks: { color: chartColors.tick },
-          beginAtZero: true
+          ticks: { color: chartColors.res }
         }
       }
     }
   });
 
   // Double-click reset zoom
-  ['chartBode','chartNyquist','chartCole'].forEach(id=>{
+  ['chartBode','chartNyquist','chartResF'].forEach(id=>{
     $(id).addEventListener('dblclick', ()=>{
-      const c = id === 'chartBode' ? bodeChart : id === 'chartNyquist' ? nyquistChart : coleChart;
+      const c = id === 'chartBode' ? bodeChart : id === 'chartNyquist' ? nyquistChart : resFChart;
       c.resetZoom();
     });
   });
@@ -505,9 +480,9 @@ function updateCharts(data){
   // Nyquist
   nyquistChart.data.datasets[0].data = data.map(d => ({ x: d.Z_re, y: d.Z_im_neg }));
   nyquistChart.update('none');
-  // Cole-Cole
-  coleChart.data.datasets[0].data = data.map(d => ({ x: d.eps_re, y: d.eps_im }));
-  coleChart.update('none');
+  // R(f)
+  resFChart.data.datasets[0].data = data.map(d => ({ x: d.f, y: d.Z_re }));
+  resFChart.update('none');
   // Table
   updateTable(data);
   // Timestamp
@@ -524,8 +499,6 @@ function updateTable(data){
     <td>${d.Z_phase.toFixed(2)}</td>
     <td>${d.Z_re.toExponential(3)}</td>
     <td>${d.Z_im_neg.toExponential(3)}</td>
-    <td>${d.eps_re.toExponential(3)}</td>
-    <td>${d.eps_im.toExponential(3)}</td>
   </tr>`).join('');
   // Update sort arrows
   document.querySelectorAll('#dataTable th').forEach(th => {
@@ -544,9 +517,9 @@ function sortTable(col){
 // ── CSV Export ────────────────────────────────────
 function exportCSV(){
   if(!impedanceData.length) return;
-  const hdr = 'f [Hz],|Z| [Ohm],Phase [deg],Re(Z) [Ohm],-Im(Z) [Ohm],eps_re,eps_im\n';
+  const hdr = 'f [Hz],|Z| [Ohm],Phase [deg],Re(Z) [Ohm],-Im(Z) [Ohm]\n';
   const rows = impedanceData.map(d =>
-    [d.f, d.Z_mag, d.Z_phase, d.Z_re, d.Z_im_neg, d.eps_re, d.eps_im]
+    [d.f, d.Z_mag, d.Z_phase, d.Z_re, d.Z_im_neg]
     .map(v => v.toExponential(6)).join(',')
   ).join('\n');
   const blob = new Blob([hdr + rows], { type: 'text/csv' });
