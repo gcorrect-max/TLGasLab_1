@@ -167,7 +167,7 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
         <label key={k} style={{display:"flex",alignItems:"center",gap:3,cursor:"pointer",fontSize:9,color:chartVis[k]?c:T.textD,opacity:chartVis[k]?1:.45,userSelect:"none"}}>
           <input type="checkbox" checked={chartVis[k]} onChange={()=>togVis(k)} style={{width:10,height:10,accentColor:c}}/>{l}</label>))}</div></div>
 
-  <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Przepływ gazu — 4 kanały MFC</span>
+  <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Przepływ gazu — przepływomierze</span>
     <div style={{display:"flex",gap:4}}>{mb.mfc.map((d,i)=>d.enabled&&<span key={d.id} style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:["#00aaff22","#ffaa0022","#00cc6622","#cc44ff22"][i],color:["#44bbff","#ffbb33","#33dd77","#dd66ff"][i],fontWeight:600}}>{d.gas}</span>)}</div></div>
     <div style={{flex:1,minHeight:0}}>
     <ResponsiveContainer width="100%" height="100%"><LineChart data={hist.slice(-80)}>
@@ -179,7 +179,7 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
       <Legend wrapperStyle={{fontSize:9}}/></LineChart></ResponsiveContainer></div></div>
 
   <div style={{...S.card,gridColumn:"1 / -1"}}>
-    <div style={S.title}><span>Panel MFC — status przepływomierzy</span></div>
+    <div style={S.title}><span>Panel przepływomierzy — status</span></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
       {mb.mfc.map((d,i)=>{const col=["#00aaff","#ffaa00","#00cc66","#cc44ff"][i];return(
         <div key={d.id} style={{...S.box,borderColor:d.enabled?col:T.boxBorder,opacity:d.enabled?1:.5}}>
@@ -450,8 +450,8 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
     setUsers(u=>({...u,[l]:{password:newUser.password,role:newUser.role,name:newUser.name||l,firstName:newUser.firstName,lastName:newUser.lastName,email:newUser.email,phone:newUser.phone}}));setNewUser(emptyUser);setShowAdd(false);addLog(`Nowy użytkownik: ${l}`,"config");toast(`Dodano: ${l}`,"success")};
   const delUser=(login)=>{if(login==="admin"){toast("Nie można usunąć admina","error");return;}setUsers(u=>{const n={...u};delete n[login];return n});addLog(`Usunięto użytkownika: ${login}`,"config");toast(`Usunięto: ${login}`,"info");if(editUser===login)setEditUser(null)};
 
-  const hwTabs=[["ctrl","🌡 Kontroler"],["mfc","🔧 MFC"],["ws","🔌 WebSocket"],["db","🗄 Baza"]];
-  const uiTabs=[["ui_names","🏷 Nazwy"],["diag","🖼 Diagram"]];
+  const hwTabs=[["ctrl","🌡 Kontroler"],["ws","🔌 WebSocket"],["db","🗄 Baza"]];
+  const uiTabs=[["mfc","🔧 Przepływomierz"],["ui_names","🏷 Nazwy"],["diag","🖼 Diagram"]];
   const adminTabs=isAdmin?[["users","👥 Użytkownicy"]]:[];
   const mfcUnits=["sccm","slm","l/min"];
   const updMfc=(idx,k,v)=>setMb(m=>({...m,mfc:m.mfc.map((d,i)=>i===idx?{...d,[k]:v}:d)}));
@@ -479,7 +479,7 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
         <div style={S.box}><div style={S.lbl}>Nazwa PV1 (termopara 1)</div><StableInput value={mb.pv1Name} onCommit={v=>setMb(m=>({...m,pv1Name:v}))} placeholder="Termopara 1 (piec)"/></div>
         <div style={S.box}><div style={S.lbl}>Nazwa PV2 (termopara 2)</div><StableInput value={mb.pv2Name} onCommit={v=>setMb(m=>({...m,pv2Name:v}))} placeholder="Termopara 2 (próbka)"/></div></div></div>}
     {tab==="mfc"&&<div style={{display:"grid",gap:12}}>
-      <div style={{...S.title,margin:0,border:"none",paddingBottom:0}}><span>Przepływomierze MFC MKS — MODBUS Ethernet</span><span style={{fontSize:10,color:T.textD}}>{mb.mfc.filter(d=>d.enabled).length}/{mb.mfc.length} aktywnych</span></div>
+      <div style={{...S.title,margin:0,border:"none",paddingBottom:0}}><span>Przepływomierze MKS — MODBUS Ethernet</span><span style={{fontSize:10,color:T.textD}}>{mb.mfc.filter(d=>d.enabled).length}/{mb.mfc.length} aktywnych</span></div>
       {mb.mfc.map((d,i)=>(<div key={d.id} style={{...S.card,opacity:d.enabled?1:.6}}>
         <div style={{...S.title,marginBottom:8}}><span style={{display:"flex",alignItems:"center",gap:6}}>
           <span style={{fontSize:14}}>{d.enabled?"🟢":"⚪"}</span>
@@ -498,8 +498,8 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
           <F label="Setpoint"><input type="number" value={d.sp} onChange={e=>{const v=parseFloat(e.target.value)||0;updMfc(i,"sp",v)}} style={S.input}/></F>
         </div></div>))}
       <div style={{display:"flex",gap:8}}>
-        <button style={{...S.btn,background:"#0077b6"}} onClick={()=>{sendCmd("mfc_config",{mfc:mb.mfc});addLog("MFC config wysłana","config");toast("Konfiguracja MFC zapisana","success")}}>💾 Zapisz konfigurację MFC</button>
-        <button style={{...S.btn,background:"#226644"}} onClick={()=>{mb.mfc.forEach(d=>{if(d.enabled)sendCmd("mfc_setpoint",{id:d.id,sp:d.sp})});toast("SP MFC wysłane","success")}}>📤 Wyślij SP wszystkich</button>
+        <button style={{...S.btn,background:"#0077b6"}} onClick={()=>{sendCmd("mfc_config",{mfc:mb.mfc});addLog("Konfiguracja przepływomierzy wysłana","config");toast("Konfiguracja przepływomierzy zapisana","success")}}>💾 Zapisz konfigurację</button>
+        <button style={{...S.btn,background:"#226644"}} onClick={()=>{mb.mfc.forEach(d=>{if(d.enabled)sendCmd("mfc_setpoint",{id:d.id,sp:d.sp})});toast("Nastawy przepływomierzy wysłane","success")}}>📤 Wyślij nastawy</button>
       </div></div>}
     {tab==="diag"&&<div style={{display:"grid",gap:12}}>
       <div style={S.card}><div style={S.title}><span>Nazwy elementów schematu</span></div>
@@ -961,7 +961,7 @@ export default function App(){
             <div style={{fontSize:14,fontWeight:600,color:"#aa44ff",fontFamily:"monospace"}}>{mb.pv2.toFixed(1)}<span style={{fontSize:9,color:T.textD}}>°C</span></div>
           </div>
           <div style={{marginTop:8,padding:6,borderTop:`1px solid ${T.titleB}`}}>
-            <div style={{color:T.textD,fontSize:8,fontWeight:700,letterSpacing:1,marginBottom:4,textTransform:"uppercase"}}>MFC Flow</div>
+            <div style={{color:T.textD,fontSize:8,fontWeight:700,letterSpacing:1,marginBottom:4,textTransform:"uppercase"}}>Przepływ</div>
             <div style={{display:"flex",flexDirection:"column",gap:3}}>
               {mb.mfc.map((d,i)=>{const col=["#00aaff","#ffaa00","#00cc66","#cc44ff"][i];return(
                 <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",opacity:d.enabled?1:.35}}>
