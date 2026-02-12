@@ -450,22 +450,34 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
     setUsers(u=>({...u,[l]:{password:newUser.password,role:newUser.role,name:newUser.name||l,firstName:newUser.firstName,lastName:newUser.lastName,email:newUser.email,phone:newUser.phone}}));setNewUser(emptyUser);setShowAdd(false);addLog(`Nowy użytkownik: ${l}`,"config");toast(`Dodano: ${l}`,"success")};
   const delUser=(login)=>{if(login==="admin"){toast("Nie można usunąć admina","error");return;}setUsers(u=>{const n={...u};delete n[login];return n});addLog(`Usunięto użytkownika: ${login}`,"config");toast(`Usunięto: ${login}`,"info");if(editUser===login)setEditUser(null)};
 
-  const tabs=[["ctrl","🌡 Kontroler"],["mfc","🔧 MFC"],["diag","🖼 Diagram"],["ws","🔌 WebSocket"],["db","🗄 Baza"]];
-  if(isAdmin)tabs.push(["users","👥 Użytkownicy"]);
+  const hwTabs=[["ctrl","🌡 Kontroler"],["mfc","🔧 MFC"],["ws","🔌 WebSocket"],["db","🗄 Baza"]];
+  const uiTabs=[["ui_names","🏷 Nazwy"],["diag","🖼 Diagram"]];
+  const adminTabs=isAdmin?[["users","👥 Użytkownicy"]]:[];
   const mfcUnits=["sccm","slm","l/min"];
   const updMfc=(idx,k,v)=>setMb(m=>({...m,mfc:m.mfc.map((d,i)=>i===idx?{...d,[k]:v}:d)}));
+  const tabBtn=(id,l)=><button key={id} onClick={()=>sTab(id)} style={{padding:"5px 10px",borderRadius:6,border:"none",background:tab===id?"#0077b6":T.boxBg,color:tab===id?"#fff":T.textM,fontSize:10,fontWeight:600,cursor:"pointer"}}>{l}</button>;
 
   return(<div>
-    <div style={{display:"flex",gap:4,marginBottom:10}}>
-      {tabs.map(([id,l])=><button key={id} onClick={()=>sTab(id)} style={{padding:"6px 12px",borderRadius:8,border:"none",background:tab===id?"#0077b6":T.boxBg,color:tab===id?"#fff":T.textM,fontSize:11,fontWeight:600,cursor:"pointer"}}>{l}</button>)}</div>
-    {tab==="ctrl"&&<div style={{display:"grid",gap:12}}>
-      <div style={S.card}><div style={S.title}><span>Nazwy kanałów temperaturowych</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-        <div style={S.box}><div style={S.lbl}>Nazwa PV1 (termopara 1)</div><StableInput value={mb.pv1Name} onCommit={v=>setMb(m=>({...m,pv1Name:v}))} placeholder="Termopara 1 (piec)"/></div>
-        <div style={S.box}><div style={S.lbl}>Nazwa PV2 (termopara 2)</div><StableInput value={mb.pv2Name} onCommit={v=>setMb(m=>({...m,pv2Name:v}))} placeholder="Termopara 2 (próbka)"/></div></div></div>
-      <div style={S.card}><div style={S.title}><span>Komunikacja AR200.B</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+    <div style={{display:"flex",gap:10,marginBottom:10,alignItems:"center",flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:4}}>
+        <span style={{fontSize:8,fontWeight:700,color:T.textD,textTransform:"uppercase",letterSpacing:1}}>Sprzęt</span>
+        {hwTabs.map(([id,l])=>tabBtn(id,l))}</div>
+      <div style={{width:1,height:18,background:T.cardBorder}}/>
+      <div style={{display:"flex",alignItems:"center",gap:4}}>
+        <span style={{fontSize:8,fontWeight:700,color:T.textD,textTransform:"uppercase",letterSpacing:1}}>Interfejs</span>
+        {uiTabs.map(([id,l])=>tabBtn(id,l))}</div>
+      {adminTabs.length>0&&<><div style={{width:1,height:18,background:T.cardBorder}}/>
+        <div style={{display:"flex",alignItems:"center",gap:4}}>
+          <span style={{fontSize:8,fontWeight:700,color:T.textD,textTransform:"uppercase",letterSpacing:1}}>Admin</span>
+          {adminTabs.map(([id,l])=>tabBtn(id,l))}</div></>}
+    </div>
+    {tab==="ctrl"&&<div style={S.card}><div style={S.title}><span>Komunikacja AR200.B</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
         {[["Addr MODBUS",mb.modbusAddr,"modbusAddr","number"],["Baud",mb.baudRate,"baudRate","number"],["IP",mb.ethIP,"ethIP","text"],["Port TCP",mb.ethPort,"ethPort","number"],["MQTT Broker",mb.mqttBroker,"mqttBroker","text"],["MQTT Port",mb.mqttPort,"mqttPort","number"]].map(([l,v,k,t])=>
           <F key={l} label={l}><input type={t} defaultValue={v} style={S.input} onChange={e=>setMb(m=>({...m,[k]:t==="number"?parseFloat(e.target.value)||0:e.target.value}))}/></F>)}</div>
-        <button style={{...S.btn,marginTop:8,background:"#0077b6"}} onClick={()=>{addLog("Config kontroler zapisana","config");toast("OK","success")}}>💾 Zapisz</button></div></div>}
+        <button style={{...S.btn,marginTop:8,background:"#0077b6"}} onClick={()=>{addLog("Config kontroler zapisana","config");toast("OK","success")}}>💾 Zapisz</button></div>}
+    {tab==="ui_names"&&<div style={S.card}><div style={S.title}><span>Nazwy kanałów temperaturowych</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        <div style={S.box}><div style={S.lbl}>Nazwa PV1 (termopara 1)</div><StableInput value={mb.pv1Name} onCommit={v=>setMb(m=>({...m,pv1Name:v}))} placeholder="Termopara 1 (piec)"/></div>
+        <div style={S.box}><div style={S.lbl}>Nazwa PV2 (termopara 2)</div><StableInput value={mb.pv2Name} onCommit={v=>setMb(m=>({...m,pv2Name:v}))} placeholder="Termopara 2 (próbka)"/></div></div></div>}
     {tab==="mfc"&&<div style={{display:"grid",gap:12}}>
       <div style={{...S.title,margin:0,border:"none",paddingBottom:0}}><span>Przepływomierze MFC MKS — MODBUS Ethernet</span><span style={{fontSize:10,color:T.textD}}>{mb.mfc.filter(d=>d.enabled).length}/{mb.mfc.length} aktywnych</span></div>
       {mb.mfc.map((d,i)=>(<div key={d.id} style={{...S.card,opacity:d.enabled?1:.6}}>
