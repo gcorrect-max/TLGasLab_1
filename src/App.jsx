@@ -34,7 +34,7 @@ const JSON_WEB2LV=[
   {type:"mfc_setpoint",desc:"SP MFC",ex:{type:"mfc_setpoint",ts:"ISO",data:{id:1,sp:100},user:"operator"}},
 ];
 
-function initMb(){return{pv1:25+Math.random()*2,pv2:45+Math.random()*3,ch3:0,mv:0,mvManual:50,manualMode:false,sp1:100,sp2:60,sp3:80,out1:false,out2:false,outAnalog:0,alarm1:false,alarm2:false,alarmSTB:false,alarmLATCH:false,regMode:"PID",regStatus:"RUN",pidPb:5,pidTi:120,pidTd:30,pidI:0,pidPrevE:0,limitPower:100,hyst:1,progStage:0,progStatus:"STOP",progElapsed:0,modbusAddr:1,baudRate:9600,charFmt:"8N1",ethIP:"192.168.1.100",ethPort:502,mqttBroker:"192.168.1.1",mqttPort:1883,mqttTopic:"LAB/ThinFilm",recStatus:"REC",recInterval:5,memUsed:42,rtc:new Date(),inType1:"TC-K",wsUrl:"ws://localhost:8080",wsConnected:false,
+function initMb(){return{pv1:25+Math.random()*2,pv2:23+Math.random()*2,pv1Name:"Termopara 1 (piec)",pv2Name:"Termopara 2 (próbka)",ch3:0,mv:0,mvManual:50,manualMode:false,sp1:100,sp2:60,sp3:80,out1:false,out2:false,outAnalog:0,alarm1:false,alarm2:false,alarmSTB:false,alarmLATCH:false,regMode:"PID",regStatus:"RUN",pidPb:5,pidTi:120,pidTd:30,pidI:0,pidPrevE:0,limitPower:100,hyst:1,progStage:0,progStatus:"STOP",progElapsed:0,modbusAddr:1,baudRate:9600,charFmt:"8N1",ethIP:"192.168.1.100",ethPort:502,mqttBroker:"192.168.1.1",mqttPort:1883,mqttTopic:"LAB/ThinFilm",recStatus:"REC",recInterval:5,memUsed:42,rtc:new Date(),inType1:"TC-K",wsUrl:"ws://localhost:8080",wsConnected:false,
 mfc:[
   {id:1,name:"MFC-1",gas:"N\u2082",gasComposition:"100% N\u2082",ip:"192.168.1.101",port:502,slaveAddr:1,maxFlow:500,unit:"sccm",pv:0,sp:0,enabled:false},
   {id:2,name:"MFC-2",gas:"Ar",gasComposition:"100% Ar",ip:"192.168.1.102",port:502,slaveAddr:1,maxFlow:200,unit:"sccm",pv:0,sp:0,enabled:false},
@@ -136,11 +136,14 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
         <line x1="50" y1={y+16} x2="62" y2={y+16} stroke={col} strokeWidth="1.5"/>
         <line x1="94" y1={y+16} x2="170" y2={100} stroke={col} strokeWidth="1.2"/>
       </g>)})}
-      <rect x="170" y="52" width="105" height="96" rx="9" fill={T.fFill} stroke={mb.out1?"#ff4400":T.fStroke} strokeWidth="2"/>
-      <text x="222" y="72" textAnchor="middle" fill="#cc4422" fontSize="9" fontWeight="700">{D.furnace}</text>
-      <text x="222" y="94" textAnchor="middle" fill={T.pv1} fontSize="18" fontWeight="700">{mb.pv1.toFixed(1)}°C</text>
-      <text x="222" y="110" textAnchor="middle" fill={T.textD} fontSize="7">SP:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</text>
-      <text x="222" y="140" textAnchor="middle" fill={T.textD} fontSize="6">{mb.mfc.filter(d=>d.enabled).length} gaz{mb.mfc.filter(d=>d.enabled).length===1?"":"ów"} aktywn.</text>
+      <rect x="170" y="42" width="115" height="118" rx="9" fill={T.fFill} stroke={mb.out1?"#ff4400":T.fStroke} strokeWidth="2"/>
+      <text x="227" y="58" textAnchor="middle" fill="#cc4422" fontSize="9" fontWeight="700">{D.furnace}</text>
+      <text x="196" y="72" textAnchor="start" fill={T.textD} fontSize="5">{mb.pv1Name||"PV1"}</text>
+      <text x="227" y="88" textAnchor="middle" fill={T.pv1} fontSize="16" fontWeight="700">{mb.pv1.toFixed(1)}°C</text>
+      <text x="196" y="100" textAnchor="start" fill={T.textD} fontSize="5">{mb.pv2Name||"PV2"}</text>
+      <text x="227" y="114" textAnchor="middle" fill="#aa44ff" fontSize="14" fontWeight="700">{mb.pv2.toFixed(1)}°C</text>
+      <text x="227" y="128" textAnchor="middle" fill={T.textD} fontSize="6">SP:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</text>
+      <text x="227" y="152" textAnchor="middle" fill={T.textD} fontSize="5">{mb.mfc.filter(d=>d.enabled).length} gaz aktywn.</text>
       <line x1="275" y1="100" x2="340" y2="100" stroke="#00aadd44" strokeWidth="1.5" strokeDasharray="3 2"/>
       <rect x="340" y="78" width="60" height="44" rx="4" fill={T.svgBg} stroke="#00aadd" strokeWidth="1.5"/>
       <text x="370" y="96" textAnchor="middle" fill="#00ccff" fontSize="8" fontWeight="700">{D.bridge}</text>
@@ -151,8 +154,10 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
     <div style={{flex:1,minHeight:0}}>
     <ResponsiveContainer width="100%" height="100%"><LineChart data={hist.slice(-80)}>
       <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:9}} stroke={T.grid} interval="preserveStartEnd"/><YAxis tick={{fill:T.tick,fontSize:9}} stroke={T.grid} domain={["auto","auto"]}/><Tooltip {...TT}/>
-      <Line type="monotone" dataKey="pv1" stroke="#ff6644" strokeWidth={2} dot={false} name="PV1°C" isAnimationActive={false}/>
-      <Line type="monotone" dataKey="sp1" stroke="#00cc66" strokeWidth={1.5} strokeDasharray="5 3" dot={false} name="SP°C" isAnimationActive={false}/>
+      <Line type="stepAfter" dataKey="profSP" stroke="#555577" strokeWidth={2.5} strokeDasharray="8 4" dot={false} name="Profil temp." isAnimationActive={false}/>
+      <Line type="monotone" dataKey="pv1" stroke="#ff6644" strokeWidth={2} dot={false} name={mb.pv1Name||"PV1"} isAnimationActive={false}/>
+      <Line type="monotone" dataKey="pv2" stroke="#aa44ff" strokeWidth={2} dot={false} name={mb.pv2Name||"PV2"} isAnimationActive={false}/>
+      <Line type="monotone" dataKey="sp1" stroke="#00cc66" strokeWidth={1.5} strokeDasharray="5 3" dot={false} name="SP aktualny" isAnimationActive={false}/>
       <Line type="monotone" dataKey="mv" stroke="#ffaa00" strokeWidth={1} dot={false} name="MV%" isAnimationActive={false}/>
       <Legend wrapperStyle={{fontSize:9}}/></LineChart></ResponsiveContainer></div></div>
 
@@ -441,10 +446,14 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
   return(<div>
     <div style={{display:"flex",gap:4,marginBottom:10}}>
       {tabs.map(([id,l])=><button key={id} onClick={()=>sTab(id)} style={{padding:"6px 12px",borderRadius:8,border:"none",background:tab===id?"#0077b6":T.boxBg,color:tab===id?"#fff":T.textM,fontSize:11,fontWeight:600,cursor:"pointer"}}>{l}</button>)}</div>
-    {tab==="ctrl"&&<div style={S.card}><div style={S.title}><span>Komunikacja AR200.B</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-      {[["Addr MODBUS",mb.modbusAddr,"modbusAddr","number"],["Baud",mb.baudRate,"baudRate","number"],["IP",mb.ethIP,"ethIP","text"],["Port TCP",mb.ethPort,"ethPort","number"],["MQTT Broker",mb.mqttBroker,"mqttBroker","text"],["MQTT Port",mb.mqttPort,"mqttPort","number"]].map(([l,v,k,t])=>
-        <F key={l} label={l}><input type={t} defaultValue={v} style={S.input} onChange={e=>setMb(m=>({...m,[k]:t==="number"?parseFloat(e.target.value)||0:e.target.value}))}/></F>)}</div>
-      <button style={{...S.btn,marginTop:8,background:"#0077b6"}} onClick={()=>{addLog("Config kontroler zapisana","config");toast("OK","success")}}>💾 Zapisz</button></div>}
+    {tab==="ctrl"&&<div style={{display:"grid",gap:12}}>
+      <div style={S.card}><div style={S.title}><span>Nazwy kanałów temperaturowych</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        <F label="Nazwa PV1 (termopara 1)"><input value={mb.pv1Name} onChange={e=>setMb(m=>({...m,pv1Name:e.target.value}))} style={S.input} placeholder="Termopara 1 (piec)"/></F>
+        <F label="Nazwa PV2 (termopara 2)"><input value={mb.pv2Name} onChange={e=>setMb(m=>({...m,pv2Name:e.target.value}))} style={S.input} placeholder="Termopara 2 (próbka)"/></F></div></div>
+      <div style={S.card}><div style={S.title}><span>Komunikacja AR200.B</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+        {[["Addr MODBUS",mb.modbusAddr,"modbusAddr","number"],["Baud",mb.baudRate,"baudRate","number"],["IP",mb.ethIP,"ethIP","text"],["Port TCP",mb.ethPort,"ethPort","number"],["MQTT Broker",mb.mqttBroker,"mqttBroker","text"],["MQTT Port",mb.mqttPort,"mqttPort","number"]].map(([l,v,k,t])=>
+          <F key={l} label={l}><input type={t} defaultValue={v} style={S.input} onChange={e=>setMb(m=>({...m,[k]:t==="number"?parseFloat(e.target.value)||0:e.target.value}))}/></F>)}</div>
+        <button style={{...S.btn,marginTop:8,background:"#0077b6"}} onClick={()=>{addLog("Config kontroler zapisana","config");toast("OK","success")}}>💾 Zapisz</button></div></div>}
     {tab==="mfc"&&<div style={{display:"grid",gap:12}}>
       <div style={{...S.title,margin:0,border:"none",paddingBottom:0}}><span>Przepływomierze MFC MKS — MODBUS Ethernet</span><span style={{fontSize:10,color:T.textD}}>{mb.mfc.filter(d=>d.enabled).length}/{mb.mfc.length} aktywnych</span></div>
       {mb.mfc.map((d,i)=>(<div key={d.id} style={{...S.card,opacity:d.enabled?1:.6}}>
@@ -782,7 +791,7 @@ export default function App(){
         if(mfcData){next.mfc=m.mfc.map(d=>{const upd=mfcData.find(x=>x.id===d.id);return upd?{...d,pv:upd.pv??d.pv,sp:upd.sp??d.sp,enabled:upd.enabled??d.enabled}:d})}
         return next});
       const t=new Date();const label=`${String(t.getMinutes()).padStart(2,"0")}:${String(t.getSeconds()).padStart(2,"0")}`;
-      const hp={t:label,pv1:+(data.pv1??0),pv2:+(data.pv2??0),sp1:+(data.sp1??0),ch3:+(data.ch3??0),mv:+(data.mv??0),outA:+(data.outAnalog??0)};
+      const hp={t:label,pv1:+(data.pv1??0),pv2:+(data.pv2??0),sp1:+(data.sp1??0),profSP:+(data.sp1??0),ch3:+(data.ch3??0),mv:+(data.mv??0),outA:+(data.outAnalog??0)};
       if(mfcData){mfcData.forEach(x=>{if(x.id>=1&&x.id<=4)hp[`mfc${x.id}`]=+(x.pv??0)})}
       setHist(h=>[...h,hp].slice(-150));return;}
     if(type==="status_update"){setMb(m=>({...m,...data}));return;}
@@ -848,13 +857,13 @@ export default function App(){
       if(pSt==="RUN"&&sg.length>0&&pStg>0&&pStg<=sg.length){const s=sg[pStg-1];sp1=s.sp;pEl+=1;const prev=pStg>1?sg[pStg-2].sp:25;const rt=Math.abs((s.sp-prev)/(Math.abs(s.ramp)||1))*60;if(pEl>=rt+s.hold*60){if(pStg<sg.length){pStg++;pEl=0}else{pSt="STOP";pStg=0;pEl=0}}}
       if(m.regStatus==="RUN"&&!m.manualMode){const e=sp1-pv1;const P=e/(m.pidPb||1);intg=m.pidTi>0?intg+(e*1)/m.pidTi:0;intg=Math.max(-50,Math.min(50,intg));const D=m.pidTd>0?((e-pErr)/1)*m.pidTd*.01:0;mv=Math.max(0,Math.min(m.limitPower,(P+intg+D)*20));pErr=e;pv1+=((mv/100)*.6-.12+n1*.15);}
       else if(m.regStatus==="RUN"&&m.manualMode){mv=m.mvManual;pv1+=(mv/100)*.6-.12+n1*.15;}else{pv1-=.08-n1*.1;mv=0;intg=0;}
-      const pv2=Math.max(0,m.pv2+n2*.2);const outAnalog=4+(Math.max(0,Math.min(1,pv1/500))*16);
+      const pv2=pv1-8+(Math.random()-.5)*3;const outAnalog=4+(Math.max(0,Math.min(1,pv1/500))*16);
       const alarm1=pv1>sp1+m.hyst*5,alarm2=pv1<sp1-m.hyst*10,alarmSTB=alarm1||alarm2,alarmLATCH=m.alarmLATCH||alarmSTB;
       const mfcSim=m.mfc.map(d=>{if(!d.enabled)return{...d,pv:0};const drift=(Math.random()-.5)*d.maxFlow*0.02;return{...d,pv:Math.max(0,Math.min(d.maxFlow,d.sp+drift))}});
       return{...base,pv1,pv2,ch3:(pv1+pv2)/2,mv,sp1,out1:mv>3,out2:alarm1,outAnalog,alarm1,alarm2,alarmSTB,alarmLATCH,pidI:intg,pidPrevE:pErr,progStage:pStg,progStatus:pSt,progElapsed:pEl,mfc:mfcSim};});
     // History point (works for both demo and WS modes — WS updates via applyLvMessage also push history)
     const m=mbRef.current;if(!m.wsConnected){const now=new Date();const t=`${now.getMinutes().toString().padStart(2,"0")}:${now.getSeconds().toString().padStart(2,"0")}`;
-    const hp={t,pv1:m.pv1,pv2:m.pv2,sp1:m.sp1,ch3:m.ch3,mv:m.manualMode?m.mvManual:m.mv,outA:m.outAnalog};
+    const hp={t,pv1:m.pv1,pv2:m.pv2,sp1:m.sp1,profSP:m.sp1,ch3:m.ch3,mv:m.manualMode?m.mvManual:m.mv,outA:m.outAnalog};
     m.mfc.forEach(d=>{hp[`mfc${d.id}`]=d.pv});
     setHist(h=>[...h.slice(-150),hp]);}
     if(m.alarm1&&!prevA.current.a1)addAlm(`HI: PV=${m.pv1.toFixed(1)}°C`,"danger");
@@ -903,9 +912,11 @@ export default function App(){
               <ABadge on={mb.alarm1} label="HI" type="danger" T={T}/><ABadge on={mb.alarm2} label="LO" type="warning" T={T}/>
               <ABadge on={mb.alarmLATCH} label="LATCH" type="info" T={T}/><ABadge on={mb.regStatus==="RUN"} label="Regulacja" type="ok" T={T}/></div></div>
           <div style={{marginTop:8,padding:6,borderTop:`1px solid ${T.titleB}`}}>
+            <div style={{fontSize:8,color:T.textD,fontWeight:600,marginBottom:2}}>{mb.pv1Name||"PV1"}</div>
             <div style={{fontSize:17,fontWeight:700,color:mb.alarm1?T.pv1A:T.pv1,fontFamily:"monospace"}}>{mb.pv1.toFixed(1)}<span style={{fontSize:9,color:T.textD}}>°C</span></div>
             <div style={{fontSize:9,color:T.textD}}>SP:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</div>
-            <div style={{fontSize:12,fontWeight:600,color:T.pv2,fontFamily:"monospace",marginTop:3}}>{mb.pv2.toFixed(1)}<span style={{fontSize:9,color:T.textD}}> l/min</span></div>
+            <div style={{fontSize:8,color:T.textD,fontWeight:600,marginTop:5,marginBottom:2}}>{mb.pv2Name||"PV2"}</div>
+            <div style={{fontSize:14,fontWeight:600,color:"#aa44ff",fontFamily:"monospace"}}>{mb.pv2.toFixed(1)}<span style={{fontSize:9,color:T.textD}}>°C</span></div>
           </div>
           <div style={{marginTop:8,padding:6,borderTop:`1px solid ${T.titleB}`}}>
             <div style={{color:T.textD,fontSize:8,fontWeight:700,letterSpacing:1,marginBottom:4,textTransform:"uppercase"}}>MFC Flow</div>
