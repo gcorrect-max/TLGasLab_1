@@ -10,7 +10,7 @@ const TH={
 };
 
 const USERS_INIT={admin:{password:"admin123",role:"admin",name:"Administrator",firstName:"Jan",lastName:"Kowalski",email:"admin@lab.pl",phone:"+48 600 100 100",theme:"dark"},operator:{password:"oper123",role:"user",name:"Operator",firstName:"Anna",lastName:"Nowak",email:"operator@lab.pl",phone:"",theme:"dark"},student:{password:"stud123",role:"student",name:"Student",firstName:"",lastName:"",email:"",phone:"",theme:"dark"},guest:{password:"guest",role:"guest",name:"Gość",firstName:"",lastName:"",email:"",phone:"",theme:"dark"}};
-const ROLE_ACCESS={admin:[1,2,3,7,4,5,6],user:[1,2,3,7,4,5,6],student:[1,2,3,7],guest:[1]};
+const ROLE_ACCESS={admin:[1,2,3,7,8,4,5,6],user:[1,2,3,7,8,4,5,6],student:[1,2,3,7,8],guest:[1]};
 
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 function dlBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;a.style.display="none";document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url)},300)}
@@ -771,6 +771,14 @@ function WsConsole({open,onClose,wsCon,clearCon,T}){const S=mkS(T);const[tab,sTa
       <div style={{padding:"6px 14px",borderTop:`1px solid ${T.cardBorder}`,fontSize:9,color:T.textD,flexShrink:0}}>Tylko wiadomości JSON. Nowe na górze. Max 80 wpisów.</div>
     </div></div>);}
 
+// ═══ P8: IMPEDANCJA ═══
+function P8({T}){const S=mkS(T);
+  return(<div style={S.card}>
+    <div style={{...S.title,marginBottom:0}}><span>Spektroskopia impedancyjna</span>
+      <a href="/impedance.html" target="_blank" rel="noopener" style={{fontSize:10,color:T.textA,textDecoration:"none",fontWeight:500}}>↗ Otwórz w nowym oknie</a></div>
+    <iframe src="/impedance.html" style={{width:"100%",height:"calc(100vh - 160px)",border:"none",borderRadius:8,marginTop:8,background:"#0a1929"}} title="Impedance Spectroscopy"/></div>);
+}
+
 // ═══ FOOTER ═══
 function Footer({T}){return(<footer style={{background:T.footBg,borderTop:`1px solid ${T.footB}`,padding:"8px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:4,flexShrink:0}}>
   <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:18,height:18,borderRadius:4,background:T.logoBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:6,fontWeight:800,color:"#fff"}}>TFL</div>
@@ -897,7 +905,7 @@ export default function App(){
 
   if(!user)return(<div style={{height:"100vh",overflow:"hidden"}}><style>{`@keyframes si{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}`}</style><LoginScreen onLogin={u=>{setUser(u);setDark(u.theme!=="light");addLog(`Login: ${u.name} (${u.role})`,"auth")}} users={users} T={T}/></div>);
 
-  const pages=[{id:1,label:"Eksperyment",icon:"📊"},{id:2,label:"Ustawienia temp.",icon:"🌡"},{id:3,label:"Próbka i proces",icon:"🧪"},{id:7,label:"Raporty pomiarowe",icon:"📑"},{id:4,label:"Konfiguracja",icon:"⚙"},{id:5,label:"Protokół JSON",icon:"📋"},{id:6,label:"Logi akcji",icon:"📜"}];
+  const pages=[{id:1,label:"Eksperyment",icon:"📊"},{id:2,label:"Ustawienia temp.",icon:"🌡"},{id:3,label:"Próbka i proces",icon:"🧪"},{id:7,label:"Raporty pomiarowe",icon:"📑"},{id:8,label:"Impedancja",icon:"📉"},{id:4,label:"Konfiguracja",icon:"⚙"},{id:5,label:"Protokół JSON",icon:"📋"},{id:6,label:"Logi akcji",icon:"📜"}];
   const acc=pages.filter(p=>ROLE_ACCESS[user.role]?.includes(p.id));
 
   return(
@@ -977,6 +985,7 @@ export default function App(){
           {ac===5&&<P5 mb={mb} hist={hist} T={T}/>}
           {ac===6&&<P6 logs={logs} clearLogs={clearLogs} T={T}/>}
           {ac===7&&<P7 reports={reports} setReports={setReports} sample={sample} profileName={profileName} toast={toast} addLog={addLog} sendCmd={sendCmd} experiments={experiments} setExperiments={setExperiments} T={T}/>}
+          {ac===8&&<P8 T={T}/>}
         </main></div>
       <Footer T={T}/>
       <WsConsole open={showWsCon} onClose={()=>setShowWsCon(false)} wsCon={wsCon} clearCon={()=>setWsCon({rx:[],tx:[]})} T={T}/>
