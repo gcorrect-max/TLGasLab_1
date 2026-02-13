@@ -134,6 +134,7 @@ tr:hover td{background:rgba(51,153,255,0.06)}
     </div>
     <div class="sb-sep"></div>
     <button class="btn btn-accent" style="width:100%" onclick="simulate()">&#128260; Symuluj</button>
+    <button class="btn" style="width:100%;margin-top:6px" onclick="requestMeasurement()">&#128225; Pobierz dane (WS)</button>
   </aside>
 
   <!-- ── Content ────────────────────────────────── -->
@@ -201,6 +202,7 @@ let wsRetryDelay = 1000;
 let wsRetryTimer = null;
 let isLive = false;
 let debounceTimer = null;
+const inIframe = (window.self !== window.top);
 
 // ── DOM refs ──────────────────────────────────────
 const $=id=>document.getElementById(id);
@@ -605,10 +607,53 @@ function onModeChange(){
   $('lblSim').classList.toggle('active', !isLive);
   $('lblLive').classList.toggle('active', isLive);
   if(isLive){
-    connectWS();
+    if(inIframe){
+      // Request data via parent dashboard WS
+      requestFromParent();
+      setStatus('connected');
+    } else {
+      connectWS();
+    }
   } else {
-    disconnectWS();
+    if(!inIframe) disconnectWS();
+    else setStatus('sim');
     simulate();
+  }
+}
+
+// ── postMessage bridge (iframe mode) ──────────────
+function requestFromParent(){
+  if(!inIframe) return;
+  const p = getParams();
+  window.parent.postMessage({
+    type: 'impedance_request',
+    data: { f_min: p.f_min, f_max: p.f_max, n_points: p.N, mode: 'sweep' }
+  }, '*');
+}
+
+window.addEventListener('message', (ev) => {
+  if(ev.data?.type === 'impedance_data' && ev.data.data){
+    const raw = ev.data.data;
+    const points = Array.isArray(raw.points) ? raw.points : (Array.isArray(raw) ? raw : null);
+    if(points){
+      const data = computeFromRaw(points);
+      updateCharts(data);
+      if(!isLive) setStatus('sim');
+    }
+  }
+});
+
+// ── Request Measurement (via WS or parent) ───────
+function requestMeasurement(){
+  const p = getParams();
+  const reqData = { f_min: p.f_min, f_max: p.f_max, n_points: p.N, mode: 'sweep' };
+  if(inIframe){
+    window.parent.postMessage({ type: 'impedance_request', data: reqData }, '*');
+    setStatus('connected');
+  } else if(wsConn && wsConn.readyState === 1){
+    wsConn.send(JSON.stringify({ type: 'impedance_request', ts: new Date().toISOString(), data: reqData }));
+  } else {
+    setStatus('disconnected');
   }
 }
 

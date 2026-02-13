@@ -482,7 +482,36 @@ Struktura identyczna jak `report_create`. Pole `id` identyfikuje istniejący rap
 
 ---
 
-## RX: Wiadomości LabVIEW → Web (5 typów)
+### 13. `impedance_request` — Żądanie pomiaru impedancji
+
+**Wyzwalacz:** P8 Impedancja → przycisk "Pobierz dane (WS)" lub automatycznie po przełączeniu na LIVE
+
+```json
+{
+  "type": "impedance_request",
+  "ts": "2026-02-13T10:00:00.000Z",
+  "user": {"username": "operator", "role": "user", "name": "Operator"},
+  "data": {
+    "f_min": 0.01,
+    "f_max": 1000000,
+    "n_points": 60,
+    "mode": "sweep"
+  }
+}
+```
+
+| Pole data    | Typ    | Jednostka | Opis                                      |
+|--------------|--------|-----------|-------------------------------------------|
+| `f_min`      | float  | Hz        | Dolna granica zakresu częstotliwości       |
+| `f_max`      | float  | Hz        | Górna granica zakresu częstotliwości       |
+| `n_points`   | int    | —         | Liczba punktów pomiarowych (log-spaced)    |
+| `mode`       | string | —         | Tryb pomiaru: `"sweep"` (pełny zakres)    |
+
+> **Request-Response:** To jest żądanie jednorazowe. LabVIEW odpowiada wiadomością `impedance_data` z wynikami po zakończeniu sweep'u. Nie jest to streaming — każde żądanie generuje jedną odpowiedź.
+
+---
+
+## RX: Wiadomości LabVIEW → Web (6 typów)
 
 ### 1. `measurement_update` — Dane pomiarowe (cykliczne)
 
@@ -669,9 +698,61 @@ Alias: `mb_snapshot`
 
 ---
 
+### 6. `impedance_data` — Wyniki pomiaru impedancji
+
+**Częstotliwość:** Na żądanie (odpowiedź na `impedance_request`)
+
+```json
+{
+  "type": "impedance_data",
+  "ts": "2026-02-13T10:00:05.000Z",
+  "data": {
+    "sweepId": 1,
+    "f_min": 0.01,
+    "f_max": 1000000,
+    "n_points": 60,
+    "duration_ms": 4500,
+    "points": [
+      {"f": 1000000, "z_re": 51.2, "z_im": -3.5},
+      {"f": 630957,  "z_re": 52.1, "z_im": -5.8},
+      {"f": 398107,  "z_re": 53.8, "z_im": -9.4},
+      {"f": 0.01,    "z_re": 285.3, "z_im": -112.7}
+    ]
+  }
+}
+```
+
+| Pole data        | Typ    | Jednostka | Opis                                         |
+|------------------|--------|-----------|----------------------------------------------|
+| `sweepId`        | int    | —         | Numer identyfikacyjny sweep'u (opcjonalny)   |
+| `f_min`          | float  | Hz        | Dolna częstotliwość użyta w pomiarze          |
+| `f_max`          | float  | Hz        | Górna częstotliwość użyta w pomiarze          |
+| `n_points`       | int    | —         | Liczba punktów w tablicy `points`             |
+| `duration_ms`    | int    | ms        | Czas trwania sweep'u (opcjonalny)             |
+| `points`         | array  | —         | Tablica wyników pomiarowych                   |
+| `points[].f`     | float  | Hz        | Częstotliwość                                 |
+| `points[].z_re`  | float  | Ω         | Część rzeczywista impedancji Re(Z)            |
+| `points[].z_im`  | float  | Ω         | Część urojona impedancji Im(Z) (ujemna=pojemnościowa) |
+
+> Dashboard oblicza z `z_re` i `z_im`: moduł |Z|, fazę φ, −Im(Z). Wyniki wyświetlane na wykresach Bodego, Nyquista i R(f).
+
+**Efekt w UI:**
+- Aktualizuje 3 wykresy na stronie P8 Impedancja: Bode, Nyquist, R(f)
+- Aktualizuje tabelę danych pomiarowych
+- Dane przekazywane do iframe `impedance.html` przez `postMessage`
+
+**Przepływ danych (iframe mode):**
+```
+LabVIEW → WS → App.jsx (applyLvMessage) → setImpData
+  → useEffect → iframe.postMessage({type:"impedance_data", data})
+    → impedance.html: computeFromRaw → updateCharts
+```
+
+---
+
 ## Podsumowanie — mapa komend
 
-### TX (Web → LabVIEW): 12 typów
+### TX (Web → LabVIEW): 13 typów
 
 | # | type                | Źródło     | Wyzwalacz                        |
 |---|---------------------|------------|----------------------------------|
@@ -688,8 +769,9 @@ Alias: `mb_snapshot`
 | 10| `config_update`     | P4         | Zapisanie konfiguracji           |
 | 11| `mfc_config`        | P4         | Konfiguracja przepływomierzy MFC |
 | 12| `mfc_setpoint`      | P2/MFC     | Zmiana setpointu pojedynczego MFC|
+| 13| `impedance_request` | P8         | Żądanie pomiaru impedancji (sweep)|
 
-### RX (LabVIEW → Web): 5 typów
+### RX (LabVIEW → Web): 6 typów
 
 | # | type                 | Efekt                                              |
 |---|----------------------|----------------------------------------------------|
@@ -698,6 +780,7 @@ Alias: `mb_snapshot`
 | 3 | `alarm_event`        | Dodanie alarmu, latch                              |
 | 4 | `profile_status`     | Status profilu segmentowego                        |
 | 5 | `state_snapshot`     | Pełna synchronizacja stanu (bulk)                  |
+| 6 | `impedance_data`     | Wyniki sweep'u impedancji (request-response)       |
 
 ---
 

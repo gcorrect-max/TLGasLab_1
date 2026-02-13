@@ -18,6 +18,7 @@
 14. [Shutdown i cleanup](#14-shutdown-i-cleanup)
 15. [Diagram przepływu danych](#15-diagram-przepływu-danych)
 16. [Checklist implementacji](#16-checklist-implementacji)
+17. [Spektroskopia impedancyjna — pomiar i komunikacja](#17-spektroskopia-impedancyjna--pomiar-i-komunikacja)
 
 ---
 
@@ -76,6 +77,8 @@
 | 13| `Data_LogWriter.vi`           | Zapis telemetrii do CSV/TDMS                        |
 | 14| `Data_SampleStore.vi`         | Zapis `sample_info` do pliku/bazy                   |
 | 15| `WebUI_OpenWebView.vi`        | WebView2 w trybie kiosk                             |
+| 16| `Impedance_Sweep.vi`          | Pomiar impedancji (sweep f_min→f_max)               |
+| 17| `Impedance_Build_Response.vi` | Budowanie JSON `impedance_data` z wyników sweep'u   |
 
 ---
 
@@ -350,6 +353,13 @@ Case "config_update":
   → SharedState.Write(klucz, wartość) dla każdego pola
   → opcjonalnie: zapisz do config.json
   → log: "Config updated"
+
+Case "impedance_request":
+  → odczytaj data.f_min, data.f_max, data.n_points, data.mode
+  → uruchom Impedance_Sweep.vi (w osobnym wątku lub synchronicznie)
+  → po zakończeniu sweep'u: Impedance_Build_Response.vi → JSON
+  → wyślij impedance_data do klienta (nie broadcast — odpowiedź do nadawcy)
+  → log: "Impedance sweep: 0.01-1MHz, 60 pts"
 
 Default:
   → log warning: "Unknown command type: <type>"
@@ -934,7 +944,17 @@ System Exec.vi:
 - [ ] report_create/update
 - [ ] Data_LogWriter.vi (CSV/TDMS)
 
-### Faza 5: Deployment
+### Faza 5: Impedancja (opcjonalnie)
+
+- [ ] Podłączenie analizatora impedancji (GPIB/USB/LAN)
+- [ ] `Impedance_Sweep.vi` — konfiguracja sweep + odczyt wyników
+- [ ] `Impedance_Build_Response.vi` — budowanie JSON odpowiedzi
+- [ ] Obsługa `impedance_request` w Command Dispatcher
+- [ ] Wysyłka `impedance_data` do klienta (unicast, nie broadcast)
+- [ ] Test: P8 → "Pobierz dane" → wyniki na wykresach Bode/Nyquist/R(f)
+- [ ] Logowanie sweep'ów do CSV (opcjonalnie)
+
+### Faza 6: Deployment
 
 - [ ] WebView2 w LabVIEW (opcjonalnie)
 - [ ] Build → dist/ + serwer HTTP
@@ -989,4 +1009,242 @@ In-Place Element Structure:
 Format Date/Time String:
   Time Format: "%Y-%m-%dT%H:%M:%S.000Z"
   → "2026-02-11T14:30:01.000Z"
+```
+
+---
+
+## 17. Spektroskopia impedancyjna — pomiar i komunikacja
+
+### Architektura
+
+Dashboard (P8) wysyła żądanie `impedance_request` przez WebSocket. LabVIEW wykonuje sweep impedancji na podłączonym analizatorze (np. Keysight E4990A, Hioki IM3590, Solartron 1260 lub inny LCR/impedance analyzer) i zwraca wyniki jako `impedance_data`.
+
+```
+┌──────────────┐  impedance_request   ┌──────────────────────────┐
+│  Dashboard   │ ────────────────────► │  LabVIEW                 │
+│  (P8 iframe) │                       │                          │
+│              │  impedance_data       │  ┌──────────────────┐    │
+│  Bode        │ ◄──────────────────── │  │ Impedance_Sweep  │    │
+│  Nyquist     │                       │  │ .vi              │    │
+│  R(f)        │                       │  │                  │    │
+│  Tabela      │                       │  │ GPIB/USB/LAN     │    │
+└──────────────┘                       │  └───────┬──────────┘    │
+                                       │          │               │
+                                       │  ┌───────▼──────────┐    │
+                                       │  │ Impedance Analyzer│   │
+                                       │  │ (GPIB/USB/LAN)   │    │
+                                       │  └──────────────────┘    │
+                                       └──────────────────────────┘
+```
+
+**Model komunikacji:** Request-Response (nie streaming). Każde `impedance_request` generuje dokładnie jedną odpowiedź `impedance_data`.
+
+### Protokół
+
+**TX: `impedance_request` (Web → LV)**
+
+```json
+{
+  "type": "impedance_request",
+  "ts": "2026-02-13T10:00:00.000Z",
+  "user": {"username": "operator", "role": "user"},
+  "data": {
+    "f_min": 0.01,
+    "f_max": 1000000,
+    "n_points": 60,
+    "mode": "sweep"
+  }
+}
+```
+
+**RX: `impedance_data` (LV → Web)**
+
+```json
+{
+  "type": "impedance_data",
+  "ts": "2026-02-13T10:00:05.000Z",
+  "data": {
+    "sweepId": 1,
+    "f_min": 0.01,
+    "f_max": 1000000,
+    "n_points": 60,
+    "duration_ms": 4500,
+    "points": [
+      {"f": 1000000, "z_re": 51.2, "z_im": -3.5},
+      {"f": 630957,  "z_re": 52.1, "z_im": -5.8},
+      {"f": 0.01,    "z_re": 285.3, "z_im": -112.7}
+    ]
+  }
+}
+```
+
+### VI: Impedance_Sweep.vi
+
+**Cel:** Wykonanie pełnego sweep'u impedancji na analizatorze.
+
+**Wejścia:**
+- `f_min` (DBL) — dolna częstotliwość [Hz]
+- `f_max` (DBL) — górna częstotliwość [Hz]
+- `n_points` (I32) — liczba punktów (log-spaced)
+- `Instrument Ref` (VISA refnum) — referencja do analizatora
+
+**Wyjścia:**
+- `Points` (array of clusters) — wyniki: [{f, z_re, z_im}, ...]
+- `Duration ms` (I32) — czas trwania sweep'u
+- `Error Out`
+
+**Implementacja (schemat dla GPIB/SCPI):**
+
+```labview
+1. Konfiguracja sweep'u:
+   SCPI: ":SENS:FREQ:STAR <f_min>"
+   SCPI: ":SENS:FREQ:STOP <f_max>"
+   SCPI: ":SENS:SWE:POIN <n_points>"
+   SCPI: ":SENS:SWE:TYPE LOG"
+   SCPI: ":SENS:FUNC:IMP ZRI"    // mierz Re(Z) i Im(Z)
+
+2. Uruchomienie pomiaru:
+   SCPI: ":TRIG:SOUR BUS"
+   SCPI: ":INIT"
+   SCPI: "*TRG"
+
+3. Oczekiwanie na zakończenie:
+   SCPI: "*OPC?" → czekaj na "1"
+   (timeout: max 120s dla niskich częstotliwości)
+
+4. Odczyt wyników:
+   SCPI: ":CALC:DATA:FDAT?"
+   → parsuj tablicę float: [Re1, Im1, Re2, Im2, ...]
+
+5. Odczyt częstotliwości:
+   SCPI: ":SENS:FREQ:DATA?"
+   → parsuj tablicę float: [f1, f2, ...]
+
+6. Połącz w tablicę clusters:
+   For i = 0 to n_points-1:
+     points[i] = { f: freq[i], z_re: data[2*i], z_im: data[2*i+1] }
+```
+
+> **Uwaga:** Dokładne komendy SCPI zależą od modelu analizatora. Powyższy przykład oparty na Keysight E4990A. Dla innych producentów (Hioki, Solartron, BioLogic) komendy będą inne — sprawdź dokumentację urządzenia.
+
+### VI: Impedance_Build_Response.vi
+
+**Cel:** Budowanie JSON odpowiedzi `impedance_data`.
+
+**Wejścia:**
+- `Points` (array of clusters: {f, z_re, z_im})
+- `f_min`, `f_max`, `n_points` (z żądania)
+- `Duration ms` (I32)
+- `Sweep ID` (I32, opcjonalny — inkrementowany counter)
+
+**Wyjścia:**
+- `jsonString` (String) — gotowy JSON do wysłania
+
+```labview
+Build JSON:
+{
+  "type": "impedance_data",
+  "ts": "<ISO timestamp>",
+  "data": {
+    "sweepId": <sweepId>,
+    "f_min": <f_min>,
+    "f_max": <f_max>,
+    "n_points": <Length(points)>,
+    "duration_ms": <duration>,
+    "points": [
+      {"f": <f>, "z_re": <z_re>, "z_im": <z_im>},
+      ...
+    ]
+  }
+}
+
+Flatten To JSON String → wyślij do klienta
+```
+
+### Integracja w Command Dispatcher
+
+W `WebUI_Dispatch_Command.vi`, nowy case:
+
+```
+Case "impedance_request":
+  f_min = data.f_min  (default: 0.01)
+  f_max = data.f_max  (default: 1000000)
+  n_pts = data.n_points (default: 60)
+
+  // Uruchom sweep (może trwać sekundy-minuty)
+  points, duration = Impedance_Sweep.vi(f_min, f_max, n_pts, instrumentRef)
+
+  // Zbuduj odpowiedź
+  json = Impedance_Build_Response.vi(points, f_min, f_max, n_pts, duration, sweepCounter++)
+
+  // Wyślij TYLKO do klienta który wysłał żądanie (nie broadcast)
+  WS_Write.vi(senderClientRef, json)
+
+  log: Format("Impedance sweep done: %.2f-%.0f Hz, %d pts, %d ms", f_min, f_max, n_pts, duration)
+```
+
+> **Ważne:** Sweep impedancji może trwać od sekund (wysoka f) do minut (niska f, np. 0.01 Hz). Należy uruchomić `Impedance_Sweep.vi` w osobnym wątku lub użyć mechanizmu asynchronicznego (Async Call By Ref), aby nie blokować pętli Command Processor.
+
+### Obsługa różnych analizatorów
+
+| Analizator | Interfejs | Biblioteka LabVIEW |
+|---|---|---|
+| Keysight E4990A/E4980A | GPIB/USB/LAN | IVI-C driver lub SCPI bezpośrednio |
+| Hioki IM3590/IM7580 | GPIB/USB | Hioki LabVIEW driver |
+| Solartron 1260/1287 | GPIB | SCPI custom |
+| BioLogic SP-300 | USB/Ethernet | EC-Lab SDK |
+| Zurich Instruments MFIA | USB/Ethernet | ziAPI LabVIEW driver |
+
+### Przepływ danych w dashboard
+
+```
+[Dashboard P8]                    [LabVIEW]
+     │                                │
+     │ User clicks "Pobierz dane"     │
+     │                                │
+     ├──► iframe.postMessage ──►      │
+     │    {impedance_request}         │
+     │         │                      │
+     │    App.jsx: sendCmd() ──►      │
+     │    WS: impedance_request ──────┤
+     │                                │
+     │                       Impedance_Sweep.vi
+     │                       (GPIB → analyzer)
+     │                                │
+     │                       Impedance_Build_Response.vi
+     │                                │
+     │    ◄── WS: impedance_data ─────┤
+     │         │                      │
+     │    applyLvMessage()            │
+     │    setImpData(data)            │
+     │         │                      │
+     │    P8: useEffect               │
+     │    iframe.postMessage          │
+     │    {impedance_data}            │
+     │         │                      │
+     │    impedance.html:             │
+     │    computeFromRaw()            │
+     │    updateCharts()              │
+     └────────────────────────────────┘
+```
+
+### Logowanie wyników
+
+Opcjonalnie zapisuj wyniki sweep'u do pliku:
+
+```
+impedance_logs/
+  sweep_2026-02-13_100005_001.csv
+  sweep_2026-02-13_103012_002.csv
+```
+
+Format CSV:
+```
+# Sweep ID: 1, f_min: 0.01 Hz, f_max: 1000000 Hz, N: 60, Duration: 4500 ms
+# Timestamp: 2026-02-13T10:00:05.000Z
+f [Hz],Re(Z) [Ohm],Im(Z) [Ohm]
+1000000,51.2,-3.5
+630957,52.1,-5.8
+...
+0.01,285.3,-112.7
 ```

@@ -21,6 +21,7 @@ const JSON_LV2WEB=[
   {type:"status_update",desc:"Status regulacji",ex:{type:"status_update",ts:"ISO",data:{regMode:"PID",regStatus:"RUN",progStage:2}}},
   {type:"alarm_event",desc:"Alarm",ex:{type:"alarm_event",ts:"ISO",data:{alarmId:"AL_HI",severity:"danger",pv1:210.5}}},
   {type:"profile_status",desc:"Status profilu",ex:{type:"profile_status",ts:"ISO",data:{profileName:"Spiekanie ZnO",stage:2,stageName:"Wygrzewanie"}}},
+  {type:"impedance_data",desc:"Dane impedancji",ex:{type:"impedance_data",ts:"ISO",data:{sweepId:1,points:[{f:1000000,z_re:51.2,z_im:-3.5},{f:100000,z_re:55.8,z_im:-18.2}]}}},
 ];
 const JSON_WEB2LV=[
   {type:"setpoint_command",desc:"Zmiana SP",ex:{type:"setpoint_command",ts:"ISO",data:{target:"sp1",value:200},user:"admin"}},
@@ -32,6 +33,7 @@ const JSON_WEB2LV=[
   {type:"config_update",desc:"Konfiguracja",ex:{type:"config_update",ts:"ISO",data:{ethIP:"192.168.1.100"},user:"admin"}},
   {type:"mfc_config",desc:"Konfiguracja MFC",ex:{type:"mfc_config",ts:"ISO",data:{mfc:[{id:1,name:"MFC-1",gas:"N\u2082",gasComposition:"100% N\u2082",ip:"192.168.1.101",port:502,slaveAddr:1,maxFlow:500,unit:"sccm",enabled:false}]},user:"admin"}},
   {type:"mfc_setpoint",desc:"SP MFC",ex:{type:"mfc_setpoint",ts:"ISO",data:{id:1,sp:100},user:"operator"}},
+  {type:"impedance_request",desc:"Żądanie pomiaru impedancji",ex:{type:"impedance_request",ts:"ISO",data:{f_min:0.01,f_max:1000000,n_points:60,mode:"sweep"},user:"operator"}},
 ];
 
 function initMb(){return{pv1:25+Math.random()*2,pv2:23+Math.random()*2,pv1Name:"Termopara 1 (piec)",pv2Name:"Termopara 2 (próbka)",ch3:0,mv:0,mvManual:50,manualMode:false,sp1:100,sp2:60,sp3:80,out1:false,out2:false,outAnalog:0,alarm1:false,alarm2:false,alarmSTB:false,alarmLATCH:false,regMode:"PID",regStatus:"RUN",pidPb:5,pidTi:120,pidTd:30,pidI:0,pidPrevE:0,limitPower:100,hyst:1,progStage:0,progStatus:"STOP",progElapsed:0,modbusAddr:1,baudRate:9600,charFmt:"8N1",ethIP:"192.168.1.100",ethPort:502,mqttBroker:"192.168.1.1",mqttPort:1883,mqttTopic:"LAB/ThinFilm",recStatus:"REC",recInterval:5,memUsed:42,rtc:new Date(),inType1:"TC-K",wsUrl:"ws://localhost:8080",wsConnected:false,
@@ -772,11 +774,20 @@ function WsConsole({open,onClose,wsCon,clearCon,T}){const S=mkS(T);const[tab,sTa
     </div></div>);}
 
 // ═══ P8: IMPEDANCJA ═══
-function P8({T}){const S=mkS(T);
+function P8({mb,sendCmd,impData,T}){const S=mkS(T);const ifrRef=useRef(null);
+  // Forward impedance_data from LV to iframe
+  useEffect(()=>{if(impData&&ifrRef.current?.contentWindow){
+    ifrRef.current.contentWindow.postMessage({type:"impedance_data",data:impData},"*")}
+  },[impData]);
+  // Listen for requests from iframe
+  useEffect(()=>{const h=(ev)=>{if(ev.data?.type==="impedance_request"&&sendCmd){sendCmd("impedance_request",ev.data.data||{})}};
+    window.addEventListener("message",h);return()=>window.removeEventListener("message",h)},[sendCmd]);
   return(<div style={S.card}>
     <div style={{...S.title,marginBottom:0}}><span>Spektroskopia impedancyjna</span>
-      <a href="/impedance.html" target="_blank" rel="noopener" style={{fontSize:10,color:T.textA,textDecoration:"none",fontWeight:500}}>↗ Otwórz w nowym oknie</a></div>
-    <iframe src="/impedance.html" style={{width:"100%",height:"calc(100vh - 160px)",border:"none",borderRadius:8,marginTop:8,background:"#0a1929"}} title="Impedance Spectroscopy"/></div>);
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <span style={{fontSize:10,color:mb.wsConnected?T.textA:T.textD}}>{mb.wsConnected?"● WS":"○ Offline"}</span>
+        <a href="/impedance.html" target="_blank" rel="noopener" style={{fontSize:10,color:T.textA,textDecoration:"none",fontWeight:500}}>↗ Nowe okno</a></div></div>
+    <iframe ref={ifrRef} src="/impedance.html" style={{width:"100%",height:"calc(100vh - 160px)",border:"none",borderRadius:8,marginTop:8,background:"#0a1929"}} title="Impedance Spectroscopy"/></div>);
 }
 
 // ═══ FOOTER ═══
@@ -799,7 +810,7 @@ export default function App(){
   const[reports,setReports]=useState([]);
   const[experiments,setExperiments]=useState([]);
   const[users,setUsers]=useState(USERS_INIT);
-  const[wsCon,setWsCon]=useState({rx:[],tx:[]});const[showWsCon,setShowWsCon]=useState(false);const[showUserMenu,setShowUserMenu]=useState(false);
+  const[wsCon,setWsCon]=useState({rx:[],tx:[]});const[showWsCon,setShowWsCon]=useState(false);const[showUserMenu,setShowUserMenu]=useState(false);const[impData,setImpData]=useState(null);
   const mbRef=useRef(mb);mbRef.current=mb;const segRef=useRef(segs);segRef.current=segs;const prevA=useRef({a1:false,a2:false});
   const wsRef=useRef(null);const wsUrlRef=useRef(mb.wsUrl);const wsLastMsg=useRef(Date.now());const wsRecon=useRef({tries:0,timer:null});
   const T=dark?TH.dark:TH.light;const curUser=useRef("system");
@@ -830,6 +841,7 @@ export default function App(){
     if(type==="alarm_event"){const sev=data?.sev||"warning";const msgT=data?.msg||"alarm";const latch=!!data?.latch;
       setMb(m=>({...m,alarmSTB:true,alarmLATCH:latch?true:m.alarmLATCH}));sAlog(a=>[...a,{time:new Date().toLocaleTimeString("pl-PL"),sev,msg:msgT}].slice(-100));return;}
     if(type==="state_snapshot"||type==="mb_snapshot"){setMb(m=>({...m,...data}));return;}
+    if(type==="impedance_data"){setImpData(data);return;}
   },[]);
 
   // ── disconnectWs ──
@@ -985,7 +997,7 @@ export default function App(){
           {ac===5&&<P5 mb={mb} hist={hist} T={T}/>}
           {ac===6&&<P6 logs={logs} clearLogs={clearLogs} T={T}/>}
           {ac===7&&<P7 reports={reports} setReports={setReports} sample={sample} profileName={profileName} toast={toast} addLog={addLog} sendCmd={sendCmd} experiments={experiments} setExperiments={setExperiments} T={T}/>}
-          {ac===8&&<P8 T={T}/>}
+          {ac===8&&<P8 mb={mb} sendCmd={sendCmd} impData={impData} T={T}/>}
         </main></div>
       <Footer T={T}/>
       <WsConsole open={showWsCon} onClose={()=>setShowWsCon(false)} wsCon={wsCon} clearCon={()=>setWsCon({rx:[],tx:[]})} T={T}/>
