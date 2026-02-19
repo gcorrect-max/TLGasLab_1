@@ -22,6 +22,7 @@ const JSON_LV2WEB=[
   {type:"alarm_event",desc:"Alarm",ex:{type:"alarm_event",ts:"ISO",data:{alarmId:"AL_HI",severity:"danger",pv1:210.5}}},
   {type:"profile_status",desc:"Status profilu",ex:{type:"profile_status",ts:"ISO",data:{profileName:"Spiekanie ZnO",stage:2,stageName:"Wygrzewanie"}}},
   {type:"impedance_data",desc:"Dane impedancji",ex:{type:"impedance_data",ts:"ISO",data:{sweepId:1,points:[{f:1000000,z_re:51.2,z_im:-3.5},{f:100000,z_re:55.8,z_im:-18.2}]}}},
+  {type:"config_data",desc:"Konfiguracja systemu (odpowiedź na config_request)",ex:{type:"config_data",ts:"ISO",data:{users:{},roles:{},mfc:[],pages:[],wsUrl:"ws://localhost:8080",ethIP:"192.168.1.100",ethPort:502}}},
 ];
 const JSON_WEB2LV=[
   {type:"setpoint_command",desc:"Zmiana SP",ex:{type:"setpoint_command",ts:"ISO",data:{target:"sp1",value:200},user:"admin"}},
@@ -34,6 +35,7 @@ const JSON_WEB2LV=[
   {type:"mfc_config",desc:"Konfiguracja MFC",ex:{type:"mfc_config",ts:"ISO",data:{mfc:[{id:1,name:"MFC-1",gas:"N\u2082",gasComposition:"100% N\u2082",ip:"192.168.1.101",port:502,slaveAddr:1,maxFlow:500,unit:"sccm",enabled:false}]},user:"admin"}},
   {type:"mfc_setpoint",desc:"SP MFC",ex:{type:"mfc_setpoint",ts:"ISO",data:{id:1,sp:100},user:"operator"}},
   {type:"impedance_request",desc:"Żądanie pomiaru impedancji",ex:{type:"impedance_request",ts:"ISO",data:{f_min:0.01,f_max:1000000,n_points:60,mode:"sweep"},user:"operator"}},
+  {type:"config_request",desc:"Żądanie konfiguracji przy starcie",ex:{type:"config_request",ts:"ISO",data:{},user:"admin"}},
 ];
 
 function initMb(){return{pv1:25+Math.random()*2,pv2:23+Math.random()*2,pv1Name:"Termopara 1 (piec)",pv2Name:"Termopara 2 (próbka)",ch3:0,mv:0,mvManual:50,manualMode:false,sp1:100,sp2:60,sp3:80,out1:false,out2:false,outAnalog:0,alarm1:false,alarm2:false,alarmSTB:false,alarmLATCH:false,regMode:"PID",regStatus:"RUN",pidPb:5,pidTi:120,pidTd:30,pidI:0,pidPrevE:0,limitPower:100,hyst:1,progStage:0,progStatus:"STOP",progElapsed:0,modbusAddr:1,baudRate:9600,charFmt:"8N1",ethIP:"192.168.1.100",ethPort:502,mqttBroker:"192.168.1.1",mqttPort:1883,mqttTopic:"LAB/ThinFilm",recStatus:"REC",recInterval:5,memUsed:42,rtc:new Date(),inType1:"TC-K",wsUrl:"ws://localhost:8080",wsConnected:false,
@@ -815,6 +817,13 @@ export default function App(){
   const wsRef=useRef(null);const wsUrlRef=useRef(mb.wsUrl);const wsLastMsg=useRef(Date.now());const wsRecon=useRef({tries:0,timer:null});
   const T=dark?TH.dark:TH.light;const curUser=useRef("system");
 
+  // ── Load cached config from localStorage (offline fallback) ──
+  useEffect(()=>{try{const raw=localStorage.getItem("tfl_config");if(raw){const cfg=JSON.parse(raw);
+    if(cfg.mfc&&Array.isArray(cfg.mfc))setMb(m=>({...m,mfc:cfg.mfc.map((c,i)=>({...m.mfc[i],...c}))}));
+    if(cfg.ethIP)setMb(m=>({...m,ethIP:cfg.ethIP,ethPort:cfg.ethPort||m.ethPort}));
+    if(cfg.users)setUsers(u=>({...u,...cfg.users}));
+  }}catch{}},[]);
+
   const toast=useCallback((msg,type="info")=>{const id=Date.now()+Math.random();sToasts(t=>[...t,{id,msg,type}]);setTimeout(()=>sToasts(t=>t.filter(x=>x.id!==id)),3500)},[]);
   const addAlm=useCallback((msg,sev="warning")=>{sAlog(l=>[...l.slice(-100),{time:new Date().toLocaleTimeString("pl-PL"),msg,sev}])},[]);
   const addLog=useCallback((msg,cat="info")=>{sLogs(l=>[...l.slice(-500),{time:new Date().toLocaleTimeString("pl-PL"),msg,cat,user:curUser.current}])},[]);
@@ -842,7 +851,16 @@ export default function App(){
       setMb(m=>({...m,alarmSTB:true,alarmLATCH:latch?true:m.alarmLATCH}));sAlog(a=>[...a,{time:new Date().toLocaleTimeString("pl-PL"),sev,msg:msgT}].slice(-100));return;}
     if(type==="state_snapshot"||type==="mb_snapshot"){setMb(m=>({...m,...data}));return;}
     if(type==="impedance_data"){setImpData(data);return;}
-  },[]);
+    if(type==="config_data"){
+      // Apply received config: mfc, network, users, pages tooltips, etc.
+      if(data.mfc&&Array.isArray(data.mfc))setMb(m=>({...m,mfc:data.mfc.map((c,i)=>({...m.mfc[i],...c}))}));
+      if(data.wsUrl)setMb(m=>({...m,wsUrl:data.wsUrl}));
+      if(data.ethIP)setMb(m=>({...m,ethIP:data.ethIP,ethPort:data.ethPort||m.ethPort}));
+      if(data.users)setUsers(u=>({...u,...data.users}));
+      // Cache config in localStorage for offline fallback
+      try{localStorage.setItem("tfl_config",JSON.stringify({...data,_ts:Date.now()}))}catch{}
+      addLog("Konfiguracja odebrana z LabVIEW","config");return;}
+  },[addLog]);
 
   // ── disconnectWs ──
   const disconnectWs=useCallback((reason="")=>{
@@ -858,7 +876,8 @@ export default function App(){
     if(wsRef.current&&(wsRef.current.readyState===0||wsRef.current.readyState===1))return;
     try{const ws=new WebSocket(url);wsRef.current=ws;
       ws.onopen=()=>{wsRecon.current.tries=0;wsLastMsg.current=Date.now();setMb(m=>({...m,wsConnected:true}));addLog(`WS connected: ${url}`,"ws");
-        try{ws.send(JSON.stringify({type:"hello",ts:nowISO(),user:user||null,app:APP_NAME,ver:APP_VER}))}catch{}};
+        try{ws.send(JSON.stringify({type:"hello",ts:nowISO(),user:user||null,app:APP_NAME,ver:APP_VER}));
+          ws.send(JSON.stringify({type:"config_request",ts:nowISO(),data:{},user:user?{username:user.username,role:user.role}:null}))}catch{}};
       ws.onmessage=(ev)=>{wsLastMsg.current=Date.now();let msg=null;try{msg=JSON.parse(ev.data)}catch{return}
         if(typeof msg!=="object"||!msg)return;
         const rxType=msg?.type||msg?.kind||"(?)";
@@ -917,7 +936,16 @@ export default function App(){
 
   if(!user)return(<div style={{height:"100vh",overflow:"hidden"}}><style>{`@keyframes si{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}`}</style><LoginScreen onLogin={u=>{setUser(u);setDark(u.theme!=="light");addLog(`Login: ${u.name} (${u.role})`,"auth")}} users={users} T={T}/></div>);
 
-  const pages=[{id:1,label:"Eksperyment",icon:"📊"},{id:2,label:"Ustawienia temp.",icon:"🌡"},{id:3,label:"Próbka i proces",icon:"🧪"},{id:7,label:"Raporty pomiarowe",icon:"📑"},{id:8,label:"Impedancja",icon:"📉"},{id:4,label:"Konfiguracja",icon:"⚙"},{id:5,label:"Protokół JSON",icon:"📋"},{id:6,label:"Logi akcji",icon:"📜"}];
+  const pages=[
+    {id:1,label:"Eksperyment",icon:"⬚",tip:"Podgląd na żywo temperatury, przepływów MFC, wykresów i statusu regulacji PID"},
+    {id:8,label:"Impedancja",icon:"〰",tip:"Spektroskopia impedancyjna — wykresy Bode'go, Nyquista i R(f), pomiar lub symulacja Randles"},
+    {id:3,label:"Próbka i proces",icon:"⏣",tip:"Opis próbki, parametry procesu technologicznego i profil temperaturowy"},
+    {id:2,label:"Ustawienia temp.",icon:"△",tip:"Nastawa temperatury, parametry PID, tryb ręczny/auto, alarmy"},
+    {id:7,label:"Raporty pomiarowe",icon:"▤",tip:"Generowanie i eksport raportów z wynikami pomiarów w formacie PDF/CSV"},
+    {id:4,label:"Konfiguracja",icon:"⛭",tip:"Ustawienia systemu: połączenie WS, konfiguracja MFC, konta użytkowników"},
+    {id:5,label:"Protokół JSON",icon:"❴❵",tip:"Dokumentacja protokołu komunikacji WebSocket JSON z aplikacją LabVIEW"},
+    {id:6,label:"Logi akcji",icon:"☰",tip:"Historia zdarzeń systemowych, logowania, alarmów i komend użytkownika"}
+  ];
   const acc=pages.filter(p=>ROLE_ACCESS[user.role]?.includes(p.id));
 
   return(
@@ -965,7 +993,7 @@ export default function App(){
 
       <div style={{display:"flex",flex:1,minHeight:0,overflow:"hidden"}}>
         <nav style={{width:185,background:T.sidebarBg,borderRight:`1px solid ${T.cardBorder}`,padding:"10px 6px",flexShrink:0,overflowY:"auto",overflowX:"hidden"}}>
-          {acc.map(pg=>(<button key={pg.id} onClick={()=>sAc(pg.id)} style={{width:"100%",padding:"8px 10px",borderRadius:7,border:"none",textAlign:"left",marginBottom:2,cursor:"pointer",
+          {acc.map(pg=>(<button key={pg.id} onClick={()=>sAc(pg.id)} title={pg.tip} style={{width:"100%",padding:"8px 10px",borderRadius:7,border:"none",textAlign:"left",marginBottom:2,cursor:"pointer",
             background:ac===pg.id?T.actTab:"transparent",color:ac===pg.id?T.textA:T.textM,fontSize:11,fontWeight:ac===pg.id?700:500,
             borderLeft:ac===pg.id?`3px solid ${T.textA}`:"3px solid transparent"}}><span style={{marginRight:4}}>{pg.icon}</span>{pg.label}</button>))}
           <div style={{marginTop:14,padding:6,borderTop:`1px solid ${T.titleB}`}}>

@@ -79,6 +79,9 @@
 | 15| `WebUI_OpenWebView.vi`        | WebView2 w trybie kiosk                             |
 | 16| `Impedance_Sweep.vi`          | Pomiar impedancji (sweep f_min→f_max)               |
 | 17| `Impedance_Build_Response.vi` | Budowanie JSON `impedance_data` z wyników sweep'u   |
+| 18| `Config_Build_Response.vi`    | Budowanie JSON `config_data` z aktualnej konfiguracji|
+| 19| `Config_Load.vi`              | Ładowanie konfiguracji z config.json na starcie      |
+| 20| `Config_Save.vi`              | Zapisywanie konfiguracji do config.json              |
 
 ---
 
@@ -353,6 +356,25 @@ Case "config_update":
   → SharedState.Write(klucz, wartość) dla każdego pola
   → opcjonalnie: zapisz do config.json
   → log: "Config updated"
+
+Case "config_request":
+  → odczytaj aktualną konfigurację z SharedState / config.json
+  → zbuduj odpowiedź config_data:
+    {
+      "type": "config_data",
+      "ts": "<ISO>",
+      "data": {
+        "wsUrl": SharedState.Read("wsUrl"),
+        "ethIP": SharedState.Read("ethIP"),
+        "ethPort": SharedState.Read("ethPort"),
+        "modbusAddr": SharedState.Read("modbusAddr"),
+        "baudRate": SharedState.Read("baudRate"),
+        "mfc": SharedState.Read("mfc_config"),
+        "users": SharedState.Read("users")
+      }
+    }
+  → wyślij config_data do klienta (nie broadcast — odpowiedź do nadawcy)
+  → log: "Config sent to client"
 
 Case "impedance_request":
   → odczytaj data.f_min, data.f_max, data.n_points, data.mode
@@ -954,6 +976,16 @@ System Exec.vi:
 - [ ] Test: P8 → "Pobierz dane" → wyniki na wykresach Bode/Nyquist/R(f)
 - [ ] Logowanie sweep'ów do CSV (opcjonalnie)
 
+### Faza 5b: Konfiguracja (config_request/config_data)
+
+- [ ] `Config_Load.vi` — ładowanie config.json na starcie LabVIEW
+- [ ] `Config_Save.vi` — zapis config.json po config_update
+- [ ] `Config_Build_Response.vi` — budowanie JSON config_data
+- [ ] Obsługa `config_request` w Command Dispatcher
+- [ ] Wysyłka `config_data` do klienta (unicast)
+- [ ] Test: Dashboard connect → config_request → config_data → stan zaktualizowany
+- [ ] Test: P4 → zmiana konfiguracji → config_update → config.json zaktualizowany
+
 ### Faza 6: Deployment
 
 - [ ] WebView2 w LabVIEW (opcjonalnie)
@@ -1247,4 +1279,126 @@ f [Hz],Re(Z) [Ohm],Im(Z) [Ohm]
 630957,52.1,-5.8
 ...
 0.01,285.3,-112.7
+```
+
+---
+
+## 18. Konfiguracja systemu — pobieranie i zapis
+
+### Architektura
+
+```
+Dashboard (onopen)                    LabVIEW
+     │                                     │
+     ├── hello ──────────────────────────► │
+     ├── config_request ─────────────────► │
+     │                                     │
+     │                           Config_Build_Response.vi
+     │                           (SharedState / config.json)
+     │                                     │
+     │ ◄── config_data ───────────────────┤
+     │         │                           │
+     │    applyLvMessage()                │
+     │    → setMb (mfc, network)          │
+     │    → setUsers (konta)              │
+     │    → localStorage cache            │
+     └────────────────────────────────────┘
+```
+
+### Protokół
+
+| Kierunek | Typ               | Opis                                        |
+|----------|-------------------|---------------------------------------------|
+| TX       | `config_request`  | Żądanie aktualnej konfiguracji (po `hello`)  |
+| RX       | `config_data`     | Odpowiedź z konfiguracją systemu             |
+| TX       | `config_update`   | Zapis zmian konfiguracji (z P4)              |
+
+### VI: Config_Load.vi
+
+Ładowanie konfiguracji z pliku `config.json` na starcie LabVIEW.
+
+```
+Wejścia:
+  config_path: String [ścieżka do config.json]
+
+Wyjścia:
+  config: Cluster {wsUrl, ethIP, ethPort, modbusAddr, baudRate, mfc[], users{}}
+  error: Error cluster
+
+Algorytm:
+  1. Sprawdź czy config.json istnieje
+  2. Jeśli tak → Read JSON → Parse → zwróć Cluster
+  3. Jeśli nie → zwróć wartości domyślne
+  4. Zapisz do SharedState
+```
+
+### VI: Config_Save.vi
+
+Zapis konfiguracji do pliku po `config_update` z dashboardu.
+
+```
+Wejścia:
+  config: Cluster {wsUrl, ethIP, ethPort, modbusAddr, baudRate, mfc[], users{}}
+  config_path: String
+
+Wyjścia:
+  error: Error cluster
+
+Algorytm:
+  1. Serializuj Cluster → JSON
+  2. Write to File (overwrite)
+  3. Zaktualizuj SharedState
+```
+
+### VI: Config_Build_Response.vi
+
+Budowanie odpowiedzi `config_data` na żądanie `config_request`.
+
+```
+Wejścia:
+  (brak — odczytuje z SharedState)
+
+Wyjścia:
+  json: String [JSON config_data]
+
+Algorytm:
+  1. Odczytaj wszystkie klucze konfiguracyjne z SharedState
+  2. Zbuduj obiekt data: {wsUrl, ethIP, ethPort, modbusAddr, baudRate, mfc, users}
+  3. Opakuj w envelope: {type: "config_data", ts: ISO, data: ...}
+  4. Serializuj → JSON String
+```
+
+### Plik config.json
+
+```json
+{
+  "wsUrl": "ws://localhost:8080",
+  "ethIP": "192.168.1.100",
+  "ethPort": 502,
+  "modbusAddr": 1,
+  "baudRate": 9600,
+  "charFmt": "8N1",
+  "mfc": [
+    {"id": 1, "name": "MFC-1", "gas": "N₂", "ip": "192.168.1.101", "port": 502, "slaveAddr": 1, "maxFlow": 500, "unit": "sccm", "enabled": false},
+    {"id": 2, "name": "MFC-2", "gas": "Ar", "ip": "192.168.1.102", "port": 502, "slaveAddr": 1, "maxFlow": 200, "unit": "sccm", "enabled": false},
+    {"id": 3, "name": "MFC-3", "gas": "O₂", "ip": "192.168.1.103", "port": 502, "slaveAddr": 1, "maxFlow": 100, "unit": "sccm", "enabled": false},
+    {"id": 4, "name": "MFC-4", "gas": "H₂S", "ip": "192.168.1.104", "port": 502, "slaveAddr": 1, "maxFlow": 50, "unit": "sccm", "enabled": false}
+  ],
+  "users": {}
+}
+```
+
+### Dashboard — fallback offline
+
+Dashboard przy starcie (`useEffect`, mount):
+1. Sprawdza `localStorage.getItem("tfl_config")`
+2. Jeśli istnieje — parsuje JSON i merguje z domyślnymi wartościami `mb` i `users`
+3. Po połączeniu WS wysyła `config_request`
+4. Po odebraniu `config_data` — nadpisuje stan + aktualizuje `localStorage`
+
+Priorytet źródeł konfiguracji:
+```
+1. config_data z WS (najwyższy — zawsze nadpisuje)
+2. localStorage cache (fallback offline)
+3. Hardcoded defaults w initMb() / USERS_INIT (najniższy)
 ```

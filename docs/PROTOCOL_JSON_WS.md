@@ -21,7 +21,11 @@
 
 ### Handshake
 
-Po nawiązaniu połączenia (`onopen`) klient wysyła automatycznie wiadomość `hello`:
+Po nawiązaniu połączenia (`onopen`) klient wysyła automatycznie dwie wiadomości:
+1. `hello` — identyfikacja klienta
+2. `config_request` — żądanie aktualnej konfiguracji
+
+#### 1. `hello`
 
 ```json
 {
@@ -107,7 +111,7 @@ Gdy WS jest rozłączony, dashboard przechodzi w tryb symulacji:
 
 ---
 
-## TX: Komendy Web → LabVIEW (12 typów)
+## TX: Komendy Web → LabVIEW (14 typów)
 
 ### 1. `setpoint_command` — Zmiana setpointu
 
@@ -511,7 +515,28 @@ Struktura identyczna jak `report_create`. Pole `id` identyfikuje istniejący rap
 
 ---
 
-## RX: Wiadomości LabVIEW → Web (6 typów)
+### 14. `config_request` — Żądanie konfiguracji przy starcie
+
+**Wyzwalacz:** Automatycznie po połączeniu WS (`onopen`), zaraz po `hello`
+
+```json
+{
+  "type": "config_request",
+  "ts": "2026-02-19T10:00:00.000Z",
+  "user": {"username": "operator", "role": "user"},
+  "data": {}
+}
+```
+
+| Pole data | Typ    | Opis                                              |
+|-----------|--------|----------------------------------------------------|
+| (pusty)   | object | Brak parametrów — żądanie pełnej konfiguracji      |
+
+> **Request-Response:** LabVIEW odpowiada wiadomością `config_data` z aktualną konfiguracją systemu. Dashboard cache'uje odpowiedź w `localStorage` jako fallback offline.
+
+---
+
+## RX: Wiadomości LabVIEW → Web (7 typów)
 
 ### 1. `measurement_update` — Dane pomiarowe (cykliczne)
 
@@ -750,9 +775,58 @@ LabVIEW → WS → App.jsx (applyLvMessage) → setImpData
 
 ---
 
+### 7. `config_data` — Konfiguracja systemu
+
+**Częstotliwość:** Na żądanie (odpowiedź na `config_request`)
+
+```json
+{
+  "type": "config_data",
+  "ts": "2026-02-19T10:00:01.000Z",
+  "data": {
+    "wsUrl": "ws://localhost:8080",
+    "ethIP": "192.168.1.100",
+    "ethPort": 502,
+    "modbusAddr": 1,
+    "baudRate": 9600,
+    "mfc": [
+      {"id": 1, "name": "MFC-1", "gas": "N₂", "maxFlow": 500, "unit": "sccm", "enabled": false},
+      {"id": 2, "name": "MFC-2", "gas": "Ar", "maxFlow": 200, "unit": "sccm", "enabled": false}
+    ],
+    "users": {
+      "operator": {"name": "Operator", "role": "user", "firstName": "Anna", "lastName": "Nowak"}
+    }
+  }
+}
+```
+
+| Pole data    | Typ    | Opis                                       |
+|--------------|--------|--------------------------------------------|
+| `wsUrl`      | string | Adres WebSocket (opcjonalny)               |
+| `ethIP`      | string | Adres IP Ethernet (opcjonalny)             |
+| `ethPort`    | int    | Port TCP MODBUS (opcjonalny)               |
+| `modbusAddr` | int    | Adres MODBUS (opcjonalny)                  |
+| `baudRate`   | int    | Baud rate (opcjonalny)                     |
+| `mfc`        | array  | Konfiguracja przepływomierzy (opcjonalna)  |
+| `users`      | object | Konta użytkowników (opcjonalne)            |
+
+> Wszystkie pola są **opcjonalne** — LabVIEW wysyła tylko te, które zarządza. Dashboard merguje je z wartościami domyślnymi.
+
+**Efekt w UI:**
+- Aktualizuje `mb` (sieć, MFC)
+- Aktualizuje `users` (konta, role)
+- Cache w `localStorage` klucz `tfl_config` jako fallback offline
+
+**Cache offline:**
+- Dashboard zapisuje `config_data` do `localStorage` po każdym odebraniu
+- Przy starcie (przed połączeniem WS) ładuje cache z `localStorage`
+- Cache jest nadpisywany przy każdym `config_data` z LabVIEW
+
+---
+
 ## Podsumowanie — mapa komend
 
-### TX (Web → LabVIEW): 13 typów
+### TX (Web → LabVIEW): 14 typów
 
 | # | type                | Źródło     | Wyzwalacz                        |
 |---|---------------------|------------|----------------------------------|
@@ -770,8 +844,9 @@ LabVIEW → WS → App.jsx (applyLvMessage) → setImpData
 | 11| `mfc_config`        | P4         | Konfiguracja przepływomierzy MFC |
 | 12| `mfc_setpoint`      | P2/MFC     | Zmiana setpointu pojedynczego MFC|
 | 13| `impedance_request` | P8         | Żądanie pomiaru impedancji (sweep)|
+| 14| `config_request`    | App        | Automatycznie po `onopen` (po `hello`)|
 
-### RX (LabVIEW → Web): 6 typów
+### RX (LabVIEW → Web): 7 typów
 
 | # | type                 | Efekt                                              |
 |---|----------------------|----------------------------------------------------|
@@ -781,6 +856,7 @@ LabVIEW → WS → App.jsx (applyLvMessage) → setImpData
 | 4 | `profile_status`     | Status profilu segmentowego                        |
 | 5 | `state_snapshot`     | Pełna synchronizacja stanu (bulk)                  |
 | 6 | `impedance_data`     | Wyniki sweep'u impedancji (request-response)       |
+| 7 | `config_data`        | Konfiguracja systemu (cache → localStorage)        |
 
 ---
 

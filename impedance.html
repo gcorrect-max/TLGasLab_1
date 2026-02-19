@@ -18,10 +18,8 @@
 html{font-size:14px}
 body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
 
-/* ── Header ───────────────────────────────────── */
-.header{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--border)}
-.header h1{font-size:1.25rem;font-weight:700;letter-spacing:-0.5px}
-.header h1 span{color:var(--accent)}
+/* ── Header (hidden on desktop, mobile hamburger only) */
+.header{display:none;align-items:center;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--border)}
 
 /* ── SIM/LIVE Toggle ──────────────────────────── */
 .mode-switch{display:flex;align-items:center;gap:10px;font-size:0.85rem;font-weight:600}
@@ -33,12 +31,16 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:v
 .toggle .slider::before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:var(--accent);border-radius:50%;transition:.3s}
 .toggle input:checked+.slider{background:var(--btn)}
 .toggle input:checked+.slider::before{transform:translateX(22px);background:#00cc66}
+.toggle-sm{width:40px;height:22px}
+.toggle-sm .slider{border-radius:11px}
+.toggle-sm .slider::before{width:16px;height:16px;left:3px;top:3px}
+.toggle-sm input:checked+.slider::before{transform:translateX(18px)}
 
 /* ── Layout ───────────────────────────────────── */
 .main{display:flex;flex:1;overflow:hidden}
 .sidebar{width:260px;min-width:260px;background:var(--card);border-right:1px solid var(--border);padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
 .sidebar.hidden{display:none}
-.content{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.content{flex:1;padding:8px;overflow:hidden;display:grid;grid-template-rows:1fr auto;gap:8px}
 
 /* ── Sidebar Groups ───────────────────────────── */
 .sb-title{font-size:0.8rem;font-weight:700;text-transform:uppercase;color:var(--accent);letter-spacing:0.5px;margin-bottom:4px}
@@ -56,17 +58,18 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:v
 .btn-accent:hover{background:#2288ee}
 
 /* ── Cards ────────────────────────────────────── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;position:relative}
-.card-title{font-size:0.82rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px}
-.card-title .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px;position:relative;display:flex;flex-direction:column;min-height:0}
+.card-title{font-size:0.75rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.card-title .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
 
 /* ── Charts Grid ──────────────────────────────── */
-.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.chart-wrap{position:relative;width:100%;min-height:280px}
+.charts-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;min-height:0;flex:1}
+.chart-wrap{position:relative;width:100%;flex:1;min-height:0}
 .chart-wrap canvas{width:100%!important;height:100%!important}
 
 /* ── Data Table ───────────────────────────────── */
-.tbl-wrap{max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}
+.tbl-card{flex-shrink:0}
+.tbl-wrap{max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}
 table{width:100%;border-collapse:collapse;font-size:0.78rem;font-family:monospace}
 thead{position:sticky;top:0;z-index:1}
 th{background:var(--btn);color:var(--text);padding:8px 10px;text-align:right;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border)}
@@ -87,29 +90,22 @@ tr:hover td{background:rgba(51,153,255,0.06)}
 
 /* ── Responsive ───────────────────────────────── */
 @media(max-width:900px){
-  .sidebar{position:fixed;left:0;top:52px;bottom:28px;z-index:100;transform:translateX(-100%);transition:transform .3s}
+  .header{display:flex}
+  .sidebar{position:fixed;left:0;top:44px;bottom:28px;z-index:100;transform:translateX(-100%);transition:transform .3s}
   .sidebar.show{transform:translateX(0)}
   .sidebar.hidden{display:flex;transform:translateX(-100%)}
   .hamburger{display:block}
   .charts-row{grid-template-columns:1fr}
+  .content{overflow-y:auto}
 }
 </style>
 </head>
 <body>
 
-<!-- ── Header ──────────────────────────────────── -->
+<!-- ── Header (minimalna, mobile hamburger only) ── -->
 <header class="header">
   <div style="display:flex;align-items:center;gap:12px">
     <button class="hamburger" id="menuBtn" onclick="toggleSidebar()">&#9776;</button>
-    <h1>Impedance <span>Spectroscopy</span></h1>
-  </div>
-  <div class="mode-switch">
-    <span class="label active" id="lblSim">SIM</span>
-    <label class="toggle">
-      <input type="checkbox" id="modeToggle" onchange="onModeChange()">
-      <span class="slider"></span>
-    </label>
-    <span class="label" id="lblLive">LIVE</span>
   </div>
 </header>
 
@@ -133,35 +129,44 @@ tr:hover td{background:rgba(51,153,255,0.06)}
       <div class="sb-row"><label>Liczba punktow</label><div class="input-wrap"><input type="number" id="pN" value="60" step="1" min="5" max="500" onchange="onParamChange()"><span class="unit">pts</span></div></div>
     </div>
     <div class="sb-sep"></div>
-    <button class="btn btn-accent" style="width:100%" onclick="simulate()">&#128260; Symuluj</button>
-    <button class="btn" style="width:100%;margin-top:6px" onclick="requestMeasurement()">&#128225; Pobierz dane (WS)</button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn btn-accent" style="flex:1" onclick="simulate()">Symuluj</button>
+      <div class="mode-switch" style="gap:6px">
+        <span class="label active" id="lblSim" style="font-size:0.72rem">SIM</span>
+        <label class="toggle toggle-sm">
+          <input type="checkbox" id="modeToggle" onchange="onModeChange()">
+          <span class="slider"></span>
+        </label>
+        <span class="label" id="lblLive" style="font-size:0.72rem">LIVE</span>
+      </div>
+    </div>
+    <button class="btn" style="width:100%;margin-top:6px" onclick="requestMeasurement()">Pobierz dane (WS)</button>
   </aside>
 
   <!-- ── Content ────────────────────────────────── -->
   <main class="content">
-    <!-- Charts Row: Bode + Nyquist -->
+    <!-- All 3 charts in one row -->
     <div class="charts-row">
       <div class="card">
-        <div class="card-title"><span class="dot" style="background:var(--pv1)"></span> Wykres Bodego</div>
+        <div class="card-title"><span class="dot" style="background:var(--pv1)"></span> Bode</div>
         <div class="chart-wrap"><canvas id="chartBode"></canvas></div>
       </div>
       <div class="card">
-        <div class="card-title"><span class="dot" style="background:var(--nyq)"></span> Wykres Nyquista</div>
+        <div class="card-title"><span class="dot" style="background:var(--nyq)"></span> Nyquist</div>
         <div class="chart-wrap"><canvas id="chartNyquist"></canvas></div>
       </div>
-    </div>
-    <!-- Resistance vs Frequency -->
-    <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--res)"></span> Rezystancja R(f)</div>
-      <div class="chart-wrap" style="max-width:900px;margin:0 auto"><canvas id="chartResF"></canvas></div>
-    </div>
-    <!-- Data Table -->
-    <div class="card">
-      <div class="tbl-toolbar">
-        <div class="card-title" style="margin:0"><span class="dot" style="background:var(--accent)"></span> Dane pomiarowe</div>
-        <button class="btn" onclick="exportCSV()">&#128203; CSV</button>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--res)"></span> R(f)</div>
+        <div class="chart-wrap"><canvas id="chartResF"></canvas></div>
       </div>
-      <div class="tbl-wrap">
+    </div>
+    <!-- Collapsible Data Table -->
+    <div class="card tbl-card">
+      <div class="tbl-toolbar">
+        <div class="card-title" style="margin:0;cursor:pointer" onclick="toggleTable()"><span class="dot" style="background:var(--accent)"></span> Dane pomiarowe <span id="tblArrow" style="font-size:0.65rem;margin-left:4px">&#9654;</span></div>
+        <button class="btn" onclick="exportCSV()">CSV</button>
+      </div>
+      <div class="tbl-wrap" id="tblWrap" style="display:none">
         <table id="dataTable">
           <thead>
             <tr>
@@ -660,6 +665,14 @@ function requestMeasurement(){
 // ── Sidebar Toggle (mobile) ──────────────────────
 function toggleSidebar(){
   $('sidebar').classList.toggle('show');
+}
+
+// ── Table Toggle ─────────────────────────────────
+function toggleTable(){
+  const w=$('tblWrap'), a=$('tblArrow');
+  const open = w.style.display==='none';
+  w.style.display = open ? '' : 'none';
+  a.innerHTML = open ? '&#9660;' : '&#9654;';
 }
 
 // ── Init ──────────────────────────────────────────
