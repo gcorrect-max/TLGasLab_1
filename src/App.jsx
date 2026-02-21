@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart } from "recharts";
 
 const APP_NAME = "Laboratorium badania cienkich warstw dla sensorów gazu";
 const APP_VER = "3.0";
@@ -28,7 +28,7 @@ const JSON_WEB2LV=[
   {type:"setpoint_command",desc:"Zmiana SP",ex:{type:"setpoint_command",ts:"ISO",data:{target:"sp1",value:200},user:"admin"}},
   {type:"mode_command",desc:"Tryb",ex:{type:"mode_command",ts:"ISO",data:{command:"start",regMode:"PID"},user:"admin"}},
   {type:"manual_mv",desc:"MV ręczne",ex:{type:"manual_mv",ts:"ISO",data:{mv:75},user:"op"}},
-  {type:"profile_command",desc:"Profil",ex:{type:"profile_command",ts:"ISO",data:{command:"start",profile:{name:"Spiekanie",segments:[{name:"Rampa",sp:400,ramp:5,hold:0}]}},user:"admin"}},
+  {type:"profile_command",desc:"Profil",ex:{type:"profile_command",ts:"ISO",data:{command:"start",profile:{name:"Spiekanie",segments:[{name:"Rampa",sp:400,ramp:5,hold:0,flow:[100,50,0,0]}]}},user:"admin"}},
   {type:"pid_command",desc:"PID",ex:{type:"pid_command",ts:"ISO",data:{pidPb:4.2,pidTi:95,pidTd:24},user:"admin"}},
   {type:"sample_info",desc:"Próbka",ex:{type:"sample_info",ts:"ISO",data:{sampleId:"ZnO-001",material:"ZnO"},user:"admin"}},
   {type:"config_update",desc:"Konfiguracja",ex:{type:"config_update",ts:"ISO",data:{ethIP:"192.168.1.100"},user:"admin"}},
@@ -109,7 +109,7 @@ const handleFile=(e)=>{const f=e.target.files?.[0];if(!f)return;if(!f.name.endsW
 const confirmExp=()=>{if(!pendingExp)return;const ex=pendingExp;
   // Apply profile
   if(ex.profile.name)setProfileName(ex.profile.name);
-  if(ex.profile.segments?.length)setSegs(ex.profile.segments);
+  if(ex.profile.segments?.length)setSegs(ex.profile.segments.map(s=>({...s,flow:s.flow||[0,0,0,0]})));
   // Apply sample
   const sKeys=["sampleId","material","substrate","method","thickness","targetGas","processTemp","pressure","atmosphere","sourcePower","processTime","gasFlow","operator","batchNo","goal","notes"];
   const ns={};for(const k of sKeys)ns[k]=ex.sample[k]||"";ns.photos=Array.isArray(ex.sample.photos)?ex.sample.photos:[];
@@ -255,8 +255,10 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
 
 // ═══ P2 USTAWIENIA TEMP ═══
 function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPage,sendCmd,T}){const S=mkS(T);const TT={contentStyle:{background:T.ttBg,border:`1px solid ${T.cardBorder}`,borderRadius:8,fontSize:11,color:T.text}};
-  const[showConfirm,setShowConfirm]=useState(false);
-  const pData=useMemo(()=>{const d=[];let t=0,tmp=25;for(const s of segs){const rt=Math.abs((s.sp-tmp)/(Math.abs(s.ramp)||1));d.push({time:t.toFixed(0),temp:tmp});t+=rt;d.push({time:t.toFixed(0),temp:s.sp});if(s.hold>0){t+=s.hold;d.push({time:t.toFixed(0),temp:s.sp})}tmp=s.sp}return d},[segs]);
+  const[showConfirm,setShowConfirm]=useState(false);const[flowOpen,setFlowOpen]=useState({});const togFlow=i=>setFlowOpen(fo=>({...fo,[i]:!fo[i]}));
+  const mfcCols=["#00aaff","#ffaa00","#00cc66","#cc44ff"];
+  const pData=useMemo(()=>{const d=[];let t=0,tmp=25;for(const s of segs){const fl=s.flow||[0,0,0,0];const rt=Math.abs((s.sp-tmp)/(Math.abs(s.ramp)||1));d.push({time:t.toFixed(0),temp:tmp,f1:fl[0],f2:fl[1],f3:fl[2],f4:fl[3]});t+=rt;d.push({time:t.toFixed(0),temp:s.sp,f1:fl[0],f2:fl[1],f3:fl[2],f4:fl[3]});if(s.hold>0){t+=s.hold;d.push({time:t.toFixed(0),temp:s.sp,f1:fl[0],f2:fl[1],f3:fl[2],f4:fl[3]})}tmp=s.sp}return d},[segs]);
+  const hasAnyFlow=useMemo(()=>segs.some(s=>(s.flow||[]).some(v=>v>0)),[segs]);
   const uSeg=(i,k,v)=>setSegs(s=>s.map((x,j)=>j===i?{...x,[k]:k==="name"?v:(parseFloat(v)||0)}:x));
   const profH="calc(63vh - 60px)";const btmH="calc(27vh - 20px)";
   const doStart=(full)=>{setShowConfirm(false);setMb(m=>({...m,progStatus:"RUN",progStage:1,progElapsed:0,sp1:segs[0]?.sp||m.sp1}));
@@ -271,11 +273,24 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
         <div style={{overflowY:"auto"}}>{segs.map((seg,i)=>(<div key={i} style={{...S.box,marginBottom:4,borderColor:mb.progStatus==="RUN"&&mb.progStage===i+1?"#00cc66":T.boxBorder}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{color:T.textA,fontSize:10,fontWeight:700}}>Etap {i+1}</span><button onClick={()=>setSegs(s=>s.filter((_,j)=>j!==i))} style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:11}}>✕</button></div>
           <input value={seg.name} onChange={e=>uSeg(i,"name",e.target.value)} placeholder="Nazwa etapu" style={{...S.input,fontSize:11,padding:"3px 6px",marginBottom:3,fontWeight:600}}/>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:3}}>{[["SP°C","sp"],["°C/m","ramp"],["min","hold"]].map(([l,k])=>(<div key={k}><div style={{color:T.textD,fontSize:8}}>{l}</div><input type="number" value={seg[k]} onChange={e=>uSeg(i,k,e.target.value)} style={{...S.input,fontSize:11,padding:"2px 4px"}}/></div>))}</div></div>))}
-          {segs.length<6&&<button onClick={()=>setSegs(s=>[...s,{name:`Etap ${s.length+1}`,sp:100,ramp:5,hold:30}])} style={{...S.btn,width:"100%",background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:10}}>+ Dodaj etap</button>}</div>
-        <div style={{display:"flex",flexDirection:"column",minHeight:0}}><div style={{flex:1,minHeight:0}}><ResponsiveContainer width="100%" height="100%"><AreaChart data={pData}>
-          <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="time" tick={{fill:T.tick,fontSize:9}} stroke={T.grid}/><YAxis tick={{fill:T.tick,fontSize:9}} stroke={T.grid}/><Tooltip {...TT}/>
-          <Area type="linear" dataKey="temp" stroke="#ff8844" fill="#ff884420" strokeWidth={2} name="°C" dot={{r:2,fill:"#ff8844"}} isAnimationActive={false}/></AreaChart></ResponsiveContainer></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:3}}>{[["SP°C","sp"],["°C/m","ramp"],["min","hold"]].map(([l,k])=>(<div key={k}><div style={{color:T.textD,fontSize:8}}>{l}</div><input type="number" value={seg[k]} onChange={e=>uSeg(i,k,e.target.value)} style={{...S.input,fontSize:11,padding:"2px 4px"}}/></div>))}</div>
+          <button onClick={()=>togFlow(i)} style={{width:"100%",marginTop:3,padding:"2px 0",background:"none",border:`1px solid ${T.boxBorder}`,borderRadius:3,color:T.textM,fontSize:8,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+            <span>{flowOpen[i]?"▾":"▸"}</span><span>Przepływy MFC</span>
+            {(seg.flow||[]).some(v=>v>0)&&<span style={{fontSize:7,padding:"0 3px",borderRadius:2,background:"#00aaff22",color:"#44bbff"}}>{(seg.flow||[]).filter(v=>v>0).length}</span>}</button>
+          {flowOpen[i]&&<div style={{marginTop:3,padding:4,borderRadius:4,border:`1px solid ${T.boxBorder}`,background:T.boxBg}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:3}}>{mb.mfc.map((d,mi)=>{const col=mfcCols[mi];return(<div key={mi}><div style={{color:col,fontSize:7,fontWeight:600}}>{d.name} ({d.gas})</div>
+              <input type="number" value={(seg.flow||[0,0,0,0])[mi]} onChange={e=>{const v=parseFloat(e.target.value)||0;setSegs(s=>s.map((x,j)=>j===i?{...x,flow:(x.flow||[0,0,0,0]).map((f,fi)=>fi===mi?v:f)}:x))}}
+                min={0} max={d.maxFlow} step={1} style={{...S.input,fontSize:10,padding:"2px 4px"}} placeholder={`0-${d.maxFlow}`}/></div>)})}</div></div>}
+        </div>))}
+          {segs.length<6&&<button onClick={()=>setSegs(s=>[...s,{name:`Etap ${s.length+1}`,sp:100,ramp:5,hold:30,flow:[0,0,0,0]}])} style={{...S.btn,width:"100%",background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:10}}>+ Dodaj etap</button>}</div>
+        <div style={{display:"flex",flexDirection:"column",minHeight:0}}><div style={{flex:1,minHeight:0}}><ResponsiveContainer width="100%" height="100%"><ComposedChart data={pData}>
+          <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="time" tick={{fill:T.tick,fontSize:9}} stroke={T.grid} label={{value:"min",position:"insideBottomRight",offset:-2,style:{fill:T.textD,fontSize:8}}}/>
+          <YAxis yAxisId="temp" tick={{fill:"#ff8844",fontSize:9}} stroke={T.grid}/>
+          {hasAnyFlow&&<YAxis yAxisId="flow" orientation="right" tick={{fill:T.textD,fontSize:9}} stroke={T.grid}/>}
+          <Tooltip {...TT}/>
+          <Area yAxisId="temp" type="linear" dataKey="temp" stroke="#ff8844" fill="#ff884420" strokeWidth={2} name="Temp °C" dot={{r:2,fill:"#ff8844"}} isAnimationActive={false}/>
+          {mb.mfc.map((d,mi)=>{const key=`f${mi+1}`;const show=pData.some(p=>p[key]>0);return show?<Line key={key} yAxisId="flow" type="stepAfter" dataKey={key} stroke={mfcCols[mi]} strokeWidth={1.5} dot={false} name={`${d.name} (${d.gas})`} strokeDasharray="5 3" isAnimationActive={false}/>:null})}
+          <Legend wrapperStyle={{fontSize:9}}/></ComposedChart></ResponsiveContainer></div>
           <div style={{display:"flex",gap:6,marginTop:4,flexShrink:0}}>
             <button style={{...S.btn,fontSize:10,background:"#0077b6"}} onClick={()=>{const o={device:"AR200.B",kontroler:APP_VER,profile:profileName,segments:segs};const b=new Blob([JSON.stringify(o,null,2)],{type:"application/json"});dlBlob(b,`profil_${(profileName||"noname").replace(/\s+/g,"_")}.json`);addLog(`Eksport profilu "${profileName}"`,"export");toast("JSON OK","success")}}>📥 JSON</button>
             <button style={{...S.btn,fontSize:10,background:mb.progStatus==="RUN"?"#aa2211":"#22aa44"}} onClick={()=>{if(mb.progStatus==="RUN"){doStop()}else{setShowConfirm(true)}}}>{mb.progStatus==="RUN"?"⏹ Stop":"▶ Start"}</button></div></div></div></div>
@@ -283,7 +298,8 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
       <div onClick={e=>e.stopPropagation()} style={{background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:14,padding:28,minWidth:380,maxWidth:460,boxShadow:"0 20px 60px rgba(0,0,0,.3)",animation:"si .2s ease-out"}}>
         <div style={{fontSize:14,fontWeight:700,color:T.textB,marginBottom:6}}>▶ Uruchomienie profilu</div>
         <div style={{fontSize:12,color:T.textM,marginBottom:6}}>Profil: <strong style={{color:T.textA}}>{profileName}</strong></div>
-        <div style={{fontSize:11,color:T.textD,marginBottom:16}}>Etapy: {segs.map((s,i)=>`${i+1}. ${s.name} (${s.sp}°C)`).join(" → ")}</div>
+        <div style={{fontSize:11,color:T.textD,marginBottom:8}}>Etapy: {segs.map((s,i)=>`${i+1}. ${s.name} (${s.sp}°C)`).join(" → ")}</div>
+        {hasAnyFlow&&<div style={{fontSize:10,color:T.textD,marginBottom:16}}>{mb.mfc.map((d,mi)=>{const vals=segs.map(s=>(s.flow||[0,0,0,0])[mi]);return vals.some(v=>v>0)?<span key={mi} style={{marginRight:8}}><span style={{color:mfcCols[mi],fontWeight:600}}>{d.name}:</span> {vals.join("→")} {d.unit}</span>:null})}</div>}
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           <button onClick={()=>doStart(true)} style={{...S.btn,background:"linear-gradient(135deg,#22aa44,#118833)",fontSize:12,padding:"10px 16px",textAlign:"left"}}>
             <div style={{fontWeight:700}}>🔬 Start — pełny pomiar</div>
@@ -804,7 +820,7 @@ export default function App(){
   const[user,setUser]=useState(null);const[dark,setDark]=useState(true);const[ac,sAc]=useState(1);
   const[mb,setMb]=useState(initMb);const[hist,setHist]=useState([]);const[alog,sAlog]=useState([]);
   const[toasts,sToasts]=useState([]);const[logs,sLogs]=useState([]);
-  const[segs,setSegs]=useState([{name:"Rampa grzania",sp:200,ramp:5,hold:0},{name:"Wygrzewanie",sp:400,ramp:3,hold:60},{name:"Chłodzenie",sp:25,ramp:-10,hold:0}]);
+  const[segs,setSegs]=useState([{name:"Rampa grzania",sp:200,ramp:5,hold:0,flow:[0,0,0,0]},{name:"Wygrzewanie",sp:400,ramp:3,hold:60,flow:[0,0,0,0]},{name:"Chłodzenie",sp:25,ramp:-10,hold:0,flow:[0,0,0,0]}]);
   const[profileName,setProfileName]=useState("Spiekanie ZnO");
   const[sample,setSample]=useState({sampleId:"",material:"",substrate:"",method:"",thickness:"",targetGas:"",processTemp:"",pressure:"",atmosphere:"",sourcePower:"",processTime:"",gasFlow:"",operator:"",batchNo:"",goal:"",notes:"",photos:[]});
   const[diagram,setDiagram]=useState({gas:"GAZ",gasType:"N₂/Ar",flow:"FLOW",furnace:"PIEC",bridge:"LabVIEW",bridgeSub:"WS Bridge"});
@@ -922,7 +938,9 @@ export default function App(){
       else if(m.regStatus==="RUN"&&m.manualMode){mv=m.mvManual;pv1+=(mv/100)*.6-.12+n1*.15;}else{pv1-=.08-n1*.1;mv=0;intg=0;}
       const pv2=pv1-8+(Math.random()-.5)*3;const outAnalog=4+(Math.max(0,Math.min(1,pv1/500))*16);
       const alarm1=pv1>sp1+m.hyst*5,alarm2=pv1<sp1-m.hyst*10,alarmSTB=alarm1||alarm2,alarmLATCH=m.alarmLATCH||alarmSTB;
-      const mfcSim=m.mfc.map(d=>{if(!d.enabled)return{...d,pv:0};const drift=(Math.random()-.5)*d.maxFlow*0.02;return{...d,pv:Math.max(0,Math.min(d.maxFlow,d.sp+drift))}});
+      // MFC sim: use flow setpoints from current profile segment if running
+      const segFlows=(pSt==="RUN"&&pStg>0&&pStg<=sg.length)?(sg[pStg-1].flow||[0,0,0,0]):null;
+      const mfcSim=m.mfc.map((d,mi)=>{const sp=segFlows?segFlows[mi]:d.sp;if(!d.enabled&&!sp)return{...d,pv:0,sp:segFlows?sp:d.sp};const drift=(Math.random()-.5)*(d.maxFlow||100)*0.02;return{...d,sp:segFlows?sp:d.sp,pv:Math.max(0,Math.min(d.maxFlow||500,sp+drift))}});
       return{...base,pv1,pv2,ch3:(pv1+pv2)/2,mv,sp1,out1:mv>3,out2:alarm1,outAnalog,alarm1,alarm2,alarmSTB,alarmLATCH,pidI:intg,pidPrevE:pErr,progStage:pStg,progStatus:pSt,progElapsed:pEl,mfc:mfcSim};});
     // History point (works for both demo and WS modes — WS updates via applyLvMessage also push history)
     const m=mbRef.current;if(!m.wsConnected){const now=new Date();const t=`${now.getMinutes().toString().padStart(2,"0")}:${now.getSeconds().toString().padStart(2,"0")}`;
@@ -940,7 +958,7 @@ export default function App(){
     {id:1,label:"Eksperyment",icon:"⬚",tip:"Podgląd na żywo temperatury, przepływów MFC, wykresów i statusu regulacji PID"},
     {id:8,label:"Impedancja",icon:"〰",tip:"Spektroskopia impedancyjna — wykresy Bode'go, Nyquista i R(f), pomiar lub symulacja Randles"},
     {id:3,label:"Próbka i proces",icon:"⏣",tip:"Opis próbki, parametry procesu technologicznego i profil temperaturowy"},
-    {id:2,label:"Ustawienia temp.",icon:"△",tip:"Nastawa temperatury, parametry PID, tryb ręczny/auto, alarmy"},
+    {id:2,label:"Ustawienia eksperymentu",icon:"△",tip:"Profil temperaturowy z przepływami MFC, parametry PID, tryb ręczny/auto"},
     {id:7,label:"Raporty pomiarowe",icon:"▤",tip:"Generowanie i eksport raportów z wynikami pomiarów w formacie PDF/CSV"},
     {id:4,label:"Konfiguracja",icon:"⛭",tip:"Ustawienia systemu: połączenie WS, konfiguracja MFC, konta użytkowników"},
     {id:5,label:"Protokół JSON",icon:"❴❵",tip:"Dokumentacja protokołu komunikacji WebSocket JSON z aplikacją LabVIEW"},
