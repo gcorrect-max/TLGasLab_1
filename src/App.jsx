@@ -48,18 +48,18 @@ mfc:[
 
 function mkS(T){return{
   card:{background:T.cardBg,borderRadius:12,padding:16,border:`1px solid ${T.cardBorder}`},
-  title:{color:T.titleC,fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:12,paddingBottom:8,borderBottom:`1px solid ${T.titleB}`,display:"flex",justifyContent:"space-between",alignItems:"center"},
-  input:{width:"100%",padding:"8px 10px",borderRadius:6,background:T.inputBg,border:`1px solid ${T.inputBorder}`,color:T.inputText,fontSize:13,outline:"none"},
-  btn:{padding:"10px 18px",borderRadius:8,border:"none",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"},
+  title:{color:T.titleC,fontSize:14,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:12,paddingBottom:8,borderBottom:`1px solid ${T.titleB}`,display:"flex",justifyContent:"space-between",alignItems:"center"},
+  input:{width:"100%",padding:"8px 10px",borderRadius:6,background:T.inputBg,border:`1px solid ${T.inputBorder}`,color:T.inputText,fontSize:15,outline:"none"},
+  btn:{padding:"10px 18px",borderRadius:8,border:"none",color:"#fff",fontSize:14,fontWeight:600,cursor:"pointer"},
   box:{background:T.boxBg,borderRadius:8,padding:10,border:`1px solid ${T.boxBorder}`},
-  lbl:{color:T.textM,fontSize:10,fontWeight:600,marginBottom:4},
-  code:{background:T.codeBg,border:`1px solid ${T.codeB}`,borderRadius:8,padding:12,fontFamily:"monospace",fontSize:11,color:T.codeT,overflowX:"auto",whiteSpace:"pre-wrap",maxHeight:180,overflowY:"auto"},
+  lbl:{color:T.textM,fontSize:12,fontWeight:600,marginBottom:4},
+  code:{background:T.codeBg,border:`1px solid ${T.codeB}`,borderRadius:8,padding:12,fontFamily:"monospace",fontSize:13,color:T.codeT,overflowX:"auto",whiteSpace:"pre-wrap",maxHeight:180,overflowY:"auto"},
 };}
 
-function Gauge({value,min,max,unit,label,sp,color="#00d4ff",warn,danger,size=140,T}){const rng=max-min,pct=Math.max(0,Math.min(1,(value-min)/rng));const sA=-225,eA=45,tA=eA-sA,ang=sA+pct*tA;const r=size/2-14,cx=size/2,cy=size/2;const p2c=a=>({x:cx+r*Math.cos(a*Math.PI/180),y:cy+r*Math.sin(a*Math.PI/180)});const arc=(s,e)=>{const a=p2c(s),b=p2c(e);return`M ${a.x} ${a.y} A ${r} ${r} 0 ${e-s>180?1:0} 1 ${b.x} ${b.y}`};let fc=color;if(danger&&value>=danger)fc="#ff3355";else if(warn&&value>=warn)fc="#ffaa00";const spA=sp!=null?sA+Math.max(0,Math.min(1,(sp-min)/rng))*tA:null,spP=spA!=null?p2c(spA):null;return(<div style={{textAlign:"center"}}><svg width={size} height={size*.7} viewBox={`0 0 ${size} ${size*.8}`}><path d={arc(sA,eA)} fill="none" stroke={T.gTrack} strokeWidth="9" strokeLinecap="round"/><path d={arc(sA,ang)} fill="none" stroke={fc} strokeWidth="9" strokeLinecap="round" style={{filter:`drop-shadow(0 0 5px ${fc}80)`}}/>{spP&&<circle cx={spP.x} cy={spP.y} r="4" fill="#ff3366" stroke="#fff" strokeWidth="1.5"/>}<text x={cx} y={cy-3} textAnchor="middle" fill={T.gText} fontSize="18" fontWeight="700" fontFamily="monospace">{typeof value==="number"?value.toFixed(1):value}</text><text x={cx} y={cy+12} textAnchor="middle" fill={T.gUnit} fontSize="10">{unit}</text></svg><div style={{color:T.textM,fontSize:9,marginTop:-4,fontWeight:600,letterSpacing:1,textTransform:"uppercase"}}>{label}</div></div>);}
-function Led({on,color="#00ff88",label,T}){return(<div style={{display:"flex",alignItems:"center",gap:5,fontSize:11}}><div style={{width:9,height:9,borderRadius:"50%",background:on?color:T.ledOff,boxShadow:on?`0 0 5px ${color}88`:"none",border:`1px solid ${on?color:T.ledOffB}`}}/><span style={{color:on?T.ledOn:T.ledOffT}}>{label}</span></div>);}
-function ABadge({on,label,type="warning",T}){const c={warning:["#ff990022","#ff9900","#ffaa33"],danger:["#ff336622","#ff3366","#ff5577"],info:["#00aaff22","#00aaff","#33bbff"],ok:["#00ff8822","#00ff88","#33ffaa"]}[type];return(<div style={{padding:"4px 8px",borderRadius:6,background:on?c[0]:T.badgeOff,border:`1px solid ${on?c[1]:T.badgeOffB}`,color:on?c[2]:T.badgeOffT,fontSize:10,fontWeight:600,animation:on&&type==="danger"?"pa 1s infinite":"none"}}>{on?"●":"○"} {label}</div>);}
-function Toasts({items,rm,T}){return(<div style={{position:"fixed",top:56,right:14,zIndex:9999,display:"flex",flexDirection:"column",gap:6,maxWidth:320}}>{items.map(t=>(<div key={t.id} style={{padding:"9px 12px",borderRadius:10,background:t.type==="error"?T.tEr:t.type==="success"?T.tOk:T.tIn,border:`1px solid ${t.type==="error"?"#ff336644":t.type==="success"?"#00ff8844":"#00aaff44"}`,color:t.type==="error"?"#ff8899":t.type==="success"?"#22aa66":"#3388cc",fontSize:12,boxShadow:"0 4px 16px rgba(0,0,0,.15)",animation:"si .3s ease-out",display:"flex",justifyContent:"space-between",gap:8}}><span>{t.type==="error"?"⚠":t.type==="success"?"✓":"ℹ"} {t.msg}</span><button onClick={()=>rm(t.id)} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:14}}>×</button></div>))}</div>);}
+function Gauge({value,min,max,unit,label,sp,color="#00d4ff",warn,danger,size=140,T}){const rng=max-min,pct=Math.max(0,Math.min(1,(value-min)/rng));const sA=-225,eA=45,tA=eA-sA,ang=sA+pct*tA;const r=size/2-14,cx=size/2,cy=size/2;const p2c=a=>({x:cx+r*Math.cos(a*Math.PI/180),y:cy+r*Math.sin(a*Math.PI/180)});const arc=(s,e)=>{const a=p2c(s),b=p2c(e);return`M ${a.x} ${a.y} A ${r} ${r} 0 ${e-s>180?1:0} 1 ${b.x} ${b.y}`};let fc=color;if(danger&&value>=danger)fc="#ff3355";else if(warn&&value>=warn)fc="#ffaa00";const spA=sp!=null?sA+Math.max(0,Math.min(1,(sp-min)/rng))*tA:null,spP=spA!=null?p2c(spA):null;return(<div style={{textAlign:"center"}}><svg width={size} height={size*.7} viewBox={`0 0 ${size} ${size*.8}`}><path d={arc(sA,eA)} fill="none" stroke={T.gTrack} strokeWidth="9" strokeLinecap="round"/><path d={arc(sA,ang)} fill="none" stroke={fc} strokeWidth="9" strokeLinecap="round" style={{filter:`drop-shadow(0 0 5px ${fc}80)`}}/>{spP&&<circle cx={spP.x} cy={spP.y} r="4" fill="#ff3366" stroke="#fff" strokeWidth="1.5"/>}<text x={cx} y={cy-3} textAnchor="middle" fill={T.gText} fontSize="18" fontWeight="700" fontFamily="monospace">{typeof value==="number"?value.toFixed(1):value}</text><text x={cx} y={cy+12} textAnchor="middle" fill={T.gUnit} fontSize="10">{unit}</text></svg><div style={{color:T.textM,fontSize:11,marginTop:-4,fontWeight:600,letterSpacing:1,textTransform:"uppercase"}}>{label}</div></div>);}
+function Led({on,color="#00ff88",label,T}){return(<div style={{display:"flex",alignItems:"center",gap:5,fontSize:13}}><div style={{width:9,height:9,borderRadius:"50%",background:on?color:T.ledOff,boxShadow:on?`0 0 5px ${color}88`:"none",border:`1px solid ${on?color:T.ledOffB}`}}/><span style={{color:on?T.ledOn:T.ledOffT}}>{label}</span></div>);}
+function ABadge({on,label,type="warning",T}){const c={warning:["#ff990022","#ff9900","#ffaa33"],danger:["#ff336622","#ff3366","#ff5577"],info:["#00aaff22","#00aaff","#33bbff"],ok:["#00ff8822","#00ff88","#33ffaa"]}[type];return(<div style={{padding:"4px 8px",borderRadius:6,background:on?c[0]:T.badgeOff,border:`1px solid ${on?c[1]:T.badgeOffB}`,color:on?c[2]:T.badgeOffT,fontSize:12,fontWeight:600,animation:on&&type==="danger"?"pa 1s infinite":"none"}}>{on?"●":"○"} {label}</div>);}
+function Toasts({items,rm,T}){return(<div style={{position:"fixed",top:56,right:14,zIndex:9999,display:"flex",flexDirection:"column",gap:6,maxWidth:320}}>{items.map(t=>(<div key={t.id} style={{padding:"9px 12px",borderRadius:10,background:t.type==="error"?T.tEr:t.type==="success"?T.tOk:T.tIn,border:`1px solid ${t.type==="error"?"#ff336644":t.type==="success"?"#00ff8844":"#00aaff44"}`,color:t.type==="error"?"#ff8899":t.type==="success"?"#22aa66":"#3388cc",fontSize:14,boxShadow:"0 4px 16px rgba(0,0,0,.15)",animation:"si .3s ease-out",display:"flex",justifyContent:"space-between",gap:8}}><span>{t.type==="error"?"⚠":t.type==="success"?"✓":"ℹ"} {t.msg}</span><button onClick={()=>rm(t.id)} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:16}}>×</button></div>))}</div>);}
 
 // ═══ LOGIN ═══
 function LoginScreen({onLogin,users,T}){const S=mkS(T);const[u,su]=useState("");const[p,sp]=useState("");const[err,se]=useState("");const[att,sa]=useState(0);
@@ -68,20 +68,20 @@ const onKey=e=>{if(e.key==="Enter")go()};
 return(<div style={{height:"100%",display:"flex",alignItems:"center",justifyContent:"center",background:T.loginBg,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
   <div style={{width:410,padding:38,borderRadius:16,background:T.loginCard,border:`1px solid ${T.loginCardB}`,boxShadow:"0 20px 60px rgba(0,0,0,.15)",animation:"si .5s ease-out"}}>
     <div style={{textAlign:"center",marginBottom:26}}>
-      <div style={{width:60,height:60,borderRadius:14,margin:"0 auto 12px",background:T.logoBg,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 6px 20px rgba(0,180,216,.3)"}}><span style={{fontSize:20,fontWeight:800,color:"#fff"}}>TFL</span></div>
-      <h1 style={{color:T.textB,fontSize:16,fontWeight:600,margin:"0 0 4px",lineHeight:1.3}}>{APP_NAME}</h1>
-      <p style={{color:T.textM,fontSize:11,margin:0}}>Kontroler v{APP_VER} — WebSocket ↔ LabVIEW</p></div>
+      <div style={{width:60,height:60,borderRadius:14,margin:"0 auto 12px",background:T.logoBg,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 6px 20px rgba(0,180,216,.3)"}}><span style={{fontSize:22,fontWeight:800,color:"#fff"}}>TFL</span></div>
+      <h1 style={{color:T.textB,fontSize:18,fontWeight:600,margin:"0 0 4px",lineHeight:1.3}}>{APP_NAME}</h1>
+      <p style={{color:T.textM,fontSize:13,margin:0}}>Kontroler v{APP_VER} — WebSocket ↔ LabVIEW</p></div>
     <div>
       {[["UŻYTKOWNIK",u,su,"text","admin / operator / student / guest"],["HASŁO",p,sp,"password","Wprowadź hasło"]].map(([l,v,fn,t,ph])=>(
-        <div key={l} style={{marginBottom:14}}><label style={{color:T.textM,fontSize:10,fontWeight:600,display:"block",marginBottom:4}}>{l}</label>
-          <input type={t} value={v} onChange={e=>{fn(e.target.value);se("")}} onKeyDown={onKey} placeholder={ph} style={{...S.input,padding:"11px 14px",fontSize:13}}/></div>))}
-      {err&&<div style={{background:"#ff336615",border:"1px solid #ff336644",borderRadius:8,padding:"8px 12px",marginBottom:14,color:"#ff6688",fontSize:12}}>⚠ {err}</div>}
-      <button onClick={go} style={{width:"100%",padding:"12px",borderRadius:8,border:"none",background:T.logoBg,color:"#fff",fontSize:14,fontWeight:600,cursor:"pointer"}}>Zaloguj się</button></div>
-    <div style={{textAlign:"center",marginTop:16,color:T.textD,fontSize:10}}>v{APP_VER} • WebSocket JSON • LabVIEW Bridge</div>
+        <div key={l} style={{marginBottom:14}}><label style={{color:T.textM,fontSize:12,fontWeight:600,display:"block",marginBottom:4}}>{l}</label>
+          <input type={t} value={v} onChange={e=>{fn(e.target.value);se("")}} onKeyDown={onKey} placeholder={ph} style={{...S.input,padding:"11px 14px",fontSize:15}}/></div>))}
+      {err&&<div style={{background:"#ff336615",border:"1px solid #ff336644",borderRadius:8,padding:"8px 12px",marginBottom:14,color:"#ff6688",fontSize:14}}>⚠ {err}</div>}
+      <button onClick={go} style={{width:"100%",padding:"12px",borderRadius:8,border:"none",background:T.logoBg,color:"#fff",fontSize:16,fontWeight:600,cursor:"pointer"}}>Zaloguj się</button></div>
+    <div style={{textAlign:"center",marginTop:16,color:T.textD,fontSize:12}}>v{APP_VER} • WebSocket JSON • LabVIEW Bridge</div>
   </div></div>);}
 
 // ═══ P1 MONITORING ═══
-function P1({mb,setMb,hist,alog,profileName,setProfileName,diagram:D,customSvg,segs,setSegs,sample,setSample,user,addLog,toast,goPage:sAc,sendCmd,experiments,setExperiments,T}){const S=mkS(T);const TT={contentStyle:{background:T.ttBg,border:`1px solid ${T.cardBorder}`,borderRadius:8,fontSize:11,color:T.text}};
+function P1({mb,setMb,hist,alog,profileName,setProfileName,diagram:D,customSvg,segs,setSegs,sample,setSample,user,addLog,toast,goPage:sAc,sendCmd,experiments,setExperiments,T}){const S=mkS(T);const TT={contentStyle:{background:T.ttBg,border:`1px solid ${T.cardBorder}`,borderRadius:8,fontSize:13,color:T.text}};
 const rowH="calc(45vh - 55px)";
 const crd={...S.card,display:"flex",flexDirection:"column",overflow:"hidden",height:rowH};
 const[showConfirm,setShowConfirm]=useState(false);
@@ -129,7 +129,7 @@ const confirmExp=()=>{if(!pendingExp)return;const ex=pendingExp;
 
 const pe=pendingExp;
 return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:`${rowH} auto ${rowH}`,gap:10}}>
-  <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Schemat stanowiska</span><span style={{fontSize:10,color:mb.out1?"#ff6644":T.textD}}>{mb.out1?"🔥 GRZANIE":"○ IDLE"}</span></div>
+  <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Schemat stanowiska</span><span style={{fontSize:12,color:mb.out1?"#ff6644":T.textD}}>{mb.out1?"🔥 GRZANIE":"○ IDLE"}</span></div>
     <div style={{flex:1,minHeight:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
     {customSvg?<div dangerouslySetInnerHTML={{__html:customSvg}} style={{width:"100%",maxHeight:"100%",overflow:"hidden"}}/>:
     <svg viewBox="0 0 440 200" style={{width:"100%",maxHeight:"100%"}}>
@@ -156,10 +156,10 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
       <text x="370" y="108" textAnchor="middle" fill={T.textD} fontSize="5">{D.bridgeSub}</text>
     </svg>}</div></div>
 
-  <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Temperatura — {profileName||"brak profilu"}</span><span style={{fontSize:10,color:mb.regStatus==="RUN"?"#00cc66":"#ff6644"}}>● {mb.regStatus}{mb.manualMode?" MAN":" AUTO"}</span></div>
+  <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Temperatura — {profileName||"brak profilu"}</span><span style={{fontSize:12,color:mb.regStatus==="RUN"?"#00cc66":"#ff6644"}}>● {mb.regStatus}{mb.manualMode?" MAN":" AUTO"}</span></div>
     <div style={{flex:1,minHeight:0}}>
     <ResponsiveContainer width="100%" height="100%"><LineChart data={hist.slice(-80)}>
-      <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:9}} stroke={T.grid} interval="preserveStartEnd"/><YAxis tick={{fill:T.tick,fontSize:9}} stroke={T.grid} domain={["auto","auto"]}/><Tooltip {...TT}/>
+      <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} interval="preserveStartEnd"/><YAxis tick={{fill:T.tick,fontSize:11}} stroke={T.grid} domain={["auto","auto"]}/><Tooltip {...TT}/>
       {chartVis.profSP&&<Line type="stepAfter" dataKey="profSP" stroke="#555577" strokeWidth={2.5} strokeDasharray="8 4" dot={false} name="Profil temp." isAnimationActive={false}/>}
       {chartVis.pv1&&<Line type="monotone" dataKey="pv1" stroke="#ff6644" strokeWidth={2} dot={false} name={mb.pv1Name||"PV1"} isAnimationActive={false}/>}
       {chartVis.pv2&&<Line type="monotone" dataKey="pv2" stroke="#aa44ff" strokeWidth={2} dot={false} name={mb.pv2Name||"PV2"} isAnimationActive={false}/>}
@@ -168,19 +168,19 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
     </LineChart></ResponsiveContainer></div>
     <div style={{display:"flex",gap:8,flexWrap:"wrap",padding:"4px 0",flexShrink:0}}>
       {[["profSP","#555577","Profil temp."],["pv1","#ff6644",mb.pv1Name||"PV1"],["pv2","#aa44ff",mb.pv2Name||"PV2"],["sp1","#00cc66","Nastawa temp."],["mv","#ffaa00","MV%"]].map(([k,c,l])=>(
-        <label key={k} style={{display:"flex",alignItems:"center",gap:3,cursor:"pointer",fontSize:9,color:chartVis[k]?c:T.textD,opacity:chartVis[k]?1:.45,userSelect:"none"}}>
+        <label key={k} style={{display:"flex",alignItems:"center",gap:3,cursor:"pointer",fontSize:11,color:chartVis[k]?c:T.textD,opacity:chartVis[k]?1:.45,userSelect:"none"}}>
           <input type="checkbox" checked={chartVis[k]} onChange={()=>togVis(k)} style={{width:10,height:10,accentColor:c}}/>{l}</label>))}</div></div>
 
   <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Przepływ gazu — przepływomierze</span>
-    <div style={{display:"flex",gap:4}}>{mb.mfc.map((d,i)=>d.enabled&&<span key={d.id} style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:["#00aaff22","#ffaa0022","#00cc6622","#cc44ff22"][i],color:["#44bbff","#ffbb33","#33dd77","#dd66ff"][i],fontWeight:600}}>{d.gas}</span>)}</div></div>
+    <div style={{display:"flex",gap:4}}>{mb.mfc.map((d,i)=>d.enabled&&<span key={d.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:["#00aaff22","#ffaa0022","#00cc6622","#cc44ff22"][i],color:["#44bbff","#ffbb33","#33dd77","#dd66ff"][i],fontWeight:600}}>{d.gas}</span>)}</div></div>
     <div style={{flex:1,minHeight:0}}>
     <ResponsiveContainer width="100%" height="100%"><LineChart data={hist.slice(-80)}>
-      <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:9}} stroke={T.grid} interval="preserveStartEnd"/><YAxis tick={{fill:T.tick,fontSize:9}} stroke={T.grid}/><Tooltip {...TT}/>
+      <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} interval="preserveStartEnd"/><YAxis tick={{fill:T.tick,fontSize:11}} stroke={T.grid}/><Tooltip {...TT}/>
       <Line type="monotone" dataKey="mfc1" stroke="#00aaff" strokeWidth={2} dot={false} name={mb.mfc[0]?.gas||"MFC1"} isAnimationActive={false}/>
       <Line type="monotone" dataKey="mfc2" stroke="#ffaa00" strokeWidth={2} dot={false} name={mb.mfc[1]?.gas||"MFC2"} isAnimationActive={false}/>
       <Line type="monotone" dataKey="mfc3" stroke="#00cc66" strokeWidth={2} dot={false} name={mb.mfc[2]?.gas||"MFC3"} isAnimationActive={false}/>
       <Line type="monotone" dataKey="mfc4" stroke="#cc44ff" strokeWidth={2} dot={false} name={mb.mfc[3]?.gas||"MFC4"} isAnimationActive={false}/>
-      <Legend wrapperStyle={{fontSize:9}}/></LineChart></ResponsiveContainer></div></div>
+      <Legend wrapperStyle={{fontSize:11}}/></LineChart></ResponsiveContainer></div></div>
 
   <div style={{...S.card,gridColumn:"1 / -1"}}>
     <div style={S.title}><span>Panel przepływomierzy — status</span></div>
@@ -188,73 +188,73 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
       {mb.mfc.map((d,i)=>{const col=["#00aaff","#ffaa00","#00cc66","#cc44ff"][i];return(
         <div key={d.id} style={{...S.box,borderColor:d.enabled?col:T.boxBorder,opacity:d.enabled?1:.5}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-            <span style={{fontSize:11,fontWeight:700,color:col}}>{d.name}</span>
-            <span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:d.enabled?`${col}22`:T.badgeOff,color:d.enabled?col:T.badgeOffT,fontWeight:600}}>{d.enabled?"ON":"OFF"}</span></div>
-          <div style={{fontSize:9,color:T.textM,marginBottom:4}}>{d.gas} — {d.gasComposition}</div>
+            <span style={{fontSize:13,fontWeight:700,color:col}}>{d.name}</span>
+            <span style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:d.enabled?`${col}22`:T.badgeOff,color:d.enabled?col:T.badgeOffT,fontWeight:600}}>{d.enabled?"ON":"OFF"}</span></div>
+          <div style={{fontSize:11,color:T.textM,marginBottom:4}}>{d.gas} — {d.gasComposition}</div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
-            <div><span style={{fontSize:18,fontWeight:700,color:col,fontFamily:"monospace"}}>{d.pv.toFixed(1)}</span><span style={{fontSize:9,color:T.textD,marginLeft:2}}>{d.unit}</span></div>
-            <div style={{textAlign:"right"}}><div style={{fontSize:8,color:T.textD}}>SP</div><span style={{fontSize:12,fontWeight:600,color:T.textM,fontFamily:"monospace"}}>{d.sp.toFixed(1)}</span></div></div>
+            <div><span style={{fontSize:20,fontWeight:700,color:col,fontFamily:"monospace"}}>{d.pv.toFixed(1)}</span><span style={{fontSize:11,color:T.textD,marginLeft:2}}>{d.unit}</span></div>
+            <div style={{textAlign:"right"}}><div style={{fontSize:10,color:T.textD}}>SP</div><span style={{fontSize:14,fontWeight:600,color:T.textM,fontFamily:"monospace"}}>{d.sp.toFixed(1)}</span></div></div>
           <div style={{marginTop:4,height:3,borderRadius:2,background:T.gTrack}}><div style={{height:"100%",borderRadius:2,background:col,width:`${d.maxFlow>0?Math.min(100,(d.pv/d.maxFlow)*100):0}%`}}/></div>
         </div>)})}
     </div></div>
 
   <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Sterowanie eksperymentem</span>
-    <span style={{fontSize:10,color:mb.progStatus==="RUN"?"#00cc66":T.textD}}>{mb.progStatus==="RUN"?`▶ Etap ${mb.progStage}`:"STOP"}</span></div>
+    <span style={{fontSize:12,color:mb.progStatus==="RUN"?"#00cc66":T.textD}}>{mb.progStatus==="RUN"?`▶ Etap ${mb.progStage}`:"STOP"}</span></div>
     <div style={{flex:1,minHeight:0,overflowY:"auto",display:"flex",flexDirection:"column",gap:8,padding:"4px 0"}}>
       <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
         <input ref={fileRef} type="file" accept=".json" onChange={handleFile} style={{display:"none"}}/>
-        <button onClick={()=>fileRef.current?.click()} style={{...S.btn,background:"linear-gradient(135deg,#0077b6,#005f8a)",fontSize:11,padding:"8px 14px"}}>📂 Załaduj eksperyment</button>
-        <button onClick={exportExp} style={{...S.btn,background:"#886600",fontSize:11,padding:"8px 14px"}}>📥 Eksportuj bieżący</button></div>
-      <div style={{fontSize:10,color:T.textM,lineHeight:1.5}}>
+        <button onClick={()=>fileRef.current?.click()} style={{...S.btn,background:"linear-gradient(135deg,#0077b6,#005f8a)",fontSize:13,padding:"8px 14px"}}>📂 Załaduj eksperyment</button>
+        <button onClick={exportExp} style={{...S.btn,background:"#886600",fontSize:13,padding:"8px 14px"}}>📥 Eksportuj bieżący</button></div>
+      <div style={{fontSize:12,color:T.textM,lineHeight:1.5}}>
         Plik JSON zawiera profil temperaturowy, dane próbki i operatora. Załadowanie pliku otworzy podgląd z potwierdzeniem przed uruchomieniem.</div>
       {alog.length>0&&<div style={{borderTop:`1px solid ${T.titleB}`,paddingTop:6}}>
-        <div style={{fontSize:10,fontWeight:600,color:T.textM,marginBottom:4}}>Ostatnie alarmy ({alog.length})</div>
-        {alog.slice(-6).reverse().map((a,i)=>(<div key={i} style={{display:"flex",gap:5,padding:"2px 5px",borderBottom:`1px solid ${T.tblB}`,color:a.sev==="danger"?"#ff7788":"#ffbb55",fontSize:10}}>
-          <span style={{color:T.textD,fontFamily:"monospace",fontSize:9}}>{a.time}</span><span>{a.msg}</span></div>))}</div>}
+        <div style={{fontSize:12,fontWeight:600,color:T.textM,marginBottom:4}}>Ostatnie alarmy ({alog.length})</div>
+        {alog.slice(-6).reverse().map((a,i)=>(<div key={i} style={{display:"flex",gap:5,padding:"2px 5px",borderBottom:`1px solid ${T.tblB}`,color:a.sev==="danger"?"#ff7788":"#ffbb55",fontSize:12}}>
+          <span style={{color:T.textD,fontFamily:"monospace",fontSize:11}}>{a.time}</span><span>{a.msg}</span></div>))}</div>}
     </div></div>
 
   {showConfirm&&pe&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}} onClick={()=>{setShowConfirm(false);setPendingExp(null)}}>
     <div onClick={e=>e.stopPropagation()} style={{background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:16,padding:0,minWidth:500,maxWidth:620,maxHeight:"85vh",boxShadow:"0 20px 60px rgba(0,0,0,.4)",animation:"si .2s ease-out",display:"flex",flexDirection:"column",overflow:"hidden"}}>
       <div style={{padding:"18px 24px 12px",borderBottom:`1px solid ${T.cardBorder}`,flexShrink:0}}>
-        <div style={{fontSize:15,fontWeight:700,color:T.textB}}>📂 Załaduj i uruchom eksperyment</div>
-        <div style={{fontSize:11,color:T.textD,marginTop:4}}>Plik: <span style={{color:T.textA,fontFamily:"monospace"}}>{pe._fileName}</span></div>
-        {pe.exportedBy&&<div style={{fontSize:10,color:T.textD,marginTop:2}}>Eksportował: {pe.exportedBy.name||pe.exportedBy.username} • {pe.exportedAt?new Date(pe.exportedAt).toLocaleString("pl-PL"):""}</div>}</div>
+        <div style={{fontSize:17,fontWeight:700,color:T.textB}}>📂 Załaduj i uruchom eksperyment</div>
+        <div style={{fontSize:13,color:T.textD,marginTop:4}}>Plik: <span style={{color:T.textA,fontFamily:"monospace"}}>{pe._fileName}</span></div>
+        {pe.exportedBy&&<div style={{fontSize:12,color:T.textD,marginTop:2}}>Eksportował: {pe.exportedBy.name||pe.exportedBy.username} • {pe.exportedAt?new Date(pe.exportedAt).toLocaleString("pl-PL"):""}</div>}</div>
       <div style={{overflowY:"auto",padding:"12px 24px",flex:1}}>
         <div style={{marginBottom:12}}>
-          <div style={{fontSize:11,fontWeight:700,color:T.textA,marginBottom:6}}>🌡 Profil temperaturowy</div>
-          <div style={{fontSize:12,fontWeight:600,color:T.textB,marginBottom:4}}>{pe.profile?.name||"—"}</div>
+          <div style={{fontSize:13,fontWeight:700,color:T.textA,marginBottom:6}}>🌡 Profil temperaturowy</div>
+          <div style={{fontSize:14,fontWeight:600,color:T.textB,marginBottom:4}}>{pe.profile?.name||"—"}</div>
           {pe.profile?.segments?.length>0&&<div style={{display:"flex",flexDirection:"column",gap:3}}>
             {pe.profile.segments.map((s,i)=>(<div key={i} style={{display:"flex",gap:8,alignItems:"center",padding:"4px 8px",borderRadius:6,background:T.boxBg,border:`1px solid ${T.boxBorder}`}}>
-              <span style={{fontSize:10,fontWeight:700,color:T.textA}}>E{i+1}</span>
-              <span style={{fontSize:11,color:T.textB,fontWeight:600,flex:1}}>{s.name||`Etap ${i+1}`}</span>
-              <span style={{fontSize:10,color:T.pv1,fontFamily:"monospace"}}>{s.sp}°C</span>
-              <span style={{fontSize:9,color:T.textD}}>{s.ramp}°C/min</span>
-              <span style={{fontSize:9,color:T.textD}}>{s.hold}min</span></div>))}</div>}</div>
+              <span style={{fontSize:12,fontWeight:700,color:T.textA}}>E{i+1}</span>
+              <span style={{fontSize:13,color:T.textB,fontWeight:600,flex:1}}>{s.name||`Etap ${i+1}`}</span>
+              <span style={{fontSize:12,color:T.pv1,fontFamily:"monospace"}}>{s.sp}°C</span>
+              <span style={{fontSize:11,color:T.textD}}>{s.ramp}°C/min</span>
+              <span style={{fontSize:11,color:T.textD}}>{s.hold}min</span></div>))}</div>}</div>
         <div style={{marginBottom:12}}>
-          <div style={{fontSize:11,fontWeight:700,color:T.textA,marginBottom:6}}>🧪 Dane próbki</div>
+          <div style={{fontSize:13,fontWeight:700,color:T.textA,marginBottom:6}}>🧪 Dane próbki</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4}}>
             {[["ID",pe.sample?.sampleId],["Materiał",pe.sample?.material],["Podłoże",pe.sample?.substrate],["Metoda",pe.sample?.method],
               ["Grubość",pe.sample?.thickness],["Gaz",pe.sample?.targetGas],["Temp. proc.",pe.sample?.processTemp],["Operator",pe.sample?.operator],
               ["Seria",pe.sample?.batchNo],["Zdjęcia",Array.isArray(pe.sample?.photos)?`${pe.sample.photos.length} ścieżek`:"0"]].filter(([,v])=>v).map(([l,v])=>(
             <div key={l} style={{padding:"3px 6px",borderRadius:4,background:T.boxBg,border:`1px solid ${T.boxBorder}`}}>
-              <span style={{fontSize:9,color:T.textD}}>{l}: </span><span style={{fontSize:10,color:T.tblT}}>{v}</span></div>))}</div></div>
-        <div><div style={{fontSize:11,fontWeight:700,color:T.textA,marginBottom:4}}>👤 Uruchamiający</div>
-          <div style={{fontSize:11,color:T.textB}}>{user.name} ({user.username}) — {user.role}</div></div>
+              <span style={{fontSize:11,color:T.textD}}>{l}: </span><span style={{fontSize:12,color:T.tblT}}>{v}</span></div>))}</div></div>
+        <div><div style={{fontSize:13,fontWeight:700,color:T.textA,marginBottom:4}}>👤 Uruchamiający</div>
+          <div style={{fontSize:13,color:T.textB}}>{user.name} ({user.username}) — {user.role}</div></div>
       </div>
       <div style={{padding:"12px 24px 18px",borderTop:`1px solid ${T.cardBorder}`,display:"flex",flexDirection:"column",gap:8,flexShrink:0}}>
-        <div style={{background:T.tIn,border:"1px solid #4488cc44",borderRadius:8,padding:"8px 12px",fontSize:11,color:T.textA}}>
+        <div style={{background:T.tIn,border:"1px solid #4488cc44",borderRadius:8,padding:"8px 12px",fontSize:13,color:T.textA}}>
           ⚠ Załadowanie eksperymentu nadpisze bieżące ustawienia profilu temperaturowego i danych próbki, a następnie uruchomi program segmentowy.</div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={confirmExp} style={{...S.btn,flex:1,background:"linear-gradient(135deg,#22aa44,#118833)",fontSize:12,padding:"10px 16px"}}>
+          <button onClick={confirmExp} style={{...S.btn,flex:1,background:"linear-gradient(135deg,#22aa44,#118833)",fontSize:14,padding:"10px 16px"}}>
             <div style={{fontWeight:700}}>🔬 Potwierdź i uruchom</div>
-            <div style={{fontSize:9,opacity:.8,fontWeight:400,marginTop:2}}>Zastosuj dane i rozpocznij eksperyment</div></button>
-          <button onClick={()=>{setShowConfirm(false);setPendingExp(null)}} style={{...S.btn,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:11,padding:"10px 20px"}}>Anuluj</button></div>
+            <div style={{fontSize:11,opacity:.8,fontWeight:400,marginTop:2}}>Zastosuj dane i rozpocznij eksperyment</div></button>
+          <button onClick={()=>{setShowConfirm(false);setPendingExp(null)}} style={{...S.btn,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:13,padding:"10px 20px"}}>Anuluj</button></div>
       </div>
     </div></div>}
 </div>);}
 
 // ═══ P2 USTAWIENIA TEMP ═══
-function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPage,sendCmd,T}){const S=mkS(T);const TT={contentStyle:{background:T.ttBg,border:`1px solid ${T.cardBorder}`,borderRadius:8,fontSize:11,color:T.text}};
+function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPage,sendCmd,T}){const S=mkS(T);const TT={contentStyle:{background:T.ttBg,border:`1px solid ${T.cardBorder}`,borderRadius:8,fontSize:13,color:T.text}};
   const[showConfirm,setShowConfirm]=useState(false);const[flowOpen,setFlowOpen]=useState({});const togFlow=i=>setFlowOpen(fo=>({...fo,[i]:!fo[i]}));
   const mfcCols=["#00aaff","#ffaa00","#00cc66","#cc44ff"];
   const pData=useMemo(()=>{const d=[];let t=0,tmp=25;for(const s of segs){const fl=s.flow||[0,0,0,0];const rt=Math.abs((s.sp-tmp)/(Math.abs(s.ramp)||1));d.push({time:t.toFixed(0),temp:tmp,f1:fl[0],f2:fl[1],f3:fl[2],f4:fl[3]});t+=rt;d.push({time:t.toFixed(0),temp:s.sp,f1:fl[0],f2:fl[1],f3:fl[2],f4:fl[3]});if(s.hold>0){t+=s.hold;d.push({time:t.toFixed(0),temp:s.sp,f1:fl[0],f2:fl[1],f3:fl[2],f4:fl[3]})}tmp=s.sp}return d},[segs]);
@@ -267,47 +267,47 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
   const doStop=()=>{setMb(m=>({...m,progStatus:"STOP",progStage:0,progElapsed:0}));sendCmd?.("profile_command",{action:"stop",profileName:profileName||"Profil_1"});addLog(`Program STOP: ${profileName}`,"mode");toast("STOP","info")};
   return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:`${profH} ${btmH}`,gap:10}}>
     <div style={{...S.card,gridColumn:"1/-1",display:"flex",flexDirection:"column",overflow:"hidden"}}><div style={{...S.title,flexShrink:0}}><span>Profil temperaturowy — {profileName}</span>
-      <span style={{fontSize:10,color:mb.progStatus==="RUN"?"#00cc66":T.textD}}>{mb.progStatus==="RUN"?`▶ E${mb.progStage} ${segs[mb.progStage-1]?.name||""}`:"STOP"}</span></div>
+      <span style={{fontSize:12,color:mb.progStatus==="RUN"?"#00cc66":T.textD}}>{mb.progStatus==="RUN"?`▶ E${mb.progStage} ${segs[mb.progStage-1]?.name||""}`:"STOP"}</span></div>
       <div style={{...S.box,marginBottom:8}}><div style={S.lbl}>Nazwa profilu</div><input value={profileName} onChange={e=>setProfileName(e.target.value)} placeholder="np. Spiekanie ZnO" style={S.input}/></div>
       <div style={{display:"grid",gridTemplateColumns:"260px 1fr",gap:12,flex:1,minHeight:0}}>
         <div style={{overflowY:"auto"}}>{segs.map((seg,i)=>(<div key={i} style={{...S.box,marginBottom:4,borderColor:mb.progStatus==="RUN"&&mb.progStage===i+1?"#00cc66":T.boxBorder}}>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{color:T.textA,fontSize:10,fontWeight:700}}>Etap {i+1}</span><button onClick={()=>setSegs(s=>s.filter((_,j)=>j!==i))} style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:11}}>✕</button></div>
-          <input value={seg.name} onChange={e=>uSeg(i,"name",e.target.value)} placeholder="Nazwa etapu" style={{...S.input,fontSize:11,padding:"3px 6px",marginBottom:3,fontWeight:600}}/>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:3}}>{[["SP°C","sp"],["°C/m","ramp"],["min","hold"]].map(([l,k])=>(<div key={k}><div style={{color:T.textD,fontSize:8}}>{l}</div><input type="number" value={seg[k]} onChange={e=>uSeg(i,k,e.target.value)} style={{...S.input,fontSize:11,padding:"2px 4px"}}/></div>))}</div>
-          <button onClick={()=>togFlow(i)} style={{width:"100%",marginTop:3,padding:"2px 0",background:"none",border:`1px solid ${T.boxBorder}`,borderRadius:3,color:T.textM,fontSize:8,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{color:T.textA,fontSize:12,fontWeight:700}}>Etap {i+1}</span><button onClick={()=>setSegs(s=>s.filter((_,j)=>j!==i))} style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:13}}>✕</button></div>
+          <input value={seg.name} onChange={e=>uSeg(i,"name",e.target.value)} placeholder="Nazwa etapu" style={{...S.input,fontSize:13,padding:"3px 6px",marginBottom:3,fontWeight:600}}/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:3}}>{[["SP°C","sp"],["°C/m","ramp"],["min","hold"]].map(([l,k])=>(<div key={k}><div style={{color:T.textD,fontSize:10}}>{l}</div><input type="number" value={seg[k]} onChange={e=>uSeg(i,k,e.target.value)} style={{...S.input,fontSize:13,padding:"2px 4px"}}/></div>))}</div>
+          <button onClick={()=>togFlow(i)} style={{width:"100%",marginTop:3,padding:"2px 0",background:"none",border:`1px solid ${T.boxBorder}`,borderRadius:3,color:T.textM,fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
             <span>{flowOpen[i]?"▾":"▸"}</span><span>Przepływy MFC</span>
-            {(seg.flow||[]).some(v=>v>0)&&<span style={{fontSize:7,padding:"0 3px",borderRadius:2,background:"#00aaff22",color:"#44bbff"}}>{(seg.flow||[]).filter(v=>v>0).length}</span>}</button>
+            {(seg.flow||[]).some(v=>v>0)&&<span style={{fontSize:9,padding:"0 3px",borderRadius:2,background:"#00aaff22",color:"#44bbff"}}>{(seg.flow||[]).filter(v=>v>0).length}</span>}</button>
           {flowOpen[i]&&<div style={{marginTop:3,padding:4,borderRadius:4,border:`1px solid ${T.boxBorder}`,background:T.boxBg}}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:3}}>{mb.mfc.map((d,mi)=>{const col=mfcCols[mi];return(<div key={mi}><div style={{color:col,fontSize:7,fontWeight:600}}>{d.name} ({d.gas})</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:3}}>{mb.mfc.map((d,mi)=>{const col=mfcCols[mi];return(<div key={mi}><div style={{color:col,fontSize:9,fontWeight:600}}>{d.name} ({d.gas})</div>
               <input type="number" value={(seg.flow||[0,0,0,0])[mi]} onChange={e=>{const v=parseFloat(e.target.value)||0;setSegs(s=>s.map((x,j)=>j===i?{...x,flow:(x.flow||[0,0,0,0]).map((f,fi)=>fi===mi?v:f)}:x))}}
-                min={0} max={d.maxFlow} step={1} style={{...S.input,fontSize:10,padding:"2px 4px"}} placeholder={`0-${d.maxFlow}`}/></div>)})}</div></div>}
+                min={0} max={d.maxFlow} step={1} style={{...S.input,fontSize:12,padding:"2px 4px"}} placeholder={`0-${d.maxFlow}`}/></div>)})}</div></div>}
         </div>))}
-          {segs.length<6&&<button onClick={()=>setSegs(s=>[...s,{name:`Etap ${s.length+1}`,sp:100,ramp:5,hold:30,flow:[0,0,0,0]}])} style={{...S.btn,width:"100%",background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:10}}>+ Dodaj etap</button>}</div>
+          {segs.length<6&&<button onClick={()=>setSegs(s=>[...s,{name:`Etap ${s.length+1}`,sp:100,ramp:5,hold:30,flow:[0,0,0,0]}])} style={{...S.btn,width:"100%",background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:12}}>+ Dodaj etap</button>}</div>
         <div style={{display:"flex",flexDirection:"column",minHeight:0}}><div style={{flex:1,minHeight:0}}><ResponsiveContainer width="100%" height="100%"><ComposedChart data={pData}>
-          <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="time" tick={{fill:T.tick,fontSize:9}} stroke={T.grid} label={{value:"min",position:"insideBottomRight",offset:-2,style:{fill:T.textD,fontSize:8}}}/>
-          <YAxis yAxisId="temp" tick={{fill:"#ff8844",fontSize:9}} stroke={T.grid}/>
-          {hasAnyFlow&&<YAxis yAxisId="flow" orientation="right" tick={{fill:T.textD,fontSize:9}} stroke={T.grid}/>}
+          <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="time" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} label={{value:"min",position:"insideBottomRight",offset:-2,style:{fill:T.textD,fontSize:10}}}/>
+          <YAxis yAxisId="temp" tick={{fill:"#ff8844",fontSize:11}} stroke={T.grid}/>
+          {hasAnyFlow&&<YAxis yAxisId="flow" orientation="right" tick={{fill:T.textD,fontSize:11}} stroke={T.grid}/>}
           <Tooltip {...TT}/>
           <Area yAxisId="temp" type="linear" dataKey="temp" stroke="#ff8844" fill="#ff884420" strokeWidth={2} name="Temp °C" dot={{r:2,fill:"#ff8844"}} isAnimationActive={false}/>
           {mb.mfc.map((d,mi)=>{const key=`f${mi+1}`;const show=pData.some(p=>p[key]>0);return show?<Line key={key} yAxisId="flow" type="stepAfter" dataKey={key} stroke={mfcCols[mi]} strokeWidth={1.5} dot={false} name={`${d.name} (${d.gas})`} strokeDasharray="5 3" isAnimationActive={false}/>:null})}
-          <Legend wrapperStyle={{fontSize:9}}/></ComposedChart></ResponsiveContainer></div>
+          <Legend wrapperStyle={{fontSize:11}}/></ComposedChart></ResponsiveContainer></div>
           <div style={{display:"flex",gap:6,marginTop:4,flexShrink:0}}>
-            <button style={{...S.btn,fontSize:10,background:"#0077b6"}} onClick={()=>{const o={device:"AR200.B",kontroler:APP_VER,profile:profileName,segments:segs};const b=new Blob([JSON.stringify(o,null,2)],{type:"application/json"});dlBlob(b,`profil_${(profileName||"noname").replace(/\s+/g,"_")}.json`);addLog(`Eksport profilu "${profileName}"`,"export");toast("JSON OK","success")}}>📥 JSON</button>
-            <button style={{...S.btn,fontSize:10,background:mb.progStatus==="RUN"?"#aa2211":"#22aa44"}} onClick={()=>{if(mb.progStatus==="RUN"){doStop()}else{setShowConfirm(true)}}}>{mb.progStatus==="RUN"?"⏹ Stop":"▶ Start"}</button></div></div></div></div>
+            <button style={{...S.btn,fontSize:12,background:"#0077b6"}} onClick={()=>{const o={device:"AR200.B",kontroler:APP_VER,profile:profileName,segments:segs};const b=new Blob([JSON.stringify(o,null,2)],{type:"application/json"});dlBlob(b,`profil_${(profileName||"noname").replace(/\s+/g,"_")}.json`);addLog(`Eksport profilu "${profileName}"`,"export");toast("JSON OK","success")}}>📥 JSON</button>
+            <button style={{...S.btn,fontSize:12,background:mb.progStatus==="RUN"?"#aa2211":"#22aa44"}} onClick={()=>{if(mb.progStatus==="RUN"){doStop()}else{setShowConfirm(true)}}}>{mb.progStatus==="RUN"?"⏹ Stop":"▶ Start"}</button></div></div></div></div>
     {showConfirm&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}} onClick={()=>setShowConfirm(false)}>
       <div onClick={e=>e.stopPropagation()} style={{background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:14,padding:28,minWidth:380,maxWidth:460,boxShadow:"0 20px 60px rgba(0,0,0,.3)",animation:"si .2s ease-out"}}>
-        <div style={{fontSize:14,fontWeight:700,color:T.textB,marginBottom:6}}>▶ Uruchomienie profilu</div>
-        <div style={{fontSize:12,color:T.textM,marginBottom:6}}>Profil: <strong style={{color:T.textA}}>{profileName}</strong></div>
-        <div style={{fontSize:11,color:T.textD,marginBottom:8}}>Etapy: {segs.map((s,i)=>`${i+1}. ${s.name} (${s.sp}°C)`).join(" → ")}</div>
-        {hasAnyFlow&&<div style={{fontSize:10,color:T.textD,marginBottom:16}}>{mb.mfc.map((d,mi)=>{const vals=segs.map(s=>(s.flow||[0,0,0,0])[mi]);return vals.some(v=>v>0)?<span key={mi} style={{marginRight:8}}><span style={{color:mfcCols[mi],fontWeight:600}}>{d.name}:</span> {vals.join("→")} {d.unit}</span>:null})}</div>}
+        <div style={{fontSize:16,fontWeight:700,color:T.textB,marginBottom:6}}>▶ Uruchomienie profilu</div>
+        <div style={{fontSize:14,color:T.textM,marginBottom:6}}>Profil: <strong style={{color:T.textA}}>{profileName}</strong></div>
+        <div style={{fontSize:13,color:T.textD,marginBottom:8}}>Etapy: {segs.map((s,i)=>`${i+1}. ${s.name} (${s.sp}°C)`).join(" → ")}</div>
+        {hasAnyFlow&&<div style={{fontSize:12,color:T.textD,marginBottom:16}}>{mb.mfc.map((d,mi)=>{const vals=segs.map(s=>(s.flow||[0,0,0,0])[mi]);return vals.some(v=>v>0)?<span key={mi} style={{marginRight:8}}><span style={{color:mfcCols[mi],fontWeight:600}}>{d.name}:</span> {vals.join("→")} {d.unit}</span>:null})}</div>}
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          <button onClick={()=>doStart(true)} style={{...S.btn,background:"linear-gradient(135deg,#22aa44,#118833)",fontSize:12,padding:"10px 16px",textAlign:"left"}}>
+          <button onClick={()=>doStart(true)} style={{...S.btn,background:"linear-gradient(135deg,#22aa44,#118833)",fontSize:14,padding:"10px 16px",textAlign:"left"}}>
             <div style={{fontWeight:700}}>🔬 Start — pełny pomiar</div>
-            <div style={{fontSize:10,opacity:.8,fontWeight:400,marginTop:2}}>Profil temp. + rejestracja danych + przejście do Eksperyment</div></button>
-          <button onClick={()=>doStart(false)} style={{...S.btn,background:"linear-gradient(135deg,#0077b6,#005f8a)",fontSize:12,padding:"10px 16px",textAlign:"left"}}>
+            <div style={{fontSize:12,opacity:.8,fontWeight:400,marginTop:2}}>Profil temp. + rejestracja danych + przejście do Eksperyment</div></button>
+          <button onClick={()=>doStart(false)} style={{...S.btn,background:"linear-gradient(135deg,#0077b6,#005f8a)",fontSize:14,padding:"10px 16px",textAlign:"left"}}>
             <div style={{fontWeight:700}}>🌡 Start — tylko temperatura</div>
-            <div style={{fontSize:10,opacity:.8,fontWeight:400,marginTop:2}}>Uruchom profil segmentowy bez przejścia na stronę pomiarową</div></button>
-          <button onClick={()=>setShowConfirm(false)} style={{...S.btn,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:11,padding:"8px 16px"}}>Anuluj</button></div>
+            <div style={{fontSize:12,opacity:.8,fontWeight:400,marginTop:2}}>Uruchom profil segmentowy bez przejścia na stronę pomiarową</div></button>
+          <button onClick={()=>setShowConfirm(false)} style={{...S.btn,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:13,padding:"8px 16px"}}>Anuluj</button></div>
       </div></div>}
     <div style={{...S.card,overflow:"hidden",display:"flex",flexDirection:"column"}}><div style={{...S.title,flexShrink:0}}><span>Nastawy</span></div>
       <div style={{display:"flex",justifyContent:"space-around",flexWrap:"wrap",gap:4}}>
@@ -317,12 +317,12 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:10}}>
         {[["SP1","sp1"],["SP2","sp2"],["SP3","sp3"]].map(([l,k])=>(<div key={k} style={S.box}><div style={S.lbl}>{l}°C</div>
           <input type="number" value={mb[k]} step=".1" style={S.input} onChange={e=>{const v=parseFloat(e.target.value)||0;setMb(m=>({...m,[k]:v}));sendCmd?.("setpoint_command",{[k]:v});addLog(`${l}→${v}°C`,"setpoint")}}/></div>))}</div></div>
-    <div style={{...S.card,overflow:"auto",display:"flex",flexDirection:"column"}}><div style={{...S.title,flexShrink:0}}><span>Regulacja</span><span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:mb.manualMode?"#ff880022":"#00ff8822",color:mb.manualMode?"#ffaa44":"#22aa66"}}>{mb.manualMode?"MANUAL":"AUTO"}</span></div>
+    <div style={{...S.card,overflow:"auto",display:"flex",flexDirection:"column"}}><div style={{...S.title,flexShrink:0}}><span>Regulacja</span><span style={{fontSize:12,padding:"2px 6px",borderRadius:4,background:mb.manualMode?"#ff880022":"#00ff8822",color:mb.manualMode?"#ffaa44":"#22aa66"}}>{mb.manualMode?"MANUAL":"AUTO"}</span></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
         {[["Pb°C","pidPb",.1],["Ti s","pidTi",1],["Td s","pidTd",1],["Hyst°C","hyst",.1],["Limit%","limitPower",1]].map(([l,k,st])=>(<div key={k} style={S.box}><div style={S.lbl}>{l}</div><input type="number" value={mb[k]} step={st} style={S.input} onChange={e=>setMb(m=>({...m,[k]:parseFloat(e.target.value)||0}))}/></div>))}</div>
       <div style={{...S.box,marginTop:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={S.lbl}>MV ręczne</div>
-        <button onClick={()=>{const nm=!mb.manualMode;setMb(m=>({...m,manualMode:nm}));sendCmd?.("mode_command",{manualMode:nm});addLog(nm?"→MANUAL":"→AUTO","mode");toast(nm?"MANUAL":"AUTO","info")}} style={{...S.btn,padding:"3px 10px",fontSize:10,background:mb.manualMode?"#886600":"#224488"}}>{mb.manualMode?"→AUTO":"→MAN"}</button></div>
-        <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4,opacity:mb.manualMode?1:.3}}><input type="range" min="0" max="100" value={mb.mvManual} disabled={!mb.manualMode} onChange={e=>{const v=parseFloat(e.target.value);setMb(m=>({...m,mvManual:v}));sendCmd?.("manual_mv",{mvManual:v})}} style={{flex:1,accentColor:"#00aaff"}}/><span style={{color:T.textB,fontFamily:"monospace",fontSize:13}}>{mb.mvManual.toFixed(0)}%</span></div></div>
+        <button onClick={()=>{const nm=!mb.manualMode;setMb(m=>({...m,manualMode:nm}));sendCmd?.("mode_command",{manualMode:nm});addLog(nm?"→MANUAL":"→AUTO","mode");toast(nm?"MANUAL":"AUTO","info")}} style={{...S.btn,padding:"3px 10px",fontSize:12,background:mb.manualMode?"#886600":"#224488"}}>{mb.manualMode?"→AUTO":"→MAN"}</button></div>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4,opacity:mb.manualMode?1:.3}}><input type="range" min="0" max="100" value={mb.mvManual} disabled={!mb.manualMode} onChange={e=>{const v=parseFloat(e.target.value);setMb(m=>({...m,mvManual:v}));sendCmd?.("manual_mv",{mvManual:v})}} style={{flex:1,accentColor:"#00aaff"}}/><span style={{color:T.textB,fontFamily:"monospace",fontSize:15}}>{mb.mvManual.toFixed(0)}%</span></div></div>
       <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
         <button onClick={()=>{const ns=mb.regStatus==="RUN"?"STOP":"RUN";setMb(m=>({...m,regStatus:ns,pidI:0}));sendCmd?.("mode_command",{regStatus:ns});addLog(ns==="RUN"?"REG START":"REG STOP","mode");toast(ns,"success")}} style={{...S.btn,background:mb.regStatus==="RUN"?"#aa2211":"#22aa44"}}>{mb.regStatus==="RUN"?"⏹ STOP":"▶ START"}</button>
         <button style={{...S.btn,background:"#886600"}} onClick={()=>{const pid={pidPb:4.2,pidTi:95,pidTd:24};setMb(m=>({...m,...pid}));sendCmd?.("pid_command",pid);addLog("Autotune PID","config");toast("Autotune OK","success")}}>🔄 Autotune</button>
@@ -371,7 +371,7 @@ function P3({sample,setSample,toast,addLog,sendCmd,T}){const S=mkS(T);
   useEffect(()=>{dbHealth()},[]);
 
   const F=({label,k,ph,area})=>(<div style={S.box}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={S.lbl}>{label}</div>
-    <button onClick={()=>{setSrchField(k);setSrchQuery(sample[k]||"");if(sample[k])dbSearch(k,sample[k])}} title={`Szukaj wg ${label}`} style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:10,padding:0}}>🔍</button></div>
+    <button onClick={()=>{setSrchField(k);setSrchQuery(sample[k]||"");if(sample[k])dbSearch(k,sample[k])}} title={`Szukaj wg ${label}`} style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:12,padding:0}}>🔍</button></div>
     {area?<textarea value={sample[k]||""} onChange={e=>setSample(s=>({...s,[k]:e.target.value}))} placeholder={ph} rows={3} style={{...S.input,resize:"vertical"}}></textarea>
     :<input value={sample[k]||""} onChange={e=>setSample(s=>({...s,[k]:e.target.value}))} placeholder={ph} style={S.input}/>}</div>);
 
@@ -385,25 +385,25 @@ function P3({sample,setSample,toast,addLog,sendCmd,T}){const S=mkS(T);
     <div style={S.card}><div style={S.title}><span>Dodatkowe</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
       <F label="Operator" k="operator" ph="Jan Kowalski"/><F label="Nr serii" k="batchNo" ph="BATCH-2026-01"/><F label="Cel eksperymentu" k="goal" ph="Optymalizacja" area={true}/><F label="Uwagi" k="notes" ph="Notatki..." area={true}/></div></div>
 
-    <div style={S.card}><div style={S.title}><span>📷 Zdjęcia próbki</span><span style={{fontSize:10,color:T.textD}}>{sample.photos.length} ścieżek</span></div>
+    <div style={S.card}><div style={S.title}><span>📷 Zdjęcia próbki</span><span style={{fontSize:12,color:T.textD}}>{sample.photos.length} ścieżek</span></div>
       <div style={{...S.box,marginBottom:8}}>
         <div style={S.lbl}>Dodaj ścieżkę do zdjęcia</div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          <input value={newPhoto} onChange={e=>setNewPhoto(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addPhoto()}} placeholder="/data/images/sample_001.jpg" style={{...S.input,flex:1,fontFamily:"monospace",fontSize:11}}/>
-          <button onClick={()=>addPhoto()} style={{...S.btn,background:"#0077b6",padding:"5px 12px",fontSize:10,flexShrink:0}}>+ Dodaj</button></div></div>
+          <input value={newPhoto} onChange={e=>setNewPhoto(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addPhoto()}} placeholder="/data/images/sample_001.jpg" style={{...S.input,flex:1,fontFamily:"monospace",fontSize:13}}/>
+          <button onClick={()=>addPhoto()} style={{...S.btn,background:"#0077b6",padding:"5px 12px",fontSize:12,flexShrink:0}}>+ Dodaj</button></div></div>
       {sample.photos.length>0&&<div style={{display:"flex",flexDirection:"column",gap:4}}>
         {sample.photos.map((p,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 8px",borderRadius:6,background:T.boxBg,border:`1px solid ${T.boxBorder}`}}>
-          <span style={{fontSize:10,color:T.textA,fontWeight:600,flexShrink:0}}>📷 {i+1}</span>
-          <span style={{flex:1,fontSize:11,color:T.tblT,fontFamily:"monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={p}>{p}</span>
-          <button onClick={()=>{setSrchField("photos");setSrchQuery(p);dbSearch("photos",p)}} title="Szukaj w bazie" style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:10,flexShrink:0}}>🔍</button>
-          <button onClick={()=>rmPhoto(i)} style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:12,flexShrink:0}} title="Usuń">✕</button></div>))}</div>}
-      {sample.photos.length===0&&<div style={{color:T.textD,fontSize:11,padding:"10px 0",textAlign:"center"}}>Brak zdjęć — dodaj ścieżki powyżej</div>}</div>
+          <span style={{fontSize:12,color:T.textA,fontWeight:600,flexShrink:0}}>📷 {i+1}</span>
+          <span style={{flex:1,fontSize:13,color:T.tblT,fontFamily:"monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={p}>{p}</span>
+          <button onClick={()=>{setSrchField("photos");setSrchQuery(p);dbSearch("photos",p)}} title="Szukaj w bazie" style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:12,flexShrink:0}}>🔍</button>
+          <button onClick={()=>rmPhoto(i)} style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:14,flexShrink:0}} title="Usuń">✕</button></div>))}</div>}
+      {sample.photos.length===0&&<div style={{color:T.textD,fontSize:13,padding:"10px 0",textAlign:"center"}}>Brak zdjęć — dodaj ścieżki powyżej</div>}</div>
 
     <div style={{...S.card,gridColumn:"1/-1"}}><div style={S.title}><span>🗄 MySQL — baza danych</span>
       <div style={{display:"flex",alignItems:"center",gap:6}}>
         <div style={{width:8,height:8,borderRadius:"50%",background:dbStatus==="ok"?"#22cc66":dbStatus==="err"?"#ff4455":"#888"}}/>
-        <span style={{fontSize:9,color:dbStatus==="ok"?T.textA:T.textD}}>{dbStatus==="ok"?"Połączono":"Brak połączenia"}</span>
-        <button onClick={dbHealth} style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:10}}>⟳</button></div></div>
+        <span style={{fontSize:11,color:dbStatus==="ok"?T.textA:T.textD}}>{dbStatus==="ok"?"Połączono":"Brak połączenia"}</span>
+        <button onClick={dbHealth} style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:12}}>⟳</button></div></div>
 
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
         <button style={{...S.btn,background:"linear-gradient(135deg,#22aa44,#118833)",opacity:dbLoading?.5:1}} disabled={dbLoading} onClick={dbInsert}>🗄 Zapisz do MySQL</button>
@@ -414,31 +414,31 @@ function P3({sample,setSample,toast,addLog,sendCmd,T}){const S=mkS(T);
       <div style={{...S.box,marginBottom:10}}>
         <div style={S.lbl}>🔍 Wyszukaj w bazie</div>
         <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-          <select value={srchField} onChange={e=>setSrchField(e.target.value)} style={{...S.input,width:160,fontSize:11}}>
+          <select value={srchField} onChange={e=>setSrchField(e.target.value)} style={{...S.input,width:160,fontSize:13}}>
             {allFields.map(([k,l])=><option key={k} value={k}>{l}</option>)}</select>
-          <input value={srchQuery} onChange={e=>setSrchQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")dbSearch(srchField,srchQuery)}} placeholder="Szukana fraza..." style={{...S.input,flex:1,fontSize:11}}/>
+          <input value={srchQuery} onChange={e=>setSrchQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")dbSearch(srchField,srchQuery)}} placeholder="Szukana fraza..." style={{...S.input,flex:1,fontSize:13}}/>
           <button style={{...S.btn,background:"#0077b6",padding:"5px 12px",opacity:dbLoading?.5:1}} disabled={dbLoading} onClick={()=>dbSearch(srchField,srchQuery)}>Szukaj</button></div>
         <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}}>
-          {allFields.map(([k,l])=><button key={k} onClick={()=>{setSrchField(k);const v=k==="photos"?(sample.photos[0]||""):sample[k]||"";if(v){setSrchQuery(v);dbSearch(k,v)}else{setSrchField(k)}}} style={{padding:"2px 6px",borderRadius:4,border:`1px solid ${srchField===k?T.textA:T.boxBorder}`,background:srchField===k?T.textA+"22":"transparent",color:srchField===k?T.textA:T.textD,fontSize:8,cursor:"pointer"}}>{l}</button>)}</div></div>
+          {allFields.map(([k,l])=><button key={k} onClick={()=>{setSrchField(k);const v=k==="photos"?(sample.photos[0]||""):sample[k]||"";if(v){setSrchQuery(v);dbSearch(k,v)}else{setSrchField(k)}}} style={{padding:"2px 6px",borderRadius:4,border:`1px solid ${srchField===k?T.textA:T.boxBorder}`,background:srchField===k?T.textA+"22":"transparent",color:srchField===k?T.textA:T.textD,fontSize:10,cursor:"pointer"}}>{l}</button>)}</div></div>
 
       {showResults&&<div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-          <span style={{fontSize:11,color:T.textM,fontWeight:600}}>Wyniki: {dbRes.length} {dbLoading&&"⏳"}</span>
-          <button onClick={()=>{setShowResults(false);setDbRes([])}} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:11}}>✕ Zamknij</button></div>
-        {dbRes.length===0?<div style={{color:T.textD,textAlign:"center",padding:20,fontSize:11}}>Brak wyników</div>:
-        <div style={{overflowX:"auto",maxHeight:280,overflowY:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
+          <span style={{fontSize:13,color:T.textM,fontWeight:600}}>Wyniki: {dbRes.length} {dbLoading&&"⏳"}</span>
+          <button onClick={()=>{setShowResults(false);setDbRes([])}} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:13}}>✕ Zamknij</button></div>
+        {dbRes.length===0?<div style={{color:T.textD,textAlign:"center",padding:20,fontSize:13}}>Brak wyników</div>:
+        <div style={{overflowX:"auto",maxHeight:280,overflowY:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
           <thead><tr style={{borderBottom:`2px solid ${T.cardBorder}`,position:"sticky",top:0,background:T.tblH}}>
-            <th style={{padding:"4px 5px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:9}}>id</th>
-            {tblCols.map(([,l])=><th key={l} style={{padding:"4px 5px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:9}}>{l}</th>)}
-            <th style={{padding:"4px 5px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:9}}>Data</th>
-            <th style={{padding:"4px 5px",fontSize:9}}></th></tr></thead>
+            <th style={{padding:"4px 5px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:11}}>id</th>
+            {tblCols.map(([,l])=><th key={l} style={{padding:"4px 5px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:11}}>{l}</th>)}
+            <th style={{padding:"4px 5px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:11}}>Data</th>
+            <th style={{padding:"4px 5px",fontSize:11}}></th></tr></thead>
           <tbody>{dbRes.map((r,i)=>(<tr key={r._id} style={{borderBottom:`1px solid ${T.tblB}`,background:i%2?T.logAlt:"transparent"}}>
             <td style={{padding:"3px 5px",color:T.textD,fontFamily:"monospace"}}>{r._id}</td>
             {tblCols.map(([k])=><td key={k} style={{padding:"3px 5px",color:T.tblT,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{k==="photos"?(Array.isArray(r[k])?r[k].length:0):r[k]||"—"}</td>)}
-            <td style={{padding:"3px 5px",color:T.textD,fontFamily:"monospace",fontSize:9}}>{r._createdAt?new Date(r._createdAt).toLocaleString("pl-PL"):""}</td>
+            <td style={{padding:"3px 5px",color:T.textD,fontFamily:"monospace",fontSize:11}}>{r._createdAt?new Date(r._createdAt).toLocaleString("pl-PL"):""}</td>
             <td style={{padding:"3px 5px"}}><div style={{display:"flex",gap:3}}>
-              <button onClick={()=>loadToForm(r)} title="Załaduj" style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:11}}>📋</button>
-              <button onClick={()=>dbDelete(r._id)} title="Usuń z MySQL" style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:11}}>🗑</button></div></td>
+              <button onClick={()=>loadToForm(r)} title="Załaduj" style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:13}}>📋</button>
+              <button onClick={()=>dbDelete(r._id)} title="Usuń z MySQL" style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:13}}>🗑</button></div></td>
           </tr>))}</tbody></table></div>}</div>}
 
       <pre style={{...S.code,marginTop:8,maxHeight:120,overflow:"auto"}}>{JSON.stringify({type:"sample_info",data:sample},null,2)}</pre>
@@ -448,7 +448,7 @@ function P3({sample,setSample,toast,addLog,sendCmd,T}){const S=mkS(T);
 const StableInput=memo(function StableInput({value,onCommit,placeholder}){const[v,setV]=useState(value);const focused=useRef(false);const cbRef=useRef(onCommit);cbRef.current=onCommit;
   useEffect(()=>{if(!focused.current)setV(value)},[value]);
   return <input value={v} onChange={e=>setV(e.target.value)} onFocus={()=>{focused.current=true}} onBlur={e=>{focused.current=false;cbRef.current(e.target.value)}} placeholder={placeholder}
-    style={{width:"100%",padding:"8px 10px",borderRadius:6,border:"1px solid #1a2a3a",fontSize:13,outline:"none",background:"inherit",color:"inherit"}}/>;
+    style={{width:"100%",padding:"8px 10px",borderRadius:6,border:"1px solid #1a2a3a",fontSize:15,outline:"none",background:"inherit",color:"inherit"}}/>;
 },function(p,n){return p.value===n.value&&p.placeholder===n.placeholder});
 
 // ═══ P4 KONFIGURACJA ═══
@@ -475,20 +475,20 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
   const adminTabs=isAdmin?[["users","👥 Użytkownicy"]]:[];
   const mfcUnits=["sccm","slm","l/min"];
   const updMfc=(idx,k,v)=>setMb(m=>({...m,mfc:m.mfc.map((d,i)=>i===idx?{...d,[k]:v}:d)}));
-  const tabBtn=(id,l)=><button key={id} onClick={()=>sTab(id)} style={{padding:"5px 10px",borderRadius:6,border:"none",background:tab===id?"#0077b6":T.boxBg,color:tab===id?"#fff":T.textM,fontSize:10,fontWeight:600,cursor:"pointer"}}>{l}</button>;
+  const tabBtn=(id,l)=><button key={id} onClick={()=>sTab(id)} style={{padding:"5px 10px",borderRadius:6,border:"none",background:tab===id?"#0077b6":T.boxBg,color:tab===id?"#fff":T.textM,fontSize:12,fontWeight:600,cursor:"pointer"}}>{l}</button>;
 
   return(<div>
     <div style={{display:"flex",gap:10,marginBottom:10,alignItems:"center",flexWrap:"wrap"}}>
       <div style={{display:"flex",alignItems:"center",gap:4}}>
-        <span style={{fontSize:8,fontWeight:700,color:T.textD,textTransform:"uppercase",letterSpacing:1}}>Sprzęt</span>
+        <span style={{fontSize:10,fontWeight:700,color:T.textD,textTransform:"uppercase",letterSpacing:1}}>Sprzęt</span>
         {hwTabs.map(([id,l])=>tabBtn(id,l))}</div>
       <div style={{width:1,height:18,background:T.cardBorder}}/>
       <div style={{display:"flex",alignItems:"center",gap:4}}>
-        <span style={{fontSize:8,fontWeight:700,color:T.textD,textTransform:"uppercase",letterSpacing:1}}>Interfejs</span>
+        <span style={{fontSize:10,fontWeight:700,color:T.textD,textTransform:"uppercase",letterSpacing:1}}>Interfejs</span>
         {uiTabs.map(([id,l])=>tabBtn(id,l))}</div>
       {adminTabs.length>0&&<><div style={{width:1,height:18,background:T.cardBorder}}/>
         <div style={{display:"flex",alignItems:"center",gap:4}}>
-          <span style={{fontSize:8,fontWeight:700,color:T.textD,textTransform:"uppercase",letterSpacing:1}}>Admin</span>
+          <span style={{fontSize:10,fontWeight:700,color:T.textD,textTransform:"uppercase",letterSpacing:1}}>Admin</span>
           {adminTabs.map(([id,l])=>tabBtn(id,l))}</div></>}
     </div>
     {tab==="ctrl"&&<div style={S.card}><div style={S.title}><span>Komunikacja AR200.B</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
@@ -499,12 +499,12 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
         <div style={S.box}><div style={S.lbl}>Nazwa PV1 (termopara 1)</div><StableInput value={mb.pv1Name} onCommit={v=>setMb(m=>({...m,pv1Name:v}))} placeholder="Termopara 1 (piec)"/></div>
         <div style={S.box}><div style={S.lbl}>Nazwa PV2 (termopara 2)</div><StableInput value={mb.pv2Name} onCommit={v=>setMb(m=>({...m,pv2Name:v}))} placeholder="Termopara 2 (próbka)"/></div></div></div>}
     {tab==="mfc"&&<div style={{display:"grid",gap:12}}>
-      <div style={{...S.title,margin:0,border:"none",paddingBottom:0}}><span>Przepływomierze MKS — MODBUS Ethernet</span><span style={{fontSize:10,color:T.textD}}>{mb.mfc.filter(d=>d.enabled).length}/{mb.mfc.length} aktywnych</span></div>
+      <div style={{...S.title,margin:0,border:"none",paddingBottom:0}}><span>Przepływomierze MKS — MODBUS Ethernet</span><span style={{fontSize:12,color:T.textD}}>{mb.mfc.filter(d=>d.enabled).length}/{mb.mfc.length} aktywnych</span></div>
       {mb.mfc.map((d,i)=>(<div key={d.id} style={{...S.card,opacity:d.enabled?1:.6}}>
         <div style={{...S.title,marginBottom:8}}><span style={{display:"flex",alignItems:"center",gap:6}}>
-          <span style={{fontSize:14}}>{d.enabled?"🟢":"⚪"}</span>
+          <span style={{fontSize:16}}>{d.enabled?"🟢":"⚪"}</span>
           <span>{d.name} — {d.gas}</span></span>
-          <label style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:T.textM,cursor:"pointer"}}>
+          <label style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:T.textM,cursor:"pointer"}}>
             <input type="checkbox" checked={d.enabled} onChange={e=>updMfc(i,"enabled",e.target.checked)}/> Aktywny</label></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
           <F label="Nazwa urządzenia"><input value={d.name} onChange={e=>updMfc(i,"name",e.target.value)} style={S.input}/></F>
@@ -527,45 +527,45 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
           {diagFields.map(([k,label,ph])=><F key={k} label={label}><input value={diagram[k]||""} onChange={e=>setDiagram(d=>({...d,[k]:e.target.value}))} placeholder={ph} style={S.input}/></F>)}</div>
         <button style={{...S.btn,marginTop:8,background:"#0077b6"}} onClick={()=>{addLog("Nazwy diagramu zapisane","config");toast("Diagram zapisany","success")}}>💾 Zapisz nazwy</button></div>
       <div style={S.card}><div style={S.title}><span>Własny schemat SVG</span></div>
-        <p style={{color:T.textM,fontSize:11,margin:"0 0 10px"}}>Załaduj własny plik SVG jako schemat stanowiska. SVG zastąpi domyślny diagram na stronie Eksperyment.</p>
+        <p style={{color:T.textM,fontSize:13,margin:"0 0 10px"}}>Załaduj własny plik SVG jako schemat stanowiska. SVG zastąpi domyślny diagram na stronie Eksperyment.</p>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <label style={{...S.btn,background:"linear-gradient(135deg,#0077b6,#005f8a)",display:"inline-flex",alignItems:"center",gap:5,cursor:"pointer"}}>
             📂 Załaduj SVG<input type="file" accept=".svg" onChange={handleSvgUpload} style={{display:"none"}}/></label>
           {customSvg&&<button style={{...S.btn,background:"#aa2211"}} onClick={()=>{setCustomSvg(null);addLog("SVG usunięty","config");toast("SVG usunięty","info")}}>🗑 Usuń SVG</button>}
-          <span style={{fontSize:10,color:customSvg?T.textA:T.textD}}>{customSvg?"✓ Własny SVG aktywny":"Domyślny schemat"}</span></div>
+          <span style={{fontSize:12,color:customSvg?T.textA:T.textD}}>{customSvg?"✓ Własny SVG aktywny":"Domyślny schemat"}</span></div>
         {customSvg&&<div style={{...S.box,marginTop:10,maxHeight:180,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
           <div dangerouslySetInnerHTML={{__html:customSvg}} style={{maxWidth:"100%",maxHeight:170}}/></div>}</div>
     </div>}
     {tab==="ws"&&<div style={S.card}><div style={S.title}><span>WebSocket ↔ LabVIEW</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
       <F label="WebSocket URL"><input value={mb.wsUrl} onChange={e=>setMb(m=>({...m,wsUrl:e.target.value}))} style={S.input}/></F>
       <F label="Status"><div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}><Led on={mb.wsConnected} color="#00cc66" label={mb.wsConnected?"Połączony":"Rozłączony"} T={T}/></div></F></div>
-      <p style={{color:T.textM,fontSize:11,margin:"8px 0"}}>LabVIEW = WebSocket Server. Kontroler = klient. Dane JSON. Auto-reconnect z exponential backoff.</p>
+      <p style={{color:T.textM,fontSize:13,margin:"8px 0"}}>LabVIEW = WebSocket Server. Kontroler = klient. Dane JSON. Auto-reconnect z exponential backoff.</p>
       <div style={{display:"flex",gap:6}}><button style={{...S.btn,background:mb.wsConnected?"#888":"#22aa44",opacity:mb.wsConnected?.5:1}} disabled={mb.wsConnected} onClick={()=>connectWs?.({manual:true})}>🔌 Połącz</button>
         <button style={{...S.btn,background:!mb.wsConnected?"#888":"#aa2211",opacity:!mb.wsConnected?.5:1}} disabled={!mb.wsConnected} onClick={()=>disconnectWs?.("manual")}>⏏ Rozłącz</button></div></div>}
     {tab==="db"&&<div style={S.card}><div style={S.title}><span>Baza danych</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
       {[["Typ","PostgreSQL+TimescaleDB"],["Host","localhost"],["Port","5432"],["Baza","thinfilm_lab"]].map(([l,v])=><F key={l} label={l}><input defaultValue={v} style={S.input}/></F>)}</div>
       <button style={{...S.btn,marginTop:8,background:"#0077b6"}} onClick={()=>{addLog("Config DB zapisana","config");toast("OK","success")}}>💾 Zapisz</button></div>}
     {tab==="users"&&isAdmin&&<div style={{display:"grid",gap:12}}>
-      <div style={S.card}><div style={S.title}><span>Zarządzanie użytkownikami</span><span style={{fontSize:10,color:T.textD}}>{Object.keys(users).length} kont</span></div>
-        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+      <div style={S.card}><div style={S.title}><span>Zarządzanie użytkownikami</span><span style={{fontSize:12,color:T.textD}}>{Object.keys(users).length} kont</span></div>
+        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
           <thead><tr style={{borderBottom:`2px solid ${T.cardBorder}`}}>
-            {["Login","Nazwa","Imię","Nazwisko","Rola","Email","Telefon",""].map(h=><th key={h} style={{padding:"5px 6px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:10,background:T.tblH}}>{h}</th>)}</tr></thead>
+            {["Login","Nazwa","Imię","Nazwisko","Rola","Email","Telefon",""].map(h=><th key={h} style={{padding:"5px 6px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:12,background:T.tblH}}>{h}</th>)}</tr></thead>
           <tbody>{Object.entries(users).map(([login,u],i)=>(<tr key={login} style={{borderBottom:`1px solid ${T.tblB}`,background:editUser===login?`${T.textA}11`:i%2?T.logAlt:"transparent"}}>
-            <td style={{padding:"4px 6px",color:T.textA,fontFamily:"monospace",fontWeight:600}}>{login}{login==="admin"&&<span style={{fontSize:8,color:"#ffaa44",marginLeft:4}}>★</span>}</td>
+            <td style={{padding:"4px 6px",color:T.textA,fontFamily:"monospace",fontWeight:600}}>{login}{login==="admin"&&<span style={{fontSize:10,color:"#ffaa44",marginLeft:4}}>★</span>}</td>
             <td style={{padding:"4px 6px",color:T.textB}}>{u.name}</td>
             <td style={{padding:"4px 6px",color:T.textM}}>{u.firstName||"-"}</td>
             <td style={{padding:"4px 6px",color:T.textM}}>{u.lastName||"-"}</td>
-            <td style={{padding:"4px 6px"}}><span style={{fontSize:9,padding:"2px 6px",borderRadius:4,fontWeight:600,background:u.role==="admin"?"#ff880022":"#00aaff15",color:u.role==="admin"?"#ffaa44":"#44aadd"}}>{u.role}</span></td>
-            <td style={{padding:"4px 6px",color:T.textD,fontSize:10}}>{u.email||"-"}</td>
-            <td style={{padding:"4px 6px",color:T.textD,fontSize:10}}>{u.phone||"-"}</td>
+            <td style={{padding:"4px 6px"}}><span style={{fontSize:11,padding:"2px 6px",borderRadius:4,fontWeight:600,background:u.role==="admin"?"#ff880022":"#00aaff15",color:u.role==="admin"?"#ffaa44":"#44aadd"}}>{u.role}</span></td>
+            <td style={{padding:"4px 6px",color:T.textD,fontSize:12}}>{u.email||"-"}</td>
+            <td style={{padding:"4px 6px",color:T.textD,fontSize:12}}>{u.phone||"-"}</td>
             <td style={{padding:"4px 6px"}}><div style={{display:"flex",gap:3}}>
-              <button onClick={()=>setEditUser(editUser===login?null:login)} style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:12}} title="Edytuj">✏</button>
-              {login!=="admin"&&<button onClick={()=>setConfirmDel(login)} style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:12}} title="Usuń">🗑</button>}</div></td>
+              <button onClick={()=>setEditUser(editUser===login?null:login)} style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:14}} title="Edytuj">✏</button>
+              {login!=="admin"&&<button onClick={()=>setConfirmDel(login)} style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:14}} title="Usuń">🗑</button>}</div></td>
           </tr>))}</tbody></table></div>
-        <button onClick={()=>setShowAdd(!showAdd)} style={{...S.btn,marginTop:10,background:showAdd?"#aa2211":"linear-gradient(135deg,#22aa44,#118833)",fontSize:11}}>{showAdd?"✕ Anuluj":"➕ Dodaj użytkownika"}</button></div>
+        <button onClick={()=>setShowAdd(!showAdd)} style={{...S.btn,marginTop:10,background:showAdd?"#aa2211":"linear-gradient(135deg,#22aa44,#118833)",fontSize:13}}>{showAdd?"✕ Anuluj":"➕ Dodaj użytkownika"}</button></div>
 
       {showAdd&&<div style={S.card}><div style={S.title}><span>➕ Nowy użytkownik</span>
-        <button onClick={()=>{setShowAdd(false);setNewUser(emptyUser)}} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:14}}>✕</button></div>
+        <button onClick={()=>{setShowAdd(false);setNewUser(emptyUser)}} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:16}}>✕</button></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8}}>
           <F label="Login *"><input value={newUser.login} onChange={e=>nU("login",e.target.value)} placeholder="np. jnowak" style={{...S.input,fontFamily:"monospace",fontWeight:600}}/></F>
           <F label="Nazwa wyświetlana"><input value={newUser.name} onChange={e=>nU("name",e.target.value)} placeholder="Jan Nowak" style={S.input}/></F>
@@ -576,10 +576,10 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
           <F label="Nazwisko"><input value={newUser.lastName} onChange={e=>nU("lastName",e.target.value)} placeholder="Nowak" style={S.input}/></F>
           <F label="Email"><input type="email" value={newUser.email} onChange={e=>nU("email",e.target.value)} placeholder="jan@lab.pl" style={S.input}/></F>
           <F label="Telefon"><input value={newUser.phone} onChange={e=>nU("phone",e.target.value)} placeholder="+48 600..." style={S.input}/></F></div>
-        <button onClick={addUser} style={{...S.btn,marginTop:10,background:"linear-gradient(135deg,#22aa44,#118833)",fontSize:11}}>✓ Utwórz konto</button></div>}
+        <button onClick={addUser} style={{...S.btn,marginTop:10,background:"linear-gradient(135deg,#22aa44,#118833)",fontSize:13}}>✓ Utwórz konto</button></div>}
 
       {editUser&&users[editUser]&&<div style={S.card}><div style={S.title}><span>✏ Edycja: <span style={{color:T.textA,fontFamily:"monospace"}}>{editUser}</span></span>
-        <button onClick={()=>setEditUser(null)} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:14}}>✕</button></div>
+        <button onClick={()=>setEditUser(null)} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:16}}>✕</button></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
           {uFields.map(([k,label])=><F key={k} label={label}><input type={k==="password"?"text":"text"} value={users[editUser][k]||""} onChange={e=>uU(editUser,k,e.target.value)} style={S.input}/></F>)}
           <F label="Rola"><select value={users[editUser].role} onChange={e=>uU(editUser,"role",e.target.value)} style={S.input} disabled={editUser==="admin"}>
@@ -589,13 +589,13 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
 
     {confirmDel&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}} onClick={()=>setConfirmDel(null)}>
       <div onClick={e=>e.stopPropagation()} style={{background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:14,padding:"24px 28px",minWidth:360,maxWidth:440,boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
-        <div style={{fontSize:14,fontWeight:700,color:T.textB,marginBottom:10}}>🗑 Usunąć użytkownika?</div>
-        <div style={{fontSize:12,color:T.textM,marginBottom:6}}>Czy na pewno chcesz usunąć konto:</div>
+        <div style={{fontSize:16,fontWeight:700,color:T.textB,marginBottom:10}}>🗑 Usunąć użytkownika?</div>
+        <div style={{fontSize:14,color:T.textM,marginBottom:6}}>Czy na pewno chcesz usunąć konto:</div>
         <div style={{padding:"10px 14px",borderRadius:8,background:T.boxBg,border:`1px solid ${T.boxBorder}`,marginBottom:16}}>
-          <div style={{fontSize:13,fontWeight:700,color:T.textB}}>{users[confirmDel]?.name||confirmDel}</div>
-          <div style={{fontSize:11,color:T.textD,marginTop:2}}>Login: <span style={{fontFamily:"monospace",color:T.textM}}>{confirmDel}</span> • Rola: {users[confirmDel]?.role||"?"}</div>
-          {users[confirmDel]?.email&&<div style={{fontSize:10,color:T.textD,marginTop:1}}>{users[confirmDel].email}</div>}</div>
-        <div style={{background:"#ff335515",border:"1px solid #ff335533",borderRadius:8,padding:"8px 12px",marginBottom:16,fontSize:11,color:"#ff6677"}}>⚠ Ta operacja jest nieodwracalna. Użytkownik utraci dostęp do systemu.</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.textB}}>{users[confirmDel]?.name||confirmDel}</div>
+          <div style={{fontSize:13,color:T.textD,marginTop:2}}>Login: <span style={{fontFamily:"monospace",color:T.textM}}>{confirmDel}</span> • Rola: {users[confirmDel]?.role||"?"}</div>
+          {users[confirmDel]?.email&&<div style={{fontSize:12,color:T.textD,marginTop:1}}>{users[confirmDel].email}</div>}</div>
+        <div style={{background:"#ff335515",border:"1px solid #ff335533",borderRadius:8,padding:"8px 12px",marginBottom:16,fontSize:13,color:"#ff6677"}}>⚠ Ta operacja jest nieodwracalna. Użytkownik utraci dostęp do systemu.</div>
         <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
           <button onClick={()=>setConfirmDel(null)} style={{...S.btn,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,padding:"8px 18px"}}>Anuluj</button>
           <button onClick={()=>{delUser(confirmDel);setConfirmDel(null)}} style={{...S.btn,background:"linear-gradient(135deg,#dd2244,#aa1133)",padding:"8px 18px"}}>🗑 Usuń</button></div>
@@ -609,17 +609,17 @@ function P5({mb,hist,T}){const S=mkS(T);const[tab,sTab]=useState("lv2web");
   return(<div style={{display:"grid",gap:12}}>
     <div style={S.card}><div style={S.title}><span>Protokół JSON — LabVIEW ↔ Kontroler</span></div>
       <div style={{display:"flex",gap:4,marginBottom:8}}>
-        <button onClick={()=>sTab("lv2web")} style={{...S.btn,padding:"5px 10px",fontSize:10,background:tab==="lv2web"?"#0077b6":T.boxBg,color:tab==="lv2web"?"#fff":T.textM}}>LabVIEW → Web</button>
-        <button onClick={()=>sTab("web2lv")} style={{...S.btn,padding:"5px 10px",fontSize:10,background:tab==="web2lv"?"#0077b6":T.boxBg,color:tab==="web2lv"?"#fff":T.textM}}>Web → LabVIEW</button></div>
+        <button onClick={()=>sTab("lv2web")} style={{...S.btn,padding:"5px 10px",fontSize:12,background:tab==="lv2web"?"#0077b6":T.boxBg,color:tab==="lv2web"?"#fff":T.textM}}>LabVIEW → Web</button>
+        <button onClick={()=>sTab("web2lv")} style={{...S.btn,padding:"5px 10px",fontSize:12,background:tab==="web2lv"?"#0077b6":T.boxBg,color:tab==="web2lv"?"#fff":T.textM}}>Web → LabVIEW</button></div>
       {schemas.map((s,i)=>(<div key={i} style={{...S.box,marginBottom:6}}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:T.textA,fontSize:11,fontWeight:700}}>{s.type}</span><span style={{color:T.textD,fontSize:10}}>{s.desc}</span></div>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:T.textA,fontSize:13,fontWeight:700}}>{s.type}</span><span style={{color:T.textD,fontSize:12}}>{s.desc}</span></div>
         <pre style={S.code}>{JSON.stringify(s.ex,null,2)}</pre></div>))}</div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
       <div style={S.card}><div style={S.title}><span>Eksport CSV</span></div>
-        <div style={{color:T.textD,fontSize:11,marginBottom:8}}>Rekordów: <strong style={{color:T.pv2}}>{hist.length}</strong></div>
+        <div style={{color:T.textD,fontSize:13,marginBottom:8}}>Rekordów: <strong style={{color:T.pv2}}>{hist.length}</strong></div>
         <button onClick={csv} disabled={!hist.length} style={{...S.btn,background:hist.length?"#22aa44":"#888",opacity:hist.length?1:.4}}>📄 CSV</button></div>
       <div style={S.card}><div style={S.title}><span>Komunikacja</span></div>
-        {[["WebSocket",mb.wsUrl,mb.wsConnected],["MODBUS-RTU",`Addr:${mb.modbusAddr}`,true],["MODBUS-TCP",`${mb.ethIP}:${mb.ethPort}`,true]].map(([l,d,on])=>(<div key={l} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",marginBottom:4,borderRadius:6,background:T.boxBg,border:`1px solid ${T.boxBorder}`}}><div style={{width:7,height:7,borderRadius:"50%",background:on?"#00cc66":"#999"}}/><div><div style={{color:T.tblT,fontSize:11,fontWeight:600}}>{l}</div><div style={{color:T.textD,fontSize:9,fontFamily:"monospace"}}>{d}</div></div></div>))}</div></div>
+        {[["WebSocket",mb.wsUrl,mb.wsConnected],["MODBUS-RTU",`Addr:${mb.modbusAddr}`,true],["MODBUS-TCP",`${mb.ethIP}:${mb.ethPort}`,true]].map(([l,d,on])=>(<div key={l} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",marginBottom:4,borderRadius:6,background:T.boxBg,border:`1px solid ${T.boxBorder}`}}><div style={{width:7,height:7,borderRadius:"50%",background:on?"#00cc66":"#999"}}/><div><div style={{color:T.tblT,fontSize:13,fontWeight:600}}>{l}</div><div style={{color:T.textD,fontSize:11,fontFamily:"monospace"}}>{d}</div></div></div>))}</div></div>
   </div>);}
 
 // ═══ P6 LOGI ═══
@@ -629,16 +629,16 @@ function P6({logs,clearLogs,T}){const S=mkS(T);const[flt,sF]=useState("all");
   const fl=flt==="all"?logs:logs.filter(l=>l.cat===flt);
   const exp=()=>{const h="Czas,Kat,User,Akcja\n";const r=logs.map(l=>`${l.time},${l.cat},${l.user},${l.msg.replace(/,/g,";")}`).join("\n");const b=new Blob([h+r],{type:"text/csv"});dlBlob(b,`logs_${Date.now()}.csv`)};
   return(<div style={S.card}>
-    <div style={S.title}><span>Logi akcji kontrolera</span><div style={{display:"flex",gap:4}}><span style={{color:T.textD,fontSize:10}}>{logs.length}</span>
-      <button onClick={exp} style={{...S.btn,padding:"2px 8px",fontSize:10,background:"#22aa44"}}>CSV</button>
-      <button onClick={clearLogs} style={{...S.btn,padding:"2px 8px",fontSize:10,background:"#aa2211"}}>🗑</button></div></div>
-    <div style={{display:"flex",gap:3,marginBottom:8,flexWrap:"wrap"}}>{Object.entries(cats).map(([k,v])=><button key={k} onClick={()=>sF(k)} style={{padding:"3px 8px",borderRadius:6,border:"none",background:flt===k?"#0077b6":T.boxBg,color:flt===k?"#fff":T.textM,fontSize:10,fontWeight:600,cursor:"pointer"}}>{v}</button>)}</div>
+    <div style={S.title}><span>Logi akcji kontrolera</span><div style={{display:"flex",gap:4}}><span style={{color:T.textD,fontSize:12}}>{logs.length}</span>
+      <button onClick={exp} style={{...S.btn,padding:"2px 8px",fontSize:12,background:"#22aa44"}}>CSV</button>
+      <button onClick={clearLogs} style={{...S.btn,padding:"2px 8px",fontSize:12,background:"#aa2211"}}>🗑</button></div></div>
+    <div style={{display:"flex",gap:3,marginBottom:8,flexWrap:"wrap"}}>{Object.entries(cats).map(([k,v])=><button key={k} onClick={()=>sF(k)} style={{padding:"3px 8px",borderRadius:6,border:"none",background:flt===k?"#0077b6":T.boxBg,color:flt===k?"#fff":T.textM,fontSize:12,fontWeight:600,cursor:"pointer"}}>{v}</button>)}</div>
     <div style={{maxHeight:380,overflowY:"auto"}}>
-      <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}><thead><tr style={{borderBottom:`1px solid ${T.cardBorder}`}}>
-        {["Czas","Kat","User","Akcja"].map(h=><th key={h} style={{padding:"4px 6px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:10,position:"sticky",top:0,background:T.tblH}}>{h}</th>)}</tr></thead>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:`1px solid ${T.cardBorder}`}}>
+        {["Czas","Kat","User","Akcja"].map(h=><th key={h} style={{padding:"4px 6px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:12,position:"sticky",top:0,background:T.tblH}}>{h}</th>)}</tr></thead>
         <tbody>{fl.slice().reverse().map((l,i)=>(<tr key={i} style={{borderBottom:`1px solid ${T.tblB}`,background:i%2?T.logAlt:"transparent"}}>
-          <td style={{padding:"3px 6px",color:T.textD,fontFamily:"monospace",fontSize:9}}>{l.time}</td>
-          <td style={{padding:"3px 6px"}}><span style={{color:cc[l.cat]||T.textM,fontWeight:600,fontSize:9,textTransform:"uppercase"}}>{l.cat}</span></td>
+          <td style={{padding:"3px 6px",color:T.textD,fontFamily:"monospace",fontSize:11}}>{l.time}</td>
+          <td style={{padding:"3px 6px"}}><span style={{color:cc[l.cat]||T.textM,fontWeight:600,fontSize:11,textTransform:"uppercase"}}>{l.cat}</span></td>
           <td style={{padding:"3px 6px",color:T.textM}}>{l.user}</td>
           <td style={{padding:"3px 6px",color:T.tblT}}>{l.msg}</td></tr>))}</tbody></table>
       {fl.length===0&&<div style={{color:T.textD,textAlign:"center",padding:20}}>Brak wpisów</div>}</div></div>);}
@@ -671,96 +671,96 @@ function P7({reports,setReports,sample,profileName,toast,addLog,sendCmd,experime
 
   return(<div style={{display:"grid",gap:12}}>
     <div style={{display:"flex",gap:4}}>
-      {[["reports","📑 Raporty pomiarowe"],["experiments","🔬 Zapisane eksperymenty"]].map(([id,l])=><button key={id} onClick={()=>setTab7(id)} style={{padding:"7px 14px",borderRadius:8,border:"none",background:tab7===id?"#0077b6":T.boxBg,color:tab7===id?"#fff":T.textM,fontSize:11,fontWeight:600,cursor:"pointer"}}>{l}{id==="experiments"&&experiments.length>0?` (${experiments.length})`:""}</button>)}</div>
+      {[["reports","📑 Raporty pomiarowe"],["experiments","🔬 Zapisane eksperymenty"]].map(([id,l])=><button key={id} onClick={()=>setTab7(id)} style={{padding:"7px 14px",borderRadius:8,border:"none",background:tab7===id?"#0077b6":T.boxBg,color:tab7===id?"#fff":T.textM,fontSize:13,fontWeight:600,cursor:"pointer"}}>{l}{id==="experiments"&&experiments.length>0?` (${experiments.length})`:""}</button>)}</div>
 
     {tab7==="reports"&&<>
     <div style={S.card}><div style={S.title}><span>{edit>=0?"✏ Edycja raportu":"➕ Nowy raport pomiarowy"}</span>
-      <div style={{display:"flex",gap:4}}><button onClick={exportHTML} disabled={!reports.length} style={{...S.btn,padding:"4px 10px",fontSize:10,background:reports.length?"#0077b6":"#888",opacity:reports.length?1:.4}}>📄 HTML</button>
-        <button onClick={exportPDF} disabled={!reports.length} style={{...S.btn,padding:"4px 10px",fontSize:10,background:reports.length?"#886600":"#888",opacity:reports.length?1:.4}}>📋 PDF</button></div></div>
+      <div style={{display:"flex",gap:4}}><button onClick={exportHTML} disabled={!reports.length} style={{...S.btn,padding:"4px 10px",fontSize:12,background:reports.length?"#0077b6":"#888",opacity:reports.length?1:.4}}>📄 HTML</button>
+        <button onClick={exportPDF} disabled={!reports.length} style={{...S.btn,padding:"4px 10px",fontSize:12,background:reports.length?"#886600":"#888",opacity:reports.length?1:.4}}>📋 PDF</button></div></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8}}>
         {fld.map(([l,k,ph])=><div key={k} style={S.box}><div style={S.lbl}>{l}</div><input value={form[k]||""} onChange={e=>uF(k,e.target.value)} placeholder={ph} style={S.input}/></div>)}</div>
       <div style={{...S.box,marginTop:8}}><div style={S.lbl}>Zdjęcia próbek</div>
         <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-          <label style={{...S.btn,padding:"6px 12px",fontSize:10,background:"linear-gradient(135deg,#0077b6,#005f8a)",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4}}>
+          <label style={{...S.btn,padding:"6px 12px",fontSize:12,background:"linear-gradient(135deg,#0077b6,#005f8a)",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4}}>
             📷 Dodaj zdjęcia<input type="file" accept="image/*" multiple onChange={addPhoto} style={{display:"none"}}/></label>
-          <span style={{color:T.textD,fontSize:10}}>{form.photos.length} zdjęć</span></div>
+          <span style={{color:T.textD,fontSize:12}}>{form.photos.length} zdjęć</span></div>
         {form.photos.length>0&&<div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>{form.photos.map((p,i)=>(
           <div key={i} style={{position:"relative",borderRadius:8,overflow:"hidden",border:`1px solid ${T.boxBorder}`}}>
             <img src={p.data} alt={p.name} style={{width:90,height:70,objectFit:"cover",display:"block"}}/>
-            <button onClick={()=>rmPhoto(i)} style={{position:"absolute",top:2,right:2,width:18,height:18,borderRadius:"50%",background:"rgba(0,0,0,.6)",color:"#fff",border:"none",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
-            <div style={{fontSize:7,color:T.textD,padding:"1px 3px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:90}}>{p.name}</div></div>))}</div>}</div>
+            <button onClick={()=>rmPhoto(i)} style={{position:"absolute",top:2,right:2,width:18,height:18,borderRadius:"50%",background:"rgba(0,0,0,.6)",color:"#fff",border:"none",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+            <div style={{fontSize:9,color:T.textD,padding:"1px 3px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:90}}>{p.name}</div></div>))}</div>}</div>
       <div style={{display:"flex",gap:6,marginTop:8}}>
         <button onClick={save} style={{...S.btn,background:"linear-gradient(135deg,#22aa44,#118833)"}}>{edit>=0?"💾 Zapisz zmiany":"➕ Dodaj raport"}</button>
         {edit>=0&&<button onClick={()=>{setForm(empty);setEdit(-1)}} style={{...S.btn,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM}}>Anuluj</button>}</div></div>
 
-    <div style={S.card}><div style={S.title}><span>Tabela raportów</span><span style={{fontSize:10,color:T.textD}}>{reports.length} raportów</span></div>
-      {reports.length===0?<div style={{color:T.textD,textAlign:"center",padding:30,fontSize:12}}>Brak raportów — dodaj pierwszy powyżej</div>:
-      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+    <div style={S.card}><div style={S.title}><span>Tabela raportów</span><span style={{fontSize:12,color:T.textD}}>{reports.length} raportów</span></div>
+      {reports.length===0?<div style={{color:T.textD,textAlign:"center",padding:30,fontSize:14}}>Brak raportów — dodaj pierwszy powyżej</div>:
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
         <thead><tr style={{borderBottom:`2px solid ${T.cardBorder}`}}>
-          {["Data","Tytuł","Próbka","Materiał","Metoda","T max","Wynik","Zdjęcia",""].map(h=><th key={h} style={{padding:"5px 6px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:10,position:"sticky",top:0,background:T.tblH}}>{h}</th>)}</tr></thead>
+          {["Data","Tytuł","Próbka","Materiał","Metoda","T max","Wynik","Zdjęcia",""].map(h=><th key={h} style={{padding:"5px 6px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:12,position:"sticky",top:0,background:T.tblH}}>{h}</th>)}</tr></thead>
         <tbody>{reports.map((r,i)=>(<tr key={r.id} style={{borderBottom:`1px solid ${T.tblB}`,background:i%2?T.logAlt:"transparent"}}>
-          <td style={{padding:"4px 6px",color:T.textD,fontFamily:"monospace",fontSize:10}}>{r.date}</td>
+          <td style={{padding:"4px 6px",color:T.textD,fontFamily:"monospace",fontSize:12}}>{r.date}</td>
           <td style={{padding:"4px 6px",color:T.textB,fontWeight:600}}>{r.title}</td>
           <td style={{padding:"4px 6px",color:T.textM}}>{r.sampleId}</td>
           <td style={{padding:"4px 6px",color:T.textM}}>{r.material}</td>
           <td style={{padding:"4px 6px",color:T.textM}}>{r.method}</td>
           <td style={{padding:"4px 6px",color:T.pv1,fontFamily:"monospace"}}>{r.tempMax||"-"}</td>
           <td style={{padding:"4px 6px",color:T.tblT}}>{r.result||"-"}</td>
-          <td style={{padding:"4px 6px"}}><div style={{display:"flex",gap:3}}>{r.photos.slice(0,3).map((p,j)=><img key={j} src={p.data} alt={p.name} style={{width:36,height:28,objectFit:"cover",borderRadius:4,border:`1px solid ${T.boxBorder}`}}/>)}{r.photos.length>3&&<span style={{color:T.textD,fontSize:9,alignSelf:"center"}}>+{r.photos.length-3}</span>}</div></td>
+          <td style={{padding:"4px 6px"}}><div style={{display:"flex",gap:3}}>{r.photos.slice(0,3).map((p,j)=><img key={j} src={p.data} alt={p.name} style={{width:36,height:28,objectFit:"cover",borderRadius:4,border:`1px solid ${T.boxBorder}`}}/>)}{r.photos.length>3&&<span style={{color:T.textD,fontSize:11,alignSelf:"center"}}>+{r.photos.length-3}</span>}</div></td>
           <td style={{padding:"4px 6px"}}><div style={{display:"flex",gap:3}}>
-            <button onClick={()=>startEdit(i)} style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:12}} title="Edytuj">✏</button>
-            <button onClick={()=>del(i)} style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:12}} title="Usuń">🗑</button></div></td>
+            <button onClick={()=>startEdit(i)} style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:14}} title="Edytuj">✏</button>
+            <button onClick={()=>del(i)} style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:14}} title="Usuń">🗑</button></div></td>
         </tr>))}</tbody></table></div>}</div>
     </>}
 
     {tab7==="experiments"&&<>
-      <div style={S.card}><div style={S.title}><span>🔬 Historia załadowanych eksperymentów</span><span style={{fontSize:10,color:T.textD}}>{experiments.length} eksperymentów</span></div>
-        {experiments.length===0?<div style={{color:T.textD,textAlign:"center",padding:40,fontSize:12}}>Brak zapisanych eksperymentów. Załaduj eksperyment z pliku JSON na stronie Eksperyment.</div>:
-        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+      <div style={S.card}><div style={S.title}><span>🔬 Historia załadowanych eksperymentów</span><span style={{fontSize:12,color:T.textD}}>{experiments.length} eksperymentów</span></div>
+        {experiments.length===0?<div style={{color:T.textD,textAlign:"center",padding:40,fontSize:14}}>Brak zapisanych eksperymentów. Załaduj eksperyment z pliku JSON na stronie Eksperyment.</div>:
+        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
           <thead><tr style={{borderBottom:`2px solid ${T.cardBorder}`}}>
-            {["Data","Profil","Etapy","ID Próbki","Materiał","Metoda","Operator","Plik",""].map(h=><th key={h} style={{padding:"5px 6px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:10,position:"sticky",top:0,background:T.tblH}}>{h}</th>)}</tr></thead>
+            {["Data","Profil","Etapy","ID Próbki","Materiał","Metoda","Operator","Plik",""].map(h=><th key={h} style={{padding:"5px 6px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:12,position:"sticky",top:0,background:T.tblH}}>{h}</th>)}</tr></thead>
           <tbody>{experiments.map((ex,i)=>(<tr key={ex.id} style={{borderBottom:`1px solid ${T.tblB}`,background:i%2?T.logAlt:"transparent",cursor:"pointer"}} onClick={()=>setExpDetail(expDetail===i?null:i)}>
-            <td style={{padding:"4px 6px",color:T.textD,fontFamily:"monospace",fontSize:10}}>{ex.loadedAt?new Date(ex.loadedAt).toLocaleString("pl-PL"):""}</td>
+            <td style={{padding:"4px 6px",color:T.textD,fontFamily:"monospace",fontSize:12}}>{ex.loadedAt?new Date(ex.loadedAt).toLocaleString("pl-PL"):""}</td>
             <td style={{padding:"4px 6px",color:T.textB,fontWeight:600}}>{ex.profile?.name||"—"}</td>
             <td style={{padding:"4px 6px",color:T.textA,fontFamily:"monospace"}}>{ex.profile?.segments?.length||0}</td>
             <td style={{padding:"4px 6px",color:T.textM}}>{ex.sample?.sampleId||"—"}</td>
             <td style={{padding:"4px 6px",color:T.textM}}>{ex.sample?.material||"—"}</td>
             <td style={{padding:"4px 6px",color:T.textM}}>{ex.sample?.method||"—"}</td>
             <td style={{padding:"4px 6px",color:T.textM}}>{ex.loadedBy?.name||"—"}</td>
-            <td style={{padding:"4px 6px",color:T.textD,fontSize:9,fontFamily:"monospace"}}>{ex.fileName||"—"}</td>
+            <td style={{padding:"4px 6px",color:T.textD,fontSize:11,fontFamily:"monospace"}}>{ex.fileName||"—"}</td>
             <td style={{padding:"4px 6px"}}><div style={{display:"flex",gap:3}}>
               <button onClick={e=>{e.stopPropagation();const exp={type:"experiment",ver:APP_VER,app:APP_NAME,exportedAt:ex.exportedAt||ex.loadedAt,exportedBy:ex.exportedBy||ex.loadedBy,profile:ex.profile,sample:ex.sample};
-                const bl=new Blob([JSON.stringify(exp,null,2)],{type:"application/json"});dlBlob(bl,ex.fileName||`exp_${ex.id}.json`);toast("Eksport OK","success")}} title="Eksport JSON" style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:12}}>📥</button>
-              <button onClick={e=>{e.stopPropagation();setExperiments(prev=>prev.filter((_,j)=>j!==i));if(expDetail===i)setExpDetail(null);toast("Usunięto","info")}} title="Usuń" style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:12}}>🗑</button></div></td>
+                const bl=new Blob([JSON.stringify(exp,null,2)],{type:"application/json"});dlBlob(bl,ex.fileName||`exp_${ex.id}.json`);toast("Eksport OK","success")}} title="Eksport JSON" style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:14}}>📥</button>
+              <button onClick={e=>{e.stopPropagation();setExperiments(prev=>prev.filter((_,j)=>j!==i));if(expDetail===i)setExpDetail(null);toast("Usunięto","info")}} title="Usuń" style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:14}}>🗑</button></div></td>
           </tr>))}</tbody></table></div>}</div>
 
       {expDetail!==null&&experiments[expDetail]&&(()=>{const ex=experiments[expDetail];return(
         <div style={S.card}><div style={S.title}><span>📋 Szczegóły eksperymentu</span>
-          <button onClick={()=>setExpDetail(null)} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:12}}>✕</button></div>
+          <button onClick={()=>setExpDetail(null)} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:14}}>✕</button></div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <div><div style={{fontSize:11,fontWeight:700,color:T.textA,marginBottom:8}}>🌡 Profil: {ex.profile?.name||"—"}</div>
+            <div><div style={{fontSize:13,fontWeight:700,color:T.textA,marginBottom:8}}>🌡 Profil: {ex.profile?.name||"—"}</div>
               {ex.profile?.segments?.map((s,i)=>(<div key={i} style={{display:"flex",gap:8,alignItems:"center",padding:"5px 8px",marginBottom:3,borderRadius:6,background:T.boxBg,border:`1px solid ${T.boxBorder}`}}>
-                <span style={{fontSize:10,fontWeight:700,color:T.textA,width:20}}>E{i+1}</span>
-                <span style={{fontSize:11,color:T.textB,fontWeight:600,flex:1}}>{s.name}</span>
-                <span style={{fontSize:10,color:T.pv1,fontFamily:"monospace"}}>{s.sp}°C</span>
-                <span style={{fontSize:9,color:T.textD}}>{s.ramp}°C/m</span>
-                <span style={{fontSize:9,color:T.textD}}>{s.hold}min</span></div>))}
-              <div style={{marginTop:10,fontSize:10,color:T.textD}}>
+                <span style={{fontSize:12,fontWeight:700,color:T.textA,width:20}}>E{i+1}</span>
+                <span style={{fontSize:13,color:T.textB,fontWeight:600,flex:1}}>{s.name}</span>
+                <span style={{fontSize:12,color:T.pv1,fontFamily:"monospace"}}>{s.sp}°C</span>
+                <span style={{fontSize:11,color:T.textD}}>{s.ramp}°C/m</span>
+                <span style={{fontSize:11,color:T.textD}}>{s.hold}min</span></div>))}
+              <div style={{marginTop:10,fontSize:12,color:T.textD}}>
                 <div>Załadowany: {ex.loadedAt?new Date(ex.loadedAt).toLocaleString("pl-PL"):""}</div>
                 <div>Przez: {ex.loadedBy?.name} ({ex.loadedBy?.username})</div>
                 {ex.exportedBy&&<div>Eksportował: {ex.exportedBy.name||ex.exportedBy.username} • {ex.exportedAt?new Date(ex.exportedAt).toLocaleString("pl-PL"):""}</div>}
                 <div>Plik: {ex.fileName}</div></div></div>
-            <div><div style={{fontSize:11,fontWeight:700,color:T.textA,marginBottom:8}}>🧪 Dane próbki</div>
+            <div><div style={{fontSize:13,fontWeight:700,color:T.textA,marginBottom:8}}>🧪 Dane próbki</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4}}>
                 {[["ID",ex.sample?.sampleId],["Materiał",ex.sample?.material],["Podłoże",ex.sample?.substrate],["Metoda",ex.sample?.method],["Grubość",ex.sample?.thickness],["Gaz",ex.sample?.targetGas],
                   ["Temp.",ex.sample?.processTemp],["Ciśn.",ex.sample?.pressure],["Atmosf.",ex.sample?.atmosphere],["Moc",ex.sample?.sourcePower],["Czas",ex.sample?.processTime],["Przepływ",ex.sample?.gasFlow],
                   ["Operator",ex.sample?.operator],["Seria",ex.sample?.batchNo]].filter(([,v])=>v).map(([l,v])=>(
                 <div key={l} style={{padding:"3px 6px",borderRadius:4,background:T.boxBg,border:`1px solid ${T.boxBorder}`}}>
-                  <span style={{fontSize:9,color:T.textD}}>{l}: </span><span style={{fontSize:10,color:T.tblT}}>{v}</span></div>))}
+                  <span style={{fontSize:11,color:T.textD}}>{l}: </span><span style={{fontSize:12,color:T.tblT}}>{v}</span></div>))}
               </div>
-              {ex.sample?.goal&&<div style={{...S.box,marginTop:6}}><div style={{fontSize:9,color:T.textD}}>Cel:</div><div style={{fontSize:10,color:T.tblT}}>{ex.sample.goal}</div></div>}
-              {ex.sample?.photos?.length>0&&<div style={{marginTop:6,fontSize:10,color:T.textD}}>📷 Zdjęcia: {ex.sample.photos.length} ścieżek
-                <div style={{display:"flex",flexDirection:"column",gap:2,marginTop:3}}>{ex.sample.photos.map((p,j)=><div key={j} style={{fontSize:9,color:T.tblT,fontFamily:"monospace",padding:"2px 6px",background:T.boxBg,borderRadius:4}}>{p}</div>)}</div></div>}
+              {ex.sample?.goal&&<div style={{...S.box,marginTop:6}}><div style={{fontSize:11,color:T.textD}}>Cel:</div><div style={{fontSize:12,color:T.tblT}}>{ex.sample.goal}</div></div>}
+              {ex.sample?.photos?.length>0&&<div style={{marginTop:6,fontSize:12,color:T.textD}}>📷 Zdjęcia: {ex.sample.photos.length} ścieżek
+                <div style={{display:"flex",flexDirection:"column",gap:2,marginTop:3}}>{ex.sample.photos.map((p,j)=><div key={j} style={{fontSize:11,color:T.tblT,fontFamily:"monospace",padding:"2px 6px",background:T.boxBg,borderRadius:4}}>{p}</div>)}</div></div>}
             </div></div>
         </div>)})()}
     </>}
@@ -772,23 +772,23 @@ function WsConsole({open,onClose,wsCon,clearCon,T}){const S=mkS(T);const[tab,sTa
   return(<div style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,.5)"}} onClick={onClose}>
     <div onClick={e=>e.stopPropagation()} style={{position:"absolute",right:10,top:10,bottom:10,width:"min(700px,95vw)",background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,.3)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
       <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
-        <div><div style={{fontWeight:700,fontSize:13,color:T.textB}}>🛰 WS Console</div><div style={{fontSize:10,color:T.textD}}>Podgląd RX/TX JSON na żywo</div></div>
+        <div><div style={{fontWeight:700,fontSize:15,color:T.textB}}>🛰 WS Console</div><div style={{fontSize:12,color:T.textD}}>Podgląd RX/TX JSON na żywo</div></div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          {["rx","tx"].map(id=><button key={id} onClick={()=>sTab(id)} style={{padding:"4px 10px",borderRadius:6,border:"none",fontSize:10,fontWeight:600,cursor:"pointer",background:tab===id?"#0077b6":T.boxBg,color:tab===id?"#fff":T.textM}}>{id.toUpperCase()} ({(id==="rx"?wsCon.rx:wsCon.tx).length})</button>)}
-          <button onClick={clearCon} style={{...S.btn,padding:"4px 8px",fontSize:9,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM}}>Wyczyść</button>
-          <button onClick={onClose} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:16}}>✕</button></div></div>
+          {["rx","tx"].map(id=><button key={id} onClick={()=>sTab(id)} style={{padding:"4px 10px",borderRadius:6,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",background:tab===id?"#0077b6":T.boxBg,color:tab===id?"#fff":T.textM}}>{id.toUpperCase()} ({(id==="rx"?wsCon.rx:wsCon.tx).length})</button>)}
+          <button onClick={clearCon} style={{...S.btn,padding:"4px 8px",fontSize:11,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM}}>Wyczyść</button>
+          <button onClick={onClose} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:18}}>✕</button></div></div>
       <div style={{flex:1,minHeight:0,overflowY:"auto",padding:10}}>
-        {list.length===0?<div style={{color:T.textD,textAlign:"center",padding:30,fontSize:11}}>Brak wiadomości</div>:
+        {list.length===0?<div style={{color:T.textD,textAlign:"center",padding:30,fontSize:13}}>Brak wiadomości</div>:
         list.map((m,i)=>(<div key={i} style={{padding:"8px 10px",borderRadius:10,border:`1px solid ${T.cardBorder}`,background:T.boxBg,marginBottom:6}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
             <div style={{display:"flex",gap:6,alignItems:"center"}}>
-              <span style={{fontSize:9,padding:"2px 6px",borderRadius:4,fontWeight:700,background:tab==="rx"?"#00aaff22":"#22aa4422",color:tab==="rx"?"#44bbff":"#44cc66"}}>{tab.toUpperCase()}</span>
-              <span style={{fontSize:11,fontWeight:700,color:T.textB}}>{m.type}</span></div>
+              <span style={{fontSize:11,padding:"2px 6px",borderRadius:4,fontWeight:700,background:tab==="rx"?"#00aaff22":"#22aa4422",color:tab==="rx"?"#44bbff":"#44cc66"}}>{tab.toUpperCase()}</span>
+              <span style={{fontSize:13,fontWeight:700,color:T.textB}}>{m.type}</span></div>
             <div style={{display:"flex",gap:6,alignItems:"center"}}>
-              <span style={{fontSize:9,color:T.textD,fontFamily:"monospace"}}>{m.time}</span>
-              <button onClick={()=>navigator.clipboard?.writeText(m.json||"")} style={{background:"none",border:`1px solid ${T.boxBorder}`,borderRadius:4,color:T.textM,cursor:"pointer",fontSize:8,padding:"2px 5px"}}>Kopiuj</button></div></div>
-          <pre style={{margin:0,whiteSpace:"pre-wrap",fontSize:10,color:T.codeT,fontFamily:"monospace",lineHeight:1.35,maxHeight:160,overflowY:"auto"}}>{m.json}</pre></div>))}</div>
-      <div style={{padding:"6px 14px",borderTop:`1px solid ${T.cardBorder}`,fontSize:9,color:T.textD,flexShrink:0}}>Tylko wiadomości JSON. Nowe na górze. Max 80 wpisów.</div>
+              <span style={{fontSize:11,color:T.textD,fontFamily:"monospace"}}>{m.time}</span>
+              <button onClick={()=>navigator.clipboard?.writeText(m.json||"")} style={{background:"none",border:`1px solid ${T.boxBorder}`,borderRadius:4,color:T.textM,cursor:"pointer",fontSize:10,padding:"2px 5px"}}>Kopiuj</button></div></div>
+          <pre style={{margin:0,whiteSpace:"pre-wrap",fontSize:12,color:T.codeT,fontFamily:"monospace",lineHeight:1.35,maxHeight:160,overflowY:"auto"}}>{m.json}</pre></div>))}</div>
+      <div style={{padding:"6px 14px",borderTop:`1px solid ${T.cardBorder}`,fontSize:11,color:T.textD,flexShrink:0}}>Tylko wiadomości JSON. Nowe na górze. Max 80 wpisów.</div>
     </div></div>);}
 
 // ═══ P8: IMPEDANCJA ═══
@@ -803,17 +803,17 @@ function P8({mb,sendCmd,impData,T}){const S=mkS(T);const ifrRef=useRef(null);
   return(<div style={S.card}>
     <div style={{...S.title,marginBottom:0}}><span>Spektroskopia impedancyjna</span>
       <div style={{display:"flex",alignItems:"center",gap:10}}>
-        <span style={{fontSize:10,color:mb.wsConnected?T.textA:T.textD}}>{mb.wsConnected?"● WS":"○ Offline"}</span>
-        <a href="/impedance.html" target="_blank" rel="noopener" style={{fontSize:10,color:T.textA,textDecoration:"none",fontWeight:500}}>↗ Nowe okno</a></div></div>
+        <span style={{fontSize:12,color:mb.wsConnected?T.textA:T.textD}}>{mb.wsConnected?"● WS":"○ Offline"}</span>
+        <a href="/impedance.html" target="_blank" rel="noopener" style={{fontSize:12,color:T.textA,textDecoration:"none",fontWeight:500}}>↗ Nowe okno</a></div></div>
     <iframe ref={ifrRef} src="/impedance.html" style={{width:"100%",height:"calc(100vh - 160px)",border:"none",borderRadius:8,marginTop:8,background:"#0a1929"}} title="Impedance Spectroscopy"/></div>);
 }
 
 // ═══ FOOTER ═══
 function Footer({T}){return(<footer style={{background:T.footBg,borderTop:`1px solid ${T.footB}`,padding:"8px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:4,flexShrink:0}}>
-  <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:18,height:18,borderRadius:4,background:T.logoBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:6,fontWeight:800,color:"#fff"}}>TFL</div>
-    <span style={{color:T.footT,fontSize:10}}>© 2026 <span style={{color:T.footL,fontWeight:600}}>{APP_NAME}</span></span></div>
-  <div style={{fontSize:9,color:T.footT}}>Kontroler v{APP_VER} • WebSocket JSON ↔ LabVIEW • AR200.B</div>
-  <div style={{fontSize:9,color:T.textD}}>React • Node.js • TimescaleDB</div></footer>);}
+  <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:18,height:18,borderRadius:4,background:T.logoBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:7,fontWeight:800,color:"#fff"}}>TFL</div>
+    <span style={{color:T.footT,fontSize:12}}>© 2026 <span style={{color:T.footL,fontWeight:600}}>{APP_NAME}</span></span></div>
+  <div style={{fontSize:11,color:T.footT}}>Kontroler v{APP_VER} • WebSocket JSON ↔ LabVIEW • AR200.B</div>
+  <div style={{fontSize:11,color:T.textD}}>React • Node.js • TimescaleDB</div></footer>);}
 
 // ═══ MAIN APP ═══
 export default function App(){
@@ -975,35 +975,35 @@ export default function App(){
 
       <header style={{background:T.headerBg,borderBottom:`1px solid ${T.cardBorder}`,padding:"0 14px",height:48,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:30,height:30,borderRadius:7,background:T.logoBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800,color:"#fff"}}>TFL</div>
-          <div><div style={{fontSize:12,fontWeight:700,color:T.textB}}>{APP_NAME} <span style={{fontSize:9,color:T.textD}}>v{APP_VER}</span></div>
-            <div style={{fontSize:8,color:T.textD}}>Kontroler • WebSocket JSON ↔ LabVIEW • AR200.B</div></div></div>
+          <div style={{width:30,height:30,borderRadius:7,background:T.logoBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff"}}>TFL</div>
+          <div><div style={{fontSize:14,fontWeight:700,color:T.textB}}>{APP_NAME} <span style={{fontSize:11,color:T.textD}}>v{APP_VER}</span></div>
+            <div style={{fontSize:10,color:T.textD}}>Kontroler • WebSocket JSON ↔ LabVIEW • AR200.B</div></div></div>
         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <Led on={mb.wsConnected} color="#00cc66" label="WS" T={T}/>
-          <button onClick={()=>setShowWsCon(true)} style={{padding:"2px 7px",borderRadius:5,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:9,cursor:"pointer",fontWeight:600}} title="WS Console">🛰</button>
+          <button onClick={()=>setShowWsCon(true)} style={{padding:"2px 7px",borderRadius:5,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:11,cursor:"pointer",fontWeight:600}} title="WS Console">🛰</button>
           <Led on={mb.regStatus==="RUN"} color="#ff8844" label={mb.manualMode?"MAN":"REG"} T={T}/>
           <Led on={mb.alarmSTB} color="#ff3366" label="ALM" T={T}/>
           {mb.progStatus==="RUN"&&<Led on={true} color="#ffaa00" label={`P${mb.progStage}`} T={T}/>}
-          <div style={{color:T.textD,fontSize:10,borderLeft:`1px solid ${T.cardBorder}`,paddingLeft:8,fontFamily:"monospace"}}>{mb.rtc.toLocaleTimeString("pl-PL")}</div>
+          <div style={{color:T.textD,fontSize:12,borderLeft:`1px solid ${T.cardBorder}`,paddingLeft:8,fontFamily:"monospace"}}>{mb.rtc.toLocaleTimeString("pl-PL")}</div>
           <button onClick={()=>{const nxt=dark?"light":"dark";setDark(d=>!d);setUser(u=>u?{...u,theme:nxt}:u);if(user)setUsers(us=>({...us,[user.username]:{...us[user.username],theme:nxt}}))}} title="Motyw" style={{width:36,height:20,borderRadius:10,border:`1px solid ${T.cardBorder}`,background:dark?"#1a2a3a":"#d0d8e0",cursor:"pointer",position:"relative",padding:0,flexShrink:0}}>
-            <div style={{width:14,height:14,borderRadius:"50%",background:dark?"#00b4d8":"#ff9900",position:"absolute",top:2,left:dark?2:18,transition:"left .3s",fontSize:8,display:"flex",alignItems:"center",justifyContent:"center"}}>{dark?"🌙":"☀️"}</div></button>
+            <div style={{width:14,height:14,borderRadius:"50%",background:dark?"#00b4d8":"#ff9900",position:"absolute",top:2,left:dark?2:18,transition:"left .3s",fontSize:10,display:"flex",alignItems:"center",justifyContent:"center"}}>{dark?"🌙":"☀️"}</div></button>
           <div style={{position:"relative"}}>
-            <button onClick={()=>setShowUserMenu(v=>!v)} style={{padding:"2px 8px",borderRadius:5,background:T.userBg,border:`1px solid ${T.userB}`,fontSize:10,color:T.userT,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>👤 {user.name} <span style={{fontSize:7,opacity:.6}}>▼</span></button>
+            <button onClick={()=>setShowUserMenu(v=>!v)} style={{padding:"2px 8px",borderRadius:5,background:T.userBg,border:`1px solid ${T.userB}`,fontSize:12,color:T.userT,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>👤 {user.name} <span style={{fontSize:9,opacity:.6}}>▼</span></button>
             {showUserMenu&&<><div style={{position:"fixed",inset:0,zIndex:9998}} onClick={()=>setShowUserMenu(false)}/>
               <div style={{position:"absolute",top:"100%",right:0,marginTop:6,width:280,background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:12,boxShadow:"0 12px 40px rgba(0,0,0,.3)",zIndex:9999,animation:"si .15s ease-out",overflow:"hidden"}}>
                 <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.cardBorder}`,display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:36,height:36,borderRadius:8,background:T.logoBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:"#fff",fontWeight:700}}>{(user.firstName||user.name||"?")[0].toUpperCase()}</div>
-                  <div><div style={{fontSize:12,fontWeight:700,color:T.textB}}>{user.firstName&&user.lastName?`${user.firstName} ${user.lastName}`:user.name}</div>
-                    <div style={{fontSize:9,color:T.textD}}>@{user.username} • <span style={{padding:"1px 4px",borderRadius:3,background:user.role==="admin"?"#ff880022":"#00aaff15",color:user.role==="admin"?"#ffaa44":"#44aadd",fontWeight:600}}>{user.role}</span></div></div></div>
-                <div style={{padding:"8px 12px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,fontSize:10,borderBottom:`1px solid ${T.cardBorder}`}}>
-                  {[["Email",user.email],["Telefon",user.phone],["Motyw",dark?"🌙 Ciemny":"☀️ Jasny"]].map(([l,v])=>v?<div key={l}><div style={{color:T.textD,fontSize:8,fontWeight:600}}>{l}</div><div style={{color:T.textM}}>{v}</div></div>:null)}</div>
+                  <div style={{width:36,height:36,borderRadius:8,background:T.logoBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",fontWeight:700}}>{(user.firstName||user.name||"?")[0].toUpperCase()}</div>
+                  <div><div style={{fontSize:14,fontWeight:700,color:T.textB}}>{user.firstName&&user.lastName?`${user.firstName} ${user.lastName}`:user.name}</div>
+                    <div style={{fontSize:11,color:T.textD}}>@{user.username} • <span style={{padding:"1px 4px",borderRadius:3,background:user.role==="admin"?"#ff880022":"#00aaff15",color:user.role==="admin"?"#ffaa44":"#44aadd",fontWeight:600}}>{user.role}</span></div></div></div>
+                <div style={{padding:"8px 12px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,fontSize:12,borderBottom:`1px solid ${T.cardBorder}`}}>
+                  {[["Email",user.email],["Telefon",user.phone],["Motyw",dark?"🌙 Ciemny":"☀️ Jasny"]].map(([l,v])=>v?<div key={l}><div style={{color:T.textD,fontSize:10,fontWeight:600}}>{l}</div><div style={{color:T.textM}}>{v}</div></div>:null)}</div>
                 <div style={{padding:"6px 8px",display:"flex",flexDirection:"column",gap:2}}>
-                  <button onClick={()=>{setShowUserMenu(false);sAc(4);}} style={{width:"100%",padding:"7px 10px",borderRadius:6,border:"none",background:"transparent",color:T.textM,fontSize:10,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:6}}
+                  <button onClick={()=>{setShowUserMenu(false);sAc(4);}} style={{width:"100%",padding:"7px 10px",borderRadius:6,border:"none",background:"transparent",color:T.textM,fontSize:12,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:6}}
                     onMouseEnter={e=>{e.currentTarget.style.background=T.boxBg}} onMouseLeave={e=>{e.currentTarget.style.background="transparent"}}>⚙ Konfiguracja konta</button>
-                  <button onClick={()=>{setShowUserMenu(false);const nxt=dark?"light":"dark";setDark(d=>!d);setUser(u=>({...u,theme:nxt}));setUsers(us=>({...us,[user.username]:{...us[user.username],theme:nxt}}))}} style={{width:"100%",padding:"7px 10px",borderRadius:6,border:"none",background:"transparent",color:T.textM,fontSize:10,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:6}}
+                  <button onClick={()=>{setShowUserMenu(false);const nxt=dark?"light":"dark";setDark(d=>!d);setUser(u=>({...u,theme:nxt}));setUsers(us=>({...us,[user.username]:{...us[user.username],theme:nxt}}))}} style={{width:"100%",padding:"7px 10px",borderRadius:6,border:"none",background:"transparent",color:T.textM,fontSize:12,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:6}}
                     onMouseEnter={e=>{e.currentTarget.style.background=T.boxBg}} onMouseLeave={e=>{e.currentTarget.style.background="transparent"}}>{dark?"☀️ Jasny motyw":"🌙 Ciemny motyw"}</button>
                   <div style={{borderTop:`1px solid ${T.cardBorder}`,margin:"2px 0"}}/>
-                  <button onClick={()=>{setShowUserMenu(false);addLog(`Logout: ${user.name}`,"auth");setUser(null)}} style={{width:"100%",padding:"7px 10px",borderRadius:6,border:"none",background:"transparent",color:"#ff5566",fontSize:10,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:6,fontWeight:600}}
+                  <button onClick={()=>{setShowUserMenu(false);addLog(`Logout: ${user.name}`,"auth");setUser(null)}} style={{width:"100%",padding:"7px 10px",borderRadius:6,border:"none",background:"transparent",color:"#ff5566",fontSize:12,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:6,fontWeight:600}}
                     onMouseEnter={e=>{e.currentTarget.style.background=T.loBg}} onMouseLeave={e=>{e.currentTarget.style.background="transparent"}}>⏏ Wyloguj</button>
                 </div></div></>}
           </div>
@@ -1012,27 +1012,27 @@ export default function App(){
       <div style={{display:"flex",flex:1,minHeight:0,overflow:"hidden"}}>
         <nav style={{width:185,background:T.sidebarBg,borderRight:`1px solid ${T.cardBorder}`,padding:"10px 6px",flexShrink:0,overflowY:"auto",overflowX:"hidden"}}>
           {acc.map(pg=>(<button key={pg.id} onClick={()=>sAc(pg.id)} title={pg.tip} style={{width:"100%",padding:"8px 10px",borderRadius:7,border:"none",textAlign:"left",marginBottom:2,cursor:"pointer",
-            background:ac===pg.id?T.actTab:"transparent",color:ac===pg.id?T.textA:T.textM,fontSize:11,fontWeight:ac===pg.id?700:500,
+            background:ac===pg.id?T.actTab:"transparent",color:ac===pg.id?T.textA:T.textM,fontSize:13,fontWeight:ac===pg.id?700:500,
             borderLeft:ac===pg.id?`3px solid ${T.textA}`:"3px solid transparent"}}><span style={{marginRight:4}}>{pg.icon}</span>{pg.label}</button>))}
           <div style={{marginTop:14,padding:6,borderTop:`1px solid ${T.titleB}`}}>
-            <div style={{color:T.textD,fontSize:8,fontWeight:700,letterSpacing:1,marginBottom:5,textTransform:"uppercase"}}>Status</div>
+            <div style={{color:T.textD,fontSize:10,fontWeight:700,letterSpacing:1,marginBottom:5,textTransform:"uppercase"}}>Status</div>
             <div style={{display:"flex",flexDirection:"column",gap:3}}>
               <ABadge on={mb.alarm1} label="HI" type="danger" T={T}/><ABadge on={mb.alarm2} label="LO" type="warning" T={T}/>
               <ABadge on={mb.alarmLATCH} label="LATCH" type="info" T={T}/><ABadge on={mb.regStatus==="RUN"} label="Regulacja" type="ok" T={T}/></div></div>
           <div style={{marginTop:8,padding:6,borderTop:`1px solid ${T.titleB}`}}>
-            <div style={{fontSize:8,color:T.textD,fontWeight:600,marginBottom:2}}>{mb.pv1Name||"PV1"}</div>
-            <div style={{fontSize:17,fontWeight:700,color:mb.alarm1?T.pv1A:T.pv1,fontFamily:"monospace"}}>{mb.pv1.toFixed(1)}<span style={{fontSize:9,color:T.textD}}>°C</span></div>
-            <div style={{fontSize:9,color:T.textD}}>Nastawa:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</div>
-            <div style={{fontSize:8,color:T.textD,fontWeight:600,marginTop:5,marginBottom:2}}>{mb.pv2Name||"PV2"}</div>
-            <div style={{fontSize:14,fontWeight:600,color:"#aa44ff",fontFamily:"monospace"}}>{mb.pv2.toFixed(1)}<span style={{fontSize:9,color:T.textD}}>°C</span></div>
+            <div style={{fontSize:10,color:T.textD,fontWeight:600,marginBottom:2}}>{mb.pv1Name||"PV1"}</div>
+            <div style={{fontSize:19,fontWeight:700,color:mb.alarm1?T.pv1A:T.pv1,fontFamily:"monospace"}}>{mb.pv1.toFixed(1)}<span style={{fontSize:11,color:T.textD}}>°C</span></div>
+            <div style={{fontSize:11,color:T.textD}}>Nastawa:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</div>
+            <div style={{fontSize:10,color:T.textD,fontWeight:600,marginTop:5,marginBottom:2}}>{mb.pv2Name||"PV2"}</div>
+            <div style={{fontSize:16,fontWeight:600,color:"#aa44ff",fontFamily:"monospace"}}>{mb.pv2.toFixed(1)}<span style={{fontSize:11,color:T.textD}}>°C</span></div>
           </div>
           <div style={{marginTop:8,padding:6,borderTop:`1px solid ${T.titleB}`}}>
-            <div style={{color:T.textD,fontSize:8,fontWeight:700,letterSpacing:1,marginBottom:4,textTransform:"uppercase"}}>Przepływ</div>
+            <div style={{color:T.textD,fontSize:10,fontWeight:700,letterSpacing:1,marginBottom:4,textTransform:"uppercase"}}>Przepływ</div>
             <div style={{display:"flex",flexDirection:"column",gap:3}}>
               {mb.mfc.map((d,i)=>{const col=["#00aaff","#ffaa00","#00cc66","#cc44ff"][i];return(
                 <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",opacity:d.enabled?1:.35}}>
-                  <span style={{fontSize:9,color:col,fontWeight:600}}>{d.gas}</span>
-                  <span style={{fontSize:10,fontFamily:"monospace",color:d.enabled?col:T.textD}}>{d.pv.toFixed(1)}<span style={{fontSize:7,color:T.textD}}> {d.unit}</span></span>
+                  <span style={{fontSize:11,color:col,fontWeight:600}}>{d.gas}</span>
+                  <span style={{fontSize:12,fontFamily:"monospace",color:d.enabled?col:T.textD}}>{d.pv.toFixed(1)}<span style={{fontSize:9,color:T.textD}}> {d.unit}</span></span>
                 </div>)})}
             </div></div></nav>
         <main style={{flex:1,padding:12,minHeight:0,overflowY:"auto",overflowX:"hidden"}}>
