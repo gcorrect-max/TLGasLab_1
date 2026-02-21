@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart } from "recharts";
+import { writeDataPoint, queryHistory, influxHealth } from "./influx.js";
 
 const APP_NAME = "Laboratorium badania cienkich warstw dla sensorów gazu";
 const APP_VER = "3.0";
@@ -89,6 +90,11 @@ const[pendingExp,setPendingExp]=useState(null);
 const fileRef=useRef(null);
 const[chartVis,setChartVis]=useState({profSP:true,pv1:true,pv2:true,sp1:true,mv:true});
 const togVis=k=>setChartVis(v=>({...v,[k]:!v[k]}));
+const[histRange,setHistRange]=useState("live");
+const[histData,setHistData]=useState([]);
+const[histLoading,setHistLoading]=useState(false);
+const loadRange=r=>{setHistRange(r);if(r==="live"){setHistData([]);return;}setHistLoading(true);queryHistory(r).then(d=>{setHistData(d);setHistLoading(false)}).catch(()=>setHistLoading(false))};
+useEffect(()=>{if(histRange==="live")return;const iv=setInterval(()=>queryHistory(histRange).then(d=>setHistData(d)),15000);return()=>clearInterval(iv)},[histRange]);
 
 // ── eksport bieżącego eksperymentu do JSON ──
 const exportExp=()=>{const exp={type:"experiment",ver:APP_VER,app:APP_NAME,exportedAt:new Date().toISOString(),
@@ -157,8 +163,9 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
     </svg>}</div></div>
 
   <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Temperatura — {profileName||"brak profilu"}</span><span style={{fontSize:12,color:mb.regStatus==="RUN"?"#00cc66":"#ff6644"}}>● {mb.regStatus}{mb.manualMode?" MAN":" AUTO"}</span></div>
+    <div style={{display:"flex",gap:3,marginBottom:4,flexShrink:0}}>{[["live","Na żywo"],["-1h","1h"],["-6h","6h"],["-24h","24h"],["-7d","7d"]].map(([k,l])=>(<button key={k} onClick={()=>loadRange(k)} style={{padding:"2px 7px",borderRadius:4,border:"none",fontSize:11,fontWeight:600,cursor:"pointer",background:histRange===k?"#0077b6":T.boxBg,color:histRange===k?"#fff":T.textM}}>{l}</button>))}{histLoading&&<span style={{fontSize:11,color:T.textD,alignSelf:"center"}}>⏳</span>}</div>
     <div style={{flex:1,minHeight:0}}>
-    <ResponsiveContainer width="100%" height="100%"><LineChart data={hist.slice(-80)}>
+    <ResponsiveContainer width="100%" height="100%"><LineChart data={histRange==="live"?hist.slice(-80):histData}>
       <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} interval="preserveStartEnd"/><YAxis tick={{fill:T.tick,fontSize:11}} stroke={T.grid} domain={["auto","auto"]}/><Tooltip {...TT}/>
       {chartVis.profSP&&<Line type="stepAfter" dataKey="profSP" stroke="#555577" strokeWidth={2.5} strokeDasharray="8 4" dot={false} name="Profil temp." isAnimationActive={false}/>}
       {chartVis.pv1&&<Line type="monotone" dataKey="pv1" stroke="#ff6644" strokeWidth={2} dot={false} name={mb.pv1Name||"PV1"} isAnimationActive={false}/>}
@@ -174,7 +181,7 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
   <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Przepływ gazu — przepływomierze</span>
     <div style={{display:"flex",gap:4}}>{mb.mfc.map((d,i)=>d.enabled&&<span key={d.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:["#00aaff22","#ffaa0022","#00cc6622","#cc44ff22"][i],color:["#44bbff","#ffbb33","#33dd77","#dd66ff"][i],fontWeight:600}}>{d.gas}</span>)}</div></div>
     <div style={{flex:1,minHeight:0}}>
-    <ResponsiveContainer width="100%" height="100%"><LineChart data={hist.slice(-80)}>
+    <ResponsiveContainer width="100%" height="100%"><LineChart data={histRange==="live"?hist.slice(-80):histData}>
       <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} interval="preserveStartEnd"/><YAxis tick={{fill:T.tick,fontSize:11}} stroke={T.grid}/><Tooltip {...TT}/>
       <Line type="monotone" dataKey="mfc1" stroke="#00aaff" strokeWidth={2} dot={false} name={mb.mfc[0]?.gas||"MFC1"} isAnimationActive={false}/>
       <Line type="monotone" dataKey="mfc2" stroke="#ffaa00" strokeWidth={2} dot={false} name={mb.mfc[1]?.gas||"MFC2"} isAnimationActive={false}/>
@@ -452,7 +459,7 @@ const StableInput=memo(function StableInput({value,onCommit,placeholder}){const[
 },function(p,n){return p.value===n.value&&p.placeholder===n.placeholder});
 
 // ═══ P4 KONFIGURACJA ═══
-function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,user,users,setUsers,connectWs,disconnectWs,T}){const S=mkS(T);const[tab,sTab]=useState("ctrl");
+function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,user,users,setUsers,connectWs,disconnectWs,influxOk,setInfluxOk,T}){const S=mkS(T);const[tab,sTab]=useState("ctrl");
   const isAdmin=user?.role==="admin";
   const F=({label,children})=><div style={S.box}><div style={S.lbl}>{label}</div>{children}</div>;
   const diagFields=[["gas","Źródło gazu","GAZ"],["gasType","Typ gazu","N₂/Ar"],["flow","Przepływomierz","FLOW"],["furnace","Piec / Komora","PIEC"],["bridge","Bridge / DAQ","LabVIEW"],["bridgeSub","Opis bridge","WS Bridge"]];
@@ -542,9 +549,13 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
       <p style={{color:T.textM,fontSize:13,margin:"8px 0"}}>LabVIEW = WebSocket Server. Kontroler = klient. Dane JSON. Auto-reconnect z exponential backoff.</p>
       <div style={{display:"flex",gap:6}}><button style={{...S.btn,background:mb.wsConnected?"#888":"#22aa44",opacity:mb.wsConnected?.5:1}} disabled={mb.wsConnected} onClick={()=>connectWs?.({manual:true})}>🔌 Połącz</button>
         <button style={{...S.btn,background:!mb.wsConnected?"#888":"#aa2211",opacity:!mb.wsConnected?.5:1}} disabled={!mb.wsConnected} onClick={()=>disconnectWs?.("manual")}>⏏ Rozłącz</button></div></div>}
-    {tab==="db"&&<div style={S.card}><div style={S.title}><span>Baza danych</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-      {[["Typ","PostgreSQL+TimescaleDB"],["Host","localhost"],["Port","5432"],["Baza","thinfilm_lab"]].map(([l,v])=><F key={l} label={l}><input defaultValue={v} style={S.input}/></F>)}</div>
-      <button style={{...S.btn,marginTop:8,background:"#0077b6"}} onClick={()=>{addLog("Config DB zapisana","config");toast("OK","success")}}>💾 Zapisz</button></div>}
+    {tab==="db"&&<div style={S.card}><div style={S.title}><span>InfluxDB v2 — Time Series</span>
+      <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:8,height:8,borderRadius:"50%",background:influxOk?"#8844ff":"#555"}}/><span style={{fontSize:12,color:influxOk?T.textA:T.textD}}>{influxOk?"Połączono":"Brak połączenia"}</span></div></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+      {[["URL","http://localhost:8086"],["Organizacja","ThinFilmLab"],["Bucket","measurements"],["Retencja","30 dni (raw)"],["Token","tfl-dev-token-****"],["Port Docker","8086"]].map(([l,v])=><F key={l} label={l}><input defaultValue={v} readOnly style={{...S.input,opacity:.7}}/></F>)}</div>
+      <div style={{display:"flex",gap:8,marginTop:8}}>
+      <button style={{...S.btn,background:"#8844ff"}} onClick={()=>{influxHealth().then(ok=>{setInfluxOk(ok);toast(ok?"InfluxDB: połączono":"InfluxDB: brak połączenia",ok?"success":"error")})}}>🔄 Test połączenia</button>
+      <a href="http://localhost:8086" target="_blank" rel="noreferrer" style={{...S.btn,background:"#0077b6",textDecoration:"none",display:"inline-flex",alignItems:"center"}}>📊 InfluxDB UI</a></div></div>}
     {tab==="users"&&isAdmin&&<div style={{display:"grid",gap:12}}>
       <div style={S.card}><div style={S.title}><span>Zarządzanie użytkownikami</span><span style={{fontSize:12,color:T.textD}}>{Object.keys(users).length} kont</span></div>
         <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
@@ -604,7 +615,11 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
 
 // ═══ P5 PROTOKÓŁ JSON ═══
 function P5({mb,hist,T}){const S=mkS(T);const[tab,sTab]=useState("lv2web");
-  const csv=()=>{if(!hist.length)return;const h="Czas,PV1,PV2,SP1,MV,OutAnalog\n";const r=hist.map(h=>`${h.t},${h.pv1.toFixed(2)},${h.pv2.toFixed(2)},${h.sp1.toFixed(2)},${h.mv.toFixed(1)},${(h.outA||0).toFixed(2)}`).join("\n");const b=new Blob([h+r],{type:"text/csv"});dlBlob(b,`thinfilm_${Date.now()}.csv`)};
+  const[csvRange,setCsvRange]=useState("mem");const[csvBusy,setCsvBusy]=useState(false);
+  const csvExport=async()=>{setCsvBusy(true);try{const src=csvRange==="mem"?hist:await queryHistory(csvRange);if(!src.length){setCsvBusy(false);return;}
+    const h="Czas,PV1,PV2,SP1,MV,OutAnalog,MFC1,MFC2,MFC3,MFC4\n";
+    const r=src.map(h=>`${h.t},${(h.pv1||0).toFixed(2)},${(h.pv2||0).toFixed(2)},${(h.sp1||0).toFixed(2)},${(h.mv||0).toFixed(1)},${(h.outA||0).toFixed(2)},${(h.mfc1||0).toFixed(1)},${(h.mfc2||0).toFixed(1)},${(h.mfc3||0).toFixed(1)},${(h.mfc4||0).toFixed(1)}`).join("\n");
+    const b=new Blob([h+r],{type:"text/csv"});dlBlob(b,`thinfilm_${csvRange}_${Date.now()}.csv`)}catch{}setCsvBusy(false)};
   const schemas=tab==="lv2web"?JSON_LV2WEB:JSON_WEB2LV;
   return(<div style={{display:"grid",gap:12}}>
     <div style={S.card}><div style={S.title}><span>Protokół JSON — LabVIEW ↔ Kontroler</span></div>
@@ -616,8 +631,9 @@ function P5({mb,hist,T}){const S=mkS(T);const[tab,sTab]=useState("lv2web");
         <pre style={S.code}>{JSON.stringify(s.ex,null,2)}</pre></div>))}</div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
       <div style={S.card}><div style={S.title}><span>Eksport CSV</span></div>
-        <div style={{color:T.textD,fontSize:13,marginBottom:8}}>Rekordów: <strong style={{color:T.pv2}}>{hist.length}</strong></div>
-        <button onClick={csv} disabled={!hist.length} style={{...S.btn,background:hist.length?"#22aa44":"#888",opacity:hist.length?1:.4}}>📄 CSV</button></div>
+        <div style={{color:T.textD,fontSize:13,marginBottom:8}}>Pamięć: <strong style={{color:T.pv2}}>{hist.length}</strong> rekordów</div>
+        <div style={{display:"flex",gap:4,marginBottom:8,flexWrap:"wrap"}}>{[["mem","Pamięć"],["-1h","1h"],["-24h","24h"],["-7d","7d"]].map(([k,l])=>(<button key={k} onClick={()=>setCsvRange(k)} style={{padding:"3px 8px",borderRadius:4,border:"none",fontSize:11,fontWeight:600,cursor:"pointer",background:csvRange===k?"#22aa44":T.boxBg,color:csvRange===k?"#fff":T.textM}}>{l}</button>))}</div>
+        <button onClick={csvExport} disabled={csvBusy} style={{...S.btn,background:"#22aa44",opacity:csvBusy?.5:1}}>📄 {csvBusy?"Eksportowanie...":"CSV"}</button></div>
       <div style={S.card}><div style={S.title}><span>Komunikacja</span></div>
         {[["WebSocket",mb.wsUrl,mb.wsConnected],["MODBUS-RTU",`Addr:${mb.modbusAddr}`,true],["MODBUS-TCP",`${mb.ethIP}:${mb.ethPort}`,true]].map(([l,d,on])=>(<div key={l} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",marginBottom:4,borderRadius:6,background:T.boxBg,border:`1px solid ${T.boxBorder}`}}><div style={{width:7,height:7,borderRadius:"50%",background:on?"#00cc66":"#999"}}/><div><div style={{color:T.tblT,fontSize:13,fontWeight:600}}>{l}</div><div style={{color:T.textD,fontSize:11,fontFamily:"monospace"}}>{d}</div></div></div>))}</div></div>
   </div>);}
@@ -819,7 +835,7 @@ function Footer({T}){return(<footer style={{background:T.footBg,borderTop:`1px s
 export default function App(){
   const[user,setUser]=useState(null);const[dark,setDark]=useState(true);const[ac,sAc]=useState(1);
   const[mb,setMb]=useState(initMb);const[hist,setHist]=useState([]);const[alog,sAlog]=useState([]);
-  const[toasts,sToasts]=useState([]);const[logs,sLogs]=useState([]);
+  const[toasts,sToasts]=useState([]);const[logs,sLogs]=useState([]);const[influxOk,setInfluxOk]=useState(false);
   const[segs,setSegs]=useState([{name:"Rampa grzania",sp:200,ramp:5,hold:0,flow:[0,0,0,0]},{name:"Wygrzewanie",sp:400,ramp:3,hold:60,flow:[0,0,0,0]},{name:"Chłodzenie",sp:25,ramp:-10,hold:0,flow:[0,0,0,0]}]);
   const[profileName,setProfileName]=useState("Spiekanie ZnO");
   const[sample,setSample]=useState({sampleId:"",material:"",substrate:"",method:"",thickness:"",targetGas:"",processTemp:"",pressure:"",atmosphere:"",sourcePower:"",processTime:"",gasFlow:"",operator:"",batchNo:"",goal:"",notes:"",photos:[]});
@@ -861,7 +877,7 @@ export default function App(){
       const t=new Date();const label=`${String(t.getMinutes()).padStart(2,"0")}:${String(t.getSeconds()).padStart(2,"0")}`;
       const hp={t:label,pv1:+(data.pv1??0),pv2:+(data.pv2??0),sp1:+(data.sp1??0),profSP:+(data.sp1??0),ch3:+(data.ch3??0),mv:+(data.mv??0),outA:+(data.outAnalog??0)};
       if(mfcData){mfcData.forEach(x=>{if(x.id>=1&&x.id<=4)hp[`mfc${x.id}`]=+(x.pv??0)})}
-      setHist(h=>[...h,hp].slice(-150));return;}
+      setHist(h=>[...h,hp].slice(-150));writeDataPoint({...hp,_source:"ws"});return;}
     if(type==="status_update"){setMb(m=>({...m,...data}));return;}
     if(type==="alarm_event"){const sev=data?.sev||"warning";const msgT=data?.msg||"alarm";const latch=!!data?.latch;
       setMb(m=>({...m,alarmSTB:true,alarmLATCH:latch?true:m.alarmLATCH}));sAlog(a=>[...a,{time:new Date().toLocaleTimeString("pl-PL"),sev,msg:msgT}].slice(-100));return;}
@@ -922,6 +938,11 @@ export default function App(){
     const wd=setInterval(()=>{if(mb.wsConnected){const dt=Date.now()-wsLastMsg.current;if(dt>12000){addLog("WS timeout >12s. Reconnect.","ws");disconnectWs("timeout");connectWs({manual:false})}}},1500);
     return()=>clearInterval(wd)},[user,mb.wsConnected,addLog,disconnectWs,connectWs]);
 
+  // ── InfluxDB health check ──
+  useEffect(()=>{if(!user)return;influxHealth().then(ok=>setInfluxOk(ok));
+    const hc=setInterval(()=>influxHealth().then(ok=>setInfluxOk(ok)),30000);
+    return()=>clearInterval(hc)},[user]);
+
   // ── DEMO simulation (only when WS disconnected) ──
 
   useEffect(()=>{if(!user)return;curUser.current=user.username;const iv=setInterval(()=>{
@@ -946,7 +967,7 @@ export default function App(){
     const m=mbRef.current;if(!m.wsConnected){const now=new Date();const t=`${now.getMinutes().toString().padStart(2,"0")}:${now.getSeconds().toString().padStart(2,"0")}`;
     const hp={t,pv1:m.pv1,pv2:m.pv2,sp1:m.sp1,profSP:m.sp1,ch3:m.ch3,mv:m.manualMode?m.mvManual:m.mv,outA:m.outAnalog};
     m.mfc.forEach(d=>{hp[`mfc${d.id}`]=d.pv});
-    setHist(h=>[...h.slice(-150),hp]);}
+    setHist(h=>[...h.slice(-150),hp]);writeDataPoint({...hp,_source:"demo"});}
     if(m.alarm1&&!prevA.current.a1)addAlm(`HI: PV=${m.pv1.toFixed(1)}°C`,"danger");
     if(m.alarm2&&!prevA.current.a2)addAlm(`LO: PV=${m.pv1.toFixed(1)}°C`,"warning");
     prevA.current={a1:m.alarm1,a2:m.alarm2};
@@ -980,6 +1001,7 @@ export default function App(){
             <div style={{fontSize:10,color:T.textD}}>Kontroler • WebSocket JSON ↔ LabVIEW • AR200.B</div></div></div>
         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <Led on={mb.wsConnected} color="#00cc66" label="WS" T={T}/>
+          <Led on={influxOk} color="#8844ff" label="DB" T={T}/>
           <button onClick={()=>setShowWsCon(true)} style={{padding:"2px 7px",borderRadius:5,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:11,cursor:"pointer",fontWeight:600}} title="WS Console">🛰</button>
           <Led on={mb.regStatus==="RUN"} color="#ff8844" label={mb.manualMode?"MAN":"REG"} T={T}/>
           <Led on={mb.alarmSTB} color="#ff3366" label="ALM" T={T}/>
@@ -1039,7 +1061,7 @@ export default function App(){
           {ac===1&&<P1 mb={mb} setMb={setMb} hist={hist} alog={alog} profileName={profileName} setProfileName={setProfileName} diagram={diagram} customSvg={customSvg} segs={segs} setSegs={setSegs} sample={sample} setSample={setSample} user={user} addLog={addLog} toast={toast} goPage={sAc} sendCmd={sendCmd} experiments={experiments} setExperiments={setExperiments} T={T}/>}
           {ac===2&&<P2 mb={mb} setMb={setMb} toast={toast} segs={segs} setSegs={setSegs} profileName={profileName} setProfileName={setProfileName} addLog={addLog} goPage={sAc} sendCmd={sendCmd} T={T}/>}
           {ac===3&&<P3 sample={sample} setSample={setSample} toast={toast} addLog={addLog} sendCmd={sendCmd} T={T}/>}
-          {ac===4&&<P4 mb={mb} setMb={setMb} toast={toast} addLog={addLog} diagram={diagram} setDiagram={setDiagram} customSvg={customSvg} setCustomSvg={setCustomSvg} user={user} users={users} setUsers={setUsers} connectWs={connectWs} disconnectWs={disconnectWs} T={T}/>}
+          {ac===4&&<P4 mb={mb} setMb={setMb} toast={toast} addLog={addLog} diagram={diagram} setDiagram={setDiagram} customSvg={customSvg} setCustomSvg={setCustomSvg} user={user} users={users} setUsers={setUsers} connectWs={connectWs} disconnectWs={disconnectWs} influxOk={influxOk} setInfluxOk={setInfluxOk} T={T}/>}
           {ac===5&&<P5 mb={mb} hist={hist} T={T}/>}
           {ac===6&&<P6 logs={logs} clearLogs={clearLogs} T={T}/>}
           {ac===7&&<P7 reports={reports} setReports={setReports} sample={sample} profileName={profileName} toast={toast} addLog={addLog} sendCmd={sendCmd} experiments={experiments} setExperiments={setExperiments} T={T}/>}
