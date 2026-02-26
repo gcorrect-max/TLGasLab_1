@@ -825,129 +825,31 @@ function P8({mb,sendCmd,impData,T}){const S=mkS(T);const ifrRef=useRef(null);
 }
 
 // ═══ P9: HELP / POMOC ═══
-const HELP_DATA={
-  pl:{
-    meta:{title:"Pomoc i wsparcie",subtitle:"Dokumentacja i FAQ — Panel ThinFilmLab",contact_label:"Kontakt z pomocą techniczną",
-      contact_email:"support@thinfilm.lab",contact_phone:"+48 123 456 789",support_hours:"Pon–Pt 9:00–17:00"},
-    sections:[
-      {id:"general",title:"Ogólne",icon:"ℹ️",items:[
-        {q:"Czym jest ThinFilmLab?",a:"ThinFilmLab to system SCADA/HMI do monitorowania i sterowania procesem osadzania cienkich warstw gazoczułych. Łączy się z kontrolerem LabVIEW przez WebSocket i pozwala zarządzać temperaturą, przepływami MFC, profilami segmentowymi oraz zbierać dane pomiarowe."},
-        {q:"Jakie role użytkowników są dostępne?",a:"System obsługuje 4 role: Administrator (pełny dostęp), Operator (monitoring + sterowanie + raporty), Student (monitoring + ustawienia + raporty) oraz Gość (tylko podgląd P1)."},
-        {q:"Jak zmienić motyw kolorystyczny?",a:"Kliknij na swoje imię w prawym górnym rogu i wybierz \u00ABJasny motyw\u00BB lub \u00ABCiemny motyw\u00BB. Ustawienie jest zapamiętywane dla Twojego konta."},
-        {q:"Co oznaczają diody LED w nagłówku?",a:"WS (zielona) = połączenie WebSocket aktywne, DB (fioletowa) = połączenie z InfluxDB aktywne, ALM (czerwona) = aktywny alarm, REC (niebieska) = rejestracja danych."},
-        {q:"Co się dzieje gdy brak połączenia z LabVIEW?",a:"Dashboard automatycznie przechodzi w tryb DEMO — symulacja PID generuje realistyczne dane offline. Dioda WS gaśnie, a system próbuje reconnekcji z backoff 1–15s."}
-      ]},
-      {id:"monitoring",title:"Monitoring (P1)",icon:"📊",items:[
-        {q:"Jakie wykresy widzę na stronie głównej?",a:"Wykres temperatury (PV1, PV2, SP1 i profil SP) oraz wykres przepływów MFC (4 kanały). Oba wykresy aktualizują się w czasie rzeczywistym co 1 sekundę."},
-        {q:"Do czego służy selektor czasu (Na żywo / 1h / 6h / 24h / 7d)?",a:"Przełącza źródło danych wykresów: \u00ABNa żywo\u00BB = bufor pamięci (150 punktów), reszta = zapytania do InfluxDB z automatycznym downsampling'iem dla dłuższych zakresów."},
-        {q:"Co to jest schemat SVG na P1?",a:"Interaktywny schemat instalacji pomiarowej z 4 liniami gazowymi MFC, piecem i czujnikami. Wartości PV/SP aktualizują się na żywo. Można wgrać własny schemat SVG w P4."},
-        {q:"Jak działa lista alarmów?",a:"Alarmy przychodzące z LabVIEW wyświetlają się na P1 z kolorami priorytetu: czerwony (danger), żółty (warning), niebieski (info). Alarm LATCH wymaga ręcznego skasowania na P2."}
-      ]},
-      {id:"settings",title:"Ustawienia eksperymentu (P2)",icon:"⚙️",items:[
-        {q:"Jak utworzyć profil temperaturowy?",a:"Na P2 dodaj segmenty w tabeli profilu: nazwa, temperatura docelowa (SP), rampa [°C/min] i czas utrzymania [min]. Każdy segment może mieć osobne nastawy przepływów MFC."},
-        {q:"Jak uruchomić profil?",a:"Kliknij \u00AB\u25B6 Start\u00BB na P2. Możesz wybrać \u00ABPełny pomiar\u00BB (temp + przepływy) lub \u00ABTylko temperatura\u00BB. Profil wysyła komendy profile_command do LabVIEW."},
-        {q:"Jak przełączyć tryb ręczny/automatyczny?",a:"Przyciskiem MAN/AUTO na P2. W trybie ręcznym sterujemy mocą suwakiem MV (0–100%). W trybie AUTO działa regulator PID."},
-        {q:"Co to Autotune PID?",a:"Przycisk uruchamia procedurę samonastrajania parametrów PID (Pb, Ti, Td) po stronie LabVIEW. Nowe parametry zostaną odesłane przez status_update."},
-        {q:"Jak skonfigurować przepływy MFC per segment?",a:"Kliknij \u00AB\u25B8 Przepływy MFC\u00BB przy danym segmencie \u2014 rozwinie się panel z 4 polami (MFC-1..MFC-4) do wpisania nastaw w sccm. Wykres podglądu pokazuje temperaturę i przepływy na wspólnym wykresie."}
-      ]},
-      {id:"sample",title:"Próbka i proces (P3)",icon:"🧪",items:[
-        {q:"Jakie dane opisują próbkę?",a:"ID próbki, materiał warstwy, podłoże, metoda osadzania (PVD/CVD/Sol-Gel), grubość [nm], gaz docelowy, temperatura procesu, ciśnienie, atmosfera, moc źródła, czas procesu, przepływ gazu, operator, numer serii i cel eksperymentu."},
-        {q:"Gdzie zapisywane są dane próbki?",a:"Lokalnie w stanie aplikacji oraz wysyłane do LabVIEW przez komendę sample_info. W przyszłości planowane jest zapisywanie do bazy danych."}
-      ]},
-      {id:"config",title:"Konfiguracja (P4)",icon:"🔧",items:[
-        {q:"Jak skonfigurować połączenie WebSocket?",a:"W zakładce \u00ABKontroler\u00BB na P4 wpisz adres ws://IP:PORT i kliknij \u00ABPołącz\u00BB. Status połączenia widać na diodzie WS w nagłówku."},
-        {q:"Jak skonfigurować przepływomierze MFC?",a:"Zakładka \u00ABMFC\u00BB na P4 \u2014 dla każdego z 4 MFC ustaw: nazwę, typ gazu, adres IP, port MODBUS, slave address, zakres pełnoskalowy. Zapisz konfigurację (wysyła mfc_config do LV) i/lub wyślij nastawy (mfc_setpoint)."},
-        {q:"Co pokazuje zakładka Baza?",a:"Status połączenia z InfluxDB v2 (Docker), parametry: URL, organizacja, bucket, retencja. Przycisk \u00ABTest połączenia\u00BB sprawdza dostępność bazy."},
-        {q:"Jak zarządzać kontami użytkowników?",a:"Zakładka \u00ABUżytkownicy\u00BB na P4 (tylko admin) \u2014 dodawanie, edycja, usuwanie kont z przypisaniem roli i danych kontaktowych."}
-      ]},
-      {id:"reports",title:"Raporty (P7)",icon:"📄",items:[
-        {q:"Jak utworzyć raport pomiarowy?",a:"Na P7 kliknij \u00AB\u2795 Dodaj raport\u00BB \u2014 wypełnij tytuł, wybierz próbkę i profil, opisz wynik. Możesz dołączyć zdjęcia (base64). Raport jest wysyłany do LabVIEW (report_create)."},
-        {q:"Jak eksportować dane do CSV?",a:"Na P5 (Protokół JSON) wybierz zakres danych: pamięć / 1h / 24h / 7d i kliknij \u00ABEksportuj CSV\u00BB. Dane z InfluxDB są pobierane asynchronicznie."}
-      ]},
-      {id:"impedance",title:"Impedancja (P8)",icon:"〰️",items:[
-        {q:"Jak działa moduł impedancji?",a:"P8 ładuje iframe z /impedance.html — osobną aplikację do spektroskopii impedancyjnej. Komunikacja z LabVIEW odbywa się przez main WebSocket (impedance_request → impedance_data)."},
-        {q:"Jakie wykresy generuje moduł?",a:"Wykres Bode'go (|Z| i faza vs f), wykres Nyquista (-Z'' vs Z'), wykres R(f). Dane można symulować modelem Randles (Rs + Rp||Cdl) lub pobrać z urządzenia pomiarowego."}
-      ]},
-      {id:"influxdb",title:"InfluxDB",icon:"🗄️",items:[
-        {q:"Jak uruchomić bazę InfluxDB?",a:"Zainstaluj Docker Desktop, przejdź do katalogu projektu i uruchom: docker compose up -d. Baza startuje na porcie 8086 z automatyczną konfiguracją (org, bucket, token)."},
-        {q:"Jakie dane są zapisywane?",a:"Każdy punkt pomiarowy: pv1, pv2, sp1, mv, outAnalog, ch3, mfc1–mfc4 ze źródłem (ws/demo). Batching: 10 punktów lub co 5 sekund."},
-        {q:"Czy dashboard działa bez Dockera?",a:"Tak — brak połączenia z InfluxDB nie blokuje dashboardu. Dioda DB gaśnie, dane wyświetlają się z bufora pamięci (150 punktów). Zapytania historyczne (1h/6h/24h/7d) będą niedostępne."},
-        {q:"Jak otworzyć UI InfluxDB?",a:"Kliknij \u00AB\uD83D\uDCCA InfluxDB UI\u00BB na zakładce Baza (P4) lub otwórz http://localhost:8086. Login: admin / thinfilm2026."}
-      ]},
-      {id:"troubleshooting",title:"Rozwiązywanie problemów",icon:"🔍",items:[
-        {q:"Dashboard nie łączy się z LabVIEW",a:"Sprawdź: 1) czy serwer LabVIEW WS jest uruchomiony, 2) adres ws://IP:PORT w P4, 3) firewall/VPN, 4) konsolę deweloperską przeglądarki (F12 → Console). Dashboard próbuje reconnekcji automatycznie."},
-        {q:"InfluxDB nie odpowiada (dioda DB wyłączona)",a:"Sprawdź: 1) docker ps — czy kontener tfl-influxdb działa, 2) docker compose up -d aby go uruchomić, 3) czy port 8086 nie jest zajęty. Logi: docker logs tfl-influxdb."},
-        {q:"Wykresy są puste",a:"W trybie \u00ABNa żywo\u00BB potrzeba kilku sekund na zebranie danych. Przy zakresach historycznych (1h+) sprawdź połączenie z InfluxDB. Upewnij się że symulacja DEMO jest aktywna (brak WS = automatyczna symulacja)."},
-        {q:"MFC nie reaguje na nastawy",a:"Sprawdź: 1) czy MFC jest oznaczony jako \u00ABenabled\u00BB w P4, 2) konfigurację IP/port/slave MODBUS, 3) fizyczne połączenie Ethernet z przepływomierzem MKS."}
-      ]}
-    ]
-  },
-  en:{
-    meta:{title:"Help & Support",subtitle:"Documentation & FAQ — ThinFilmLab Dashboard",contact_label:"Contact Support",
-      contact_email:"support@thinfilm.lab",contact_phone:"+48 123 456 789",support_hours:"Mon–Fri 9:00–17:00"},
-    sections:[
-      {id:"general",title:"General",icon:"ℹ️",items:[
-        {q:"What is ThinFilmLab?",a:"ThinFilmLab is a SCADA/HMI system for monitoring and controlling thin-film gas-sensitive layer deposition. It connects to a LabVIEW controller via WebSocket and manages temperature, MFC flows, segmented profiles and measurement data acquisition."},
-        {q:"What user roles are available?",a:"The system supports 4 roles: Administrator (full access), Operator (monitoring + control + reports), Student (monitoring + settings + reports) and Guest (P1 view only)."},
-        {q:"How to change the color theme?",a:"Click your name in the top-right corner and select \"Light theme\" or \"Dark theme\". The setting is saved per user account."},
-        {q:"What do the header LED indicators mean?",a:"WS (green) = WebSocket connected, DB (purple) = InfluxDB connected, ALM (red) = active alarm, REC (blue) = data recording active."},
-        {q:"What happens when LabVIEW is disconnected?",a:"The dashboard automatically switches to DEMO mode — a PID simulation generates realistic offline data. The WS LED turns off and the system retries with 1–15s exponential backoff."}
-      ]},
-      {id:"monitoring",title:"Monitoring (P1)",icon:"📊",items:[
-        {q:"What charts are displayed on the main page?",a:"A temperature chart (PV1, PV2, SP1 and profile SP) and an MFC flow chart (4 channels). Both charts update in real-time every 1 second."},
-        {q:"What does the time range selector (Live / 1h / 6h / 24h / 7d) do?",a:"Switches the chart data source: \"Live\" = in-memory buffer (150 points), the rest = InfluxDB queries with automatic downsampling for longer ranges."},
-        {q:"What is the SVG diagram on P1?",a:"An interactive schematic of the measurement setup with 4 MFC gas lines, furnace and sensors. PV/SP values update live. You can upload a custom SVG in P4."},
-        {q:"How does the alarm list work?",a:"Alarms from LabVIEW are displayed on P1 with priority colors: red (danger), yellow (warning), blue (info). LATCH alarms require manual clearing on P2."}
-      ]},
-      {id:"settings",title:"Experiment Settings (P2)",icon:"⚙️",items:[
-        {q:"How to create a temperature profile?",a:"On P2, add segments in the profile table: name, target temperature (SP), ramp [°C/min] and hold time [min]. Each segment can have individual MFC flow setpoints."},
-        {q:"How to start a profile?",a:"Click \"▶ Start\" on P2. You can choose \"Full measurement\" (temp + flows) or \"Temperature only\". The profile sends profile_command messages to LabVIEW."},
-        {q:"How to switch manual/automatic mode?",a:"Use the MAN/AUTO button on P2. In manual mode, control power with the MV slider (0–100%). In AUTO mode, the PID controller runs."},
-        {q:"What is PID Autotune?",a:"The button triggers a self-tuning procedure for PID parameters (Pb, Ti, Td) on the LabVIEW side. New parameters are sent back via status_update."},
-        {q:"How to configure MFC flows per segment?",a:"Click \"▸ MFC Flows\" on a segment — a panel expands with 4 fields (MFC-1..MFC-4) for setpoints in sccm. The preview chart shows temperature and flows on a combined chart."}
-      ]},
-      {id:"sample",title:"Sample & Process (P3)",icon:"🧪",items:[
-        {q:"What data describes a sample?",a:"Sample ID, layer material, substrate, deposition method (PVD/CVD/Sol-Gel), thickness [nm], target gas, process temperature, pressure, atmosphere, source power, process time, gas flow, operator, batch number and experiment goal."},
-        {q:"Where is sample data saved?",a:"Locally in the application state and sent to LabVIEW via the sample_info command. Database persistence is planned for the future."}
-      ]},
-      {id:"config",title:"Configuration (P4)",icon:"🔧",items:[
-        {q:"How to configure the WebSocket connection?",a:"In the \"Controller\" tab on P4, enter the address ws://IP:PORT and click \"Connect\". Connection status is shown by the WS LED in the header."},
-        {q:"How to configure MFC flow controllers?",a:"\"MFC\" tab on P4 — for each of the 4 MFCs set: name, gas type, IP address, MODBUS port, slave address, full-scale range. Save configuration (sends mfc_config to LV) and/or send setpoints (mfc_setpoint)."},
-        {q:"What does the Database tab show?",a:"InfluxDB v2 (Docker) connection status, parameters: URL, organization, bucket, retention. The \"Test connection\" button checks database availability."},
-        {q:"How to manage user accounts?",a:"\"Users\" tab on P4 (admin only) — add, edit, delete accounts with role assignment and contact details."}
-      ]},
-      {id:"reports",title:"Reports (P7)",icon:"📄",items:[
-        {q:"How to create a measurement report?",a:"On P7 click \"➕ Add report\" — fill in title, select sample and profile, describe results. You can attach photos (base64). The report is sent to LabVIEW (report_create)."},
-        {q:"How to export data to CSV?",a:"On P5 (JSON Protocol) select data range: memory / 1h / 24h / 7d and click \"Export CSV\". Data from InfluxDB is fetched asynchronously."}
-      ]},
-      {id:"impedance",title:"Impedance (P8)",icon:"〰️",items:[
-        {q:"How does the impedance module work?",a:"P8 loads an iframe with /impedance.html — a separate impedance spectroscopy app. Communication with LabVIEW uses the main WebSocket (impedance_request → impedance_data)."},
-        {q:"What charts does the module generate?",a:"Bode plot (|Z| and phase vs f), Nyquist plot (-Z'' vs Z'), R(f) chart. Data can be simulated with a Randles model (Rs + Rp||Cdl) or fetched from the measurement device."}
-      ]},
-      {id:"influxdb",title:"InfluxDB",icon:"🗄️",items:[
-        {q:"How to start the InfluxDB database?",a:"Install Docker Desktop, navigate to the project directory and run: docker compose up -d. The database starts on port 8086 with automatic setup (org, bucket, token)."},
-        {q:"What data is recorded?",a:"Every measurement point: pv1, pv2, sp1, mv, outAnalog, ch3, mfc1–mfc4 with source tag (ws/demo). Batching: 10 points or every 5 seconds."},
-        {q:"Does the dashboard work without Docker?",a:"Yes — missing InfluxDB connection doesn't block the dashboard. The DB LED turns off, data is displayed from the in-memory buffer (150 points). Historical queries (1h/6h/24h/7d) will be unavailable."},
-        {q:"How to open the InfluxDB UI?",a:"Click \"📊 InfluxDB UI\" on the Database tab (P4) or open http://localhost:8086. Login: admin / thinfilm2026."}
-      ]},
-      {id:"troubleshooting",title:"Troubleshooting",icon:"🔍",items:[
-        {q:"Dashboard won't connect to LabVIEW",a:"Check: 1) LabVIEW WS server is running, 2) ws://IP:PORT address in P4, 3) firewall/VPN, 4) browser dev console (F12 → Console). The dashboard retries automatically."},
-        {q:"InfluxDB not responding (DB LED off)",a:"Check: 1) docker ps — is tfl-influxdb container running, 2) docker compose up -d to start it, 3) is port 8086 occupied. Logs: docker logs tfl-influxdb."},
-        {q:"Charts are empty",a:"In \"Live\" mode, wait a few seconds for data. For historical ranges (1h+) check InfluxDB connection. Make sure DEMO simulation is active (no WS = automatic simulation)."},
-        {q:"MFC doesn't respond to setpoints",a:"Check: 1) MFC is marked \"enabled\" in P4, 2) IP/port/slave MODBUS configuration, 3) physical Ethernet connection to the MKS flow controller."}
-      ]}
-    ]
-  }
-};
-
 function P9({T}){
   const S=mkS(T);
   const[lang,setLang]=useState(()=>{try{return localStorage.getItem("tfl_help_lang")||"pl"}catch{return"pl"}});
   const[search,setSearch]=useState("");
   const[selSec,setSelSec]=useState("all");
   const[expanded,setExpanded]=useState(null);
+  const[helpData,setHelpData]=useState(null);
+  const[helpLoading,setHelpLoading]=useState(true);
+  const[helpError,setHelpError]=useState(null);
 
-  const d=HELP_DATA[lang]||HELP_DATA.pl;
+  useEffect(()=>{let cancel=false;setHelpLoading(true);setHelpError(null);
+    fetch("/help.json").then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
+      .then(all=>{if(!cancel){setHelpData(all);setHelpLoading(false)}})
+      .catch(e=>{if(!cancel){setHelpError(e.message||"Fetch error");setHelpLoading(false)}});
+    return()=>{cancel=true}},[]);
+
+  if(helpLoading) return(<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>
+    <div style={{textAlign:"center"}}><div style={{fontSize:32,marginBottom:8,animation:"pa 1.2s infinite"}}>⏳</div>
+      <div style={{color:T.textD,fontSize:13}}>{lang==="pl"?"Ładowanie pomocy\u2026":"Loading help\u2026"}</div></div></div>);
+  if(helpError||!helpData) return(<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>
+    <div style={{textAlign:"center"}}><div style={{fontSize:40,marginBottom:8}}>⚠️</div>
+      <div style={{color:"#ff5566",fontSize:15,marginBottom:4}}>{lang==="pl"?"Błąd ładowania pomocy":"Failed to load help"}</div>
+      <div style={{color:T.textD,fontSize:12}}>{helpError||"Unknown error"}</div></div></div>);
+
+  const d=helpData[lang]||helpData.pl;
   const{meta,sections}=d;
 
   const changeLang=(l)=>{setLang(l);try{localStorage.setItem("tfl_help_lang",l)}catch{}};
