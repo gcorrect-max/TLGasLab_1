@@ -83,12 +83,11 @@ return(<div style={{height:"100%",display:"flex",alignItems:"center",justifyCont
 
 // ═══ P1 MONITORING ═══
 function P1({mb,setMb,hist,alog,profileName,setProfileName,diagram:D,customSvg,segs,setSegs,sample,setSample,user,addLog,toast,goPage:sAc,sendCmd,experiments,setExperiments,T}){const S=mkS(T);const TT={contentStyle:{background:T.ttBg,border:`1px solid ${T.cardBorder}`,borderRadius:8,fontSize:13,color:T.text}};
-const rowH="calc(45vh - 55px)";
-const crd={...S.card,display:"flex",flexDirection:"column",overflow:"hidden",height:rowH};
+const crdL={...S.card,display:"flex",flexDirection:"column",overflow:"hidden"};
 const[showConfirm,setShowConfirm]=useState(false);
 const[pendingExp,setPendingExp]=useState(null);
 const fileRef=useRef(null);
-const[chartVis,setChartVis]=useState({profSP:true,pv1:true,pv2:true,sp1:true,mv:true});
+const[chartVis,setChartVis]=useState({profSP:true,pv1:true,pv2:true,sp1:true,mv:true,mfc1:true,mfc2:true,mfc3:true,mfc4:true});
 const togVis=k=>setChartVis(v=>({...v,[k]:!v[k]}));
 const[histRange,setHistRange]=useState("live");
 const[histData,setHistData]=useState([]);
@@ -134,8 +133,8 @@ const confirmExp=()=>{if(!pendingExp)return;const ex=pendingExp;
   toast("Eksperyment uruchomiony!","success");setShowConfirm(false);setPendingExp(null)};
 
 const pe=pendingExp;
-return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:`${rowH} auto ${rowH}`,gap:10}}>
-  <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Schemat stanowiska</span><span style={{fontSize:12,color:mb.out1?"#ff6644":T.textD}}>{mb.out1?"🔥 GRZANIE":"○ IDLE"}</span></div>
+return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:"auto auto auto",gap:10}}>
+  <div style={{...crdL,height:"calc(38vh)",gridColumn:1,gridRow:1}}><div style={{...S.title,flexShrink:0}}><span>Schemat stanowiska</span><span style={{fontSize:12,color:mb.out1?"#ff6644":T.textD}}>{mb.out1?"🔥 GRZANIE":"○ IDLE"}</span></div>
     <div style={{flex:1,minHeight:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
     {customSvg?<div dangerouslySetInnerHTML={{__html:customSvg}} style={{width:"100%",maxHeight:"100%",overflow:"hidden"}}/>:
     <svg viewBox="0 0 440 200" style={{width:"100%",maxHeight:"100%"}}>
@@ -162,32 +161,50 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
       <text x="370" y="108" textAnchor="middle" fill={T.textD} fontSize="5">{D.bridgeSub}</text>
     </svg>}</div></div>
 
-  <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Temperatura — {profileName||"brak profilu"}</span><span style={{fontSize:12,color:mb.regStatus==="RUN"?"#00cc66":"#ff6644"}}>● {mb.regStatus}{mb.manualMode?" MAN":" AUTO"}</span></div>
+  <div style={{...crdL,gridColumn:2,gridRow:"1 / 3",height:"calc(55vh)"}}><div style={{...S.title,flexShrink:0}}><span>Temperatura i przepływ — {profileName||"brak profilu"}</span>
+    <div style={{display:"flex",alignItems:"center",gap:6}}>
+      <div style={{display:"flex",gap:3}}>{mb.mfc.map((d,i)=>d.enabled&&<span key={d.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:["#00aaff22","#ffaa0022","#00cc6622","#cc44ff22"][i],color:["#44bbff","#ffbb33","#33dd77","#dd66ff"][i],fontWeight:600}}>{d.gas}</span>)}</div>
+      <span style={{fontSize:12,color:mb.regStatus==="RUN"?"#00cc66":"#ff6644"}}>● {mb.regStatus}{mb.manualMode?" MAN":" AUTO"}</span></div></div>
     <div style={{display:"flex",gap:3,marginBottom:4,flexShrink:0}}>{[["live","Na żywo"],["-1h","1h"],["-6h","6h"],["-24h","24h"],["-7d","7d"]].map(([k,l])=>(<button key={k} onClick={()=>loadRange(k)} style={{padding:"2px 7px",borderRadius:4,border:"none",fontSize:11,fontWeight:600,cursor:"pointer",background:histRange===k?"#0077b6":T.boxBg,color:histRange===k?"#fff":T.textM}}>{l}</button>))}{histLoading&&<span style={{fontSize:11,color:T.textD,alignSelf:"center"}}>⏳</span>}</div>
     <div style={{flex:1,minHeight:0}}>
-    <ResponsiveContainer width="100%" height="100%"><LineChart data={histRange==="live"?hist.slice(-80):histData}>
-      <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} interval="preserveStartEnd"/><YAxis tick={{fill:T.tick,fontSize:11}} stroke={T.grid} domain={["auto","auto"]}/><Tooltip {...TT}/>
-      {chartVis.profSP&&<Line type="stepAfter" dataKey="profSP" stroke="#555577" strokeWidth={2.5} strokeDasharray="8 4" dot={false} name="Profil temp." isAnimationActive={false}/>}
-      {chartVis.pv1&&<Line type="monotone" dataKey="pv1" stroke="#ff6644" strokeWidth={2} dot={false} name={mb.pv1Name||"PV1"} isAnimationActive={false}/>}
-      {chartVis.pv2&&<Line type="monotone" dataKey="pv2" stroke="#aa44ff" strokeWidth={2} dot={false} name={mb.pv2Name||"PV2"} isAnimationActive={false}/>}
-      {chartVis.sp1&&<Line type="monotone" dataKey="sp1" stroke="#00cc66" strokeWidth={1.5} strokeDasharray="5 3" dot={false} name="Nastawa temperatury" isAnimationActive={false}/>}
-      {chartVis.mv&&<Line type="monotone" dataKey="mv" stroke="#ffaa00" strokeWidth={1} dot={false} name="MV%" isAnimationActive={false}/>}
-    </LineChart></ResponsiveContainer></div>
-    <div style={{display:"flex",gap:8,flexWrap:"wrap",padding:"4px 0",flexShrink:0}}>
+    <ResponsiveContainer width="100%" height="100%"><ComposedChart data={histRange==="live"?hist.slice(-80):histData}>
+      <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} interval="preserveStartEnd"/>
+      <YAxis yAxisId="temp" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} domain={["auto","auto"]} label={{value:"°C",position:"insideTopLeft",fill:T.tick,fontSize:11}}/>
+      <YAxis yAxisId="flow" orientation="right" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} domain={[0,"auto"]} label={{value:"sccm",position:"insideTopRight",fill:T.tick,fontSize:11}}/>
+      <Tooltip {...TT}/>
+      {chartVis.profSP&&<Line yAxisId="temp" type="stepAfter" dataKey="profSP" stroke="#555577" strokeWidth={2.5} strokeDasharray="8 4" dot={false} name="Profil temp." isAnimationActive={false}/>}
+      {chartVis.pv1&&<Line yAxisId="temp" type="monotone" dataKey="pv1" stroke="#ff6644" strokeWidth={2} dot={false} name={mb.pv1Name||"PV1"} isAnimationActive={false}/>}
+      {chartVis.pv2&&<Line yAxisId="temp" type="monotone" dataKey="pv2" stroke="#aa44ff" strokeWidth={2} dot={false} name={mb.pv2Name||"PV2"} isAnimationActive={false}/>}
+      {chartVis.sp1&&<Line yAxisId="temp" type="monotone" dataKey="sp1" stroke="#00cc66" strokeWidth={1.5} strokeDasharray="5 3" dot={false} name="Nastawa temp." isAnimationActive={false}/>}
+      {chartVis.mv&&<Line yAxisId="temp" type="monotone" dataKey="mv" stroke="#ffaa00" strokeWidth={1} dot={false} name="MV%" isAnimationActive={false}/>}
+      {chartVis.mfc1&&<Line yAxisId="flow" type="monotone" dataKey="mfc1" stroke="#00aaff" strokeWidth={2} dot={false} name={mb.mfc[0]?.gas||"MFC1"} isAnimationActive={false}/>}
+      {chartVis.mfc2&&<Line yAxisId="flow" type="monotone" dataKey="mfc2" stroke="#ffaa00" strokeWidth={2} dot={false} name={mb.mfc[1]?.gas||"MFC2"} isAnimationActive={false}/>}
+      {chartVis.mfc3&&<Line yAxisId="flow" type="monotone" dataKey="mfc3" stroke="#00cc66" strokeWidth={2} dot={false} name={mb.mfc[2]?.gas||"MFC3"} isAnimationActive={false}/>}
+      {chartVis.mfc4&&<Line yAxisId="flow" type="monotone" dataKey="mfc4" stroke="#cc44ff" strokeWidth={2} dot={false} name={mb.mfc[3]?.gas||"MFC4"} isAnimationActive={false}/>}
+    </ComposedChart></ResponsiveContainer></div>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",padding:"4px 0",flexShrink:0,alignItems:"center"}}>
       {[["profSP","#555577","Profil temp."],["pv1","#ff6644",mb.pv1Name||"PV1"],["pv2","#aa44ff",mb.pv2Name||"PV2"],["sp1","#00cc66","Nastawa temp."],["mv","#ffaa00","MV%"]].map(([k,c,l])=>(
         <label key={k} style={{display:"flex",alignItems:"center",gap:3,cursor:"pointer",fontSize:11,color:chartVis[k]?c:T.textD,opacity:chartVis[k]?1:.45,userSelect:"none"}}>
-          <input type="checkbox" checked={chartVis[k]} onChange={()=>togVis(k)} style={{width:10,height:10,accentColor:c}}/>{l}</label>))}</div></div>
+          <input type="checkbox" checked={chartVis[k]} onChange={()=>togVis(k)} style={{width:10,height:10,accentColor:c}}/>{l}</label>))}
+      <span style={{color:T.titleB,margin:"0 2px"}}>│</span>
+      {[[1,"#00aaff"],[2,"#ffaa00"],[3,"#00cc66"],[4,"#cc44ff"]].map(([i,c])=>{const k=`mfc${i}`;const d=mb.mfc[i-1];return(
+        <label key={k} style={{display:"flex",alignItems:"center",gap:3,cursor:"pointer",fontSize:11,color:chartVis[k]?c:T.textD,opacity:chartVis[k]?1:.45,userSelect:"none"}}>
+          <input type="checkbox" checked={chartVis[k]} onChange={()=>togVis(k)} style={{width:10,height:10,accentColor:c}}/>{d?.gas||`MFC${i}`}</label>)})}</div></div>
 
-  <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Przepływ gazu — przepływomierze</span>
-    <div style={{display:"flex",gap:4}}>{mb.mfc.map((d,i)=>d.enabled&&<span key={d.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:["#00aaff22","#ffaa0022","#00cc6622","#cc44ff22"][i],color:["#44bbff","#ffbb33","#33dd77","#dd66ff"][i],fontWeight:600}}>{d.gas}</span>)}</div></div>
-    <div style={{flex:1,minHeight:0}}>
-    <ResponsiveContainer width="100%" height="100%"><LineChart data={histRange==="live"?hist.slice(-80):histData}>
-      <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} interval="preserveStartEnd"/><YAxis tick={{fill:T.tick,fontSize:11}} stroke={T.grid}/><Tooltip {...TT}/>
-      <Line type="monotone" dataKey="mfc1" stroke="#00aaff" strokeWidth={2} dot={false} name={mb.mfc[0]?.gas||"MFC1"} isAnimationActive={false}/>
-      <Line type="monotone" dataKey="mfc2" stroke="#ffaa00" strokeWidth={2} dot={false} name={mb.mfc[1]?.gas||"MFC2"} isAnimationActive={false}/>
-      <Line type="monotone" dataKey="mfc3" stroke="#00cc66" strokeWidth={2} dot={false} name={mb.mfc[2]?.gas||"MFC3"} isAnimationActive={false}/>
-      <Line type="monotone" dataKey="mfc4" stroke="#cc44ff" strokeWidth={2} dot={false} name={mb.mfc[3]?.gas||"MFC4"} isAnimationActive={false}/>
-      <Legend wrapperStyle={{fontSize:11}}/></LineChart></ResponsiveContainer></div></div>
+  <div style={{...crdL,gridColumn:1,gridRow:2}}><div style={{...S.title,flexShrink:0}}><span>Sterowanie eksperymentem</span>
+    <span style={{fontSize:12,color:mb.progStatus==="RUN"?"#00cc66":T.textD}}>{mb.progStatus==="RUN"?`▶ Etap ${mb.progStage}`:"STOP"}</span></div>
+    <div style={{flex:1,minHeight:0,overflowY:"auto",display:"flex",flexDirection:"column",gap:8,padding:"4px 0"}}>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        <input ref={fileRef} type="file" accept=".json" onChange={handleFile} style={{display:"none"}}/>
+        <button onClick={()=>fileRef.current?.click()} style={{...S.btn,background:"linear-gradient(135deg,#0077b6,#005f8a)",fontSize:13,padding:"8px 14px"}}>📂 Załaduj eksperyment</button>
+        <button onClick={exportExp} style={{...S.btn,background:"#886600",fontSize:13,padding:"8px 14px"}}>📥 Eksportuj bieżący</button></div>
+      <div style={{fontSize:12,color:T.textM,lineHeight:1.5}}>
+        Plik JSON zawiera profil temperaturowy, dane próbki i operatora. Załadowanie pliku otworzy podgląd z potwierdzeniem przed uruchomieniem.</div>
+      {alog.length>0&&<div style={{borderTop:`1px solid ${T.titleB}`,paddingTop:6}}>
+        <div style={{fontSize:12,fontWeight:600,color:T.textM,marginBottom:4}}>Ostatnie alarmy ({alog.length})</div>
+        {alog.slice(-6).reverse().map((a,i)=>(<div key={i} style={{display:"flex",gap:5,padding:"2px 5px",borderBottom:`1px solid ${T.tblB}`,color:a.sev==="danger"?"#ff7788":"#ffbb55",fontSize:12}}>
+          <span style={{color:T.textD,fontFamily:"monospace",fontSize:11}}>{a.time}</span><span>{a.msg}</span></div>))}</div>}
+    </div></div>
 
   <div style={{...S.card,gridColumn:"1 / -1"}}>
     <div style={S.title}><span>Panel przepływomierzy — status</span></div>
@@ -203,21 +220,6 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
             <div style={{textAlign:"right"}}><div style={{fontSize:10,color:T.textD}}>SP</div><span style={{fontSize:14,fontWeight:600,color:T.textM,fontFamily:"monospace"}}>{d.sp.toFixed(1)}</span></div></div>
           <div style={{marginTop:4,height:3,borderRadius:2,background:T.gTrack}}><div style={{height:"100%",borderRadius:2,background:col,width:`${d.maxFlow>0?Math.min(100,(d.pv/d.maxFlow)*100):0}%`}}/></div>
         </div>)})}
-    </div></div>
-
-  <div style={crd}><div style={{...S.title,flexShrink:0}}><span>Sterowanie eksperymentem</span>
-    <span style={{fontSize:12,color:mb.progStatus==="RUN"?"#00cc66":T.textD}}>{mb.progStatus==="RUN"?`▶ Etap ${mb.progStage}`:"STOP"}</span></div>
-    <div style={{flex:1,minHeight:0,overflowY:"auto",display:"flex",flexDirection:"column",gap:8,padding:"4px 0"}}>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-        <input ref={fileRef} type="file" accept=".json" onChange={handleFile} style={{display:"none"}}/>
-        <button onClick={()=>fileRef.current?.click()} style={{...S.btn,background:"linear-gradient(135deg,#0077b6,#005f8a)",fontSize:13,padding:"8px 14px"}}>📂 Załaduj eksperyment</button>
-        <button onClick={exportExp} style={{...S.btn,background:"#886600",fontSize:13,padding:"8px 14px"}}>📥 Eksportuj bieżący</button></div>
-      <div style={{fontSize:12,color:T.textM,lineHeight:1.5}}>
-        Plik JSON zawiera profil temperaturowy, dane próbki i operatora. Załadowanie pliku otworzy podgląd z potwierdzeniem przed uruchomieniem.</div>
-      {alog.length>0&&<div style={{borderTop:`1px solid ${T.titleB}`,paddingTop:6}}>
-        <div style={{fontSize:12,fontWeight:600,color:T.textM,marginBottom:4}}>Ostatnie alarmy ({alog.length})</div>
-        {alog.slice(-6).reverse().map((a,i)=>(<div key={i} style={{display:"flex",gap:5,padding:"2px 5px",borderBottom:`1px solid ${T.tblB}`,color:a.sev==="danger"?"#ff7788":"#ffbb55",fontSize:12}}>
-          <span style={{color:T.textD,fontFamily:"monospace",fontSize:11}}>{a.time}</span><span>{a.msg}</span></div>))}</div>}
     </div></div>
 
   {showConfirm&&pe&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}} onClick={()=>{setShowConfirm(false);setPendingExp(null)}}>
