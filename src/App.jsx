@@ -264,7 +264,9 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
 
 // ═══ P2 USTAWIENIA TEMP ═══
 function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPage,sendCmd,T}){const S=mkS(T);const TT={contentStyle:{background:T.ttBg,border:`1px solid ${T.cardBorder}`,borderRadius:8,fontSize:13,color:T.text}};
-  const[showConfirm,setShowConfirm]=useState(false);const[flowOpen,setFlowOpen]=useState({});const togFlow=i=>setFlowOpen(fo=>({...fo,[i]:!fo[i]}));
+  const[showConfirm,setShowConfirm]=useState(false);
+  const[nastawyOpen,setNastawyOpen]=useState(false);const[regulacjaOpen,setRegulacjaOpen]=useState(false);
+  const[selSeg,setSelSeg]=useState(null);
   const mfcCols=["#00aaff","#ffaa00","#00cc66","#cc44ff"];
   const pData=useMemo(()=>{const d=[];let t=0,tmp=25;for(const s of segs){const fl=s.flow||[0,0,0,0];const rt=Math.abs((s.sp-tmp)/(Math.abs(s.ramp)||1));d.push({time:t.toFixed(0),temp:tmp,f1:fl[0],f2:fl[1],f3:fl[2],f4:fl[3]});t+=rt;d.push({time:t.toFixed(0),temp:s.sp,f1:fl[0],f2:fl[1],f3:fl[2],f4:fl[3]});if(s.hold>0){t+=s.hold;d.push({time:t.toFixed(0),temp:s.sp,f1:fl[0],f2:fl[1],f3:fl[2],f4:fl[3]})}tmp=s.sp}return d},[segs]);
   const hasAnyFlow=useMemo(()=>segs.some(s=>(s.flow||[]).some(v=>v>0)),[segs]);
@@ -279,18 +281,19 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
       <span style={{fontSize:12,color:mb.progStatus==="RUN"?"#00cc66":T.textD}}>{mb.progStatus==="RUN"?`▶ E${mb.progStage} ${segs[mb.progStage-1]?.name||""}`:"STOP"}</span></div>
       <div style={{...S.box,marginBottom:8}}><div style={S.lbl}>Nazwa profilu</div><input value={profileName} onChange={e=>setProfileName(e.target.value)} placeholder="np. Spiekanie ZnO" style={S.input}/></div>
       <div style={{display:"grid",gridTemplateColumns:"260px 1fr",gap:12,flex:1,minHeight:0}}>
-        <div style={{overflowY:"auto"}}>{segs.map((seg,i)=>(<div key={i} style={{...S.box,marginBottom:4,borderColor:mb.progStatus==="RUN"&&mb.progStage===i+1?"#00cc66":T.boxBorder}}>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{color:T.textA,fontSize:12,fontWeight:700}}>Etap {i+1}</span><button onClick={()=>setSegs(s=>s.filter((_,j)=>j!==i))} style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:13}}>✕</button></div>
-          <input value={seg.name} onChange={e=>uSeg(i,"name",e.target.value)} placeholder="Nazwa etapu" style={{...S.input,fontSize:13,padding:"3px 6px",marginBottom:3,fontWeight:600}}/>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:3}}>{[["SP°C","sp"],["°C/m","ramp"],["min","hold"]].map(([l,k])=>(<div key={k}><div style={{color:T.textD,fontSize:10}}>{l}</div><input type="number" value={seg[k]} onChange={e=>uSeg(i,k,e.target.value)} style={{...S.input,fontSize:13,padding:"2px 4px"}}/></div>))}</div>
-          <button onClick={()=>togFlow(i)} style={{width:"100%",marginTop:3,padding:"2px 0",background:"none",border:`1px solid ${T.boxBorder}`,borderRadius:3,color:T.textM,fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
-            <span>{flowOpen[i]?"▾":"▸"}</span><span>Przepływy MFC</span>
-            {(seg.flow||[]).some(v=>v>0)&&<span style={{fontSize:9,padding:"0 3px",borderRadius:2,background:"#00aaff22",color:"#44bbff"}}>{(seg.flow||[]).filter(v=>v>0).length}</span>}</button>
-          {flowOpen[i]&&<div style={{marginTop:3,padding:4,borderRadius:4,border:`1px solid ${T.boxBorder}`,background:T.boxBg}}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:3}}>{mb.mfc.map((d,mi)=>{const col=mfcCols[mi];return(<div key={mi}><div style={{color:col,fontSize:9,fontWeight:600}}>{d.name} ({d.gas})</div>
-              <input type="number" value={(seg.flow||[0,0,0,0])[mi]} onChange={e=>{const v=parseFloat(e.target.value)||0;setSegs(s=>s.map((x,j)=>j===i?{...x,flow:(x.flow||[0,0,0,0]).map((f,fi)=>fi===mi?v:f)}:x))}}
-                min={0} max={d.maxFlow} step={1} style={{...S.input,fontSize:12,padding:"2px 4px"}} placeholder={`0-${d.maxFlow}`}/></div>)})}</div></div>}
-        </div>))}
+        <div style={{overflowY:"auto"}}>{segs.map((seg,i)=>{const fl=seg.flow||[0,0,0,0];const flTotal=fl.reduce((a,b)=>a+b,0);return(<div key={i} onClick={()=>setSelSeg(selSeg===i?null:i)} style={{...S.box,marginBottom:4,cursor:"pointer",borderColor:selSeg===i?"#0077b6":mb.progStatus==="RUN"&&mb.progStage===i+1?"#00cc66":T.boxBorder,boxShadow:selSeg===i?"0 0 0 1px #0077b644":"none"}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{color:T.textA,fontSize:12,fontWeight:700}}>Etap {i+1}</span><button onClick={e=>{e.stopPropagation();setSegs(s=>s.filter((_,j)=>j!==i));if(selSeg===i)setSelSeg(null)}} style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:13}}>✕</button></div>
+          <input value={seg.name} onChange={e=>uSeg(i,"name",e.target.value)} onClick={e=>e.stopPropagation()} placeholder="Nazwa etapu" style={{...S.input,fontSize:13,padding:"3px 6px",marginBottom:3,fontWeight:600}}/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:3}}>{[["SP°C","sp"],["°C/m","ramp"],["min","hold"]].map(([l,k])=>(<div key={k}><div style={{color:T.textD,fontSize:10}}>{l}</div><input type="number" value={seg[k]} onClick={e=>e.stopPropagation()} onChange={e=>uSeg(i,k,e.target.value)} style={{...S.input,fontSize:13,padding:"2px 4px"}}/></div>))}</div>
+          <div style={{marginTop:3,padding:4,borderRadius:4,border:`1px solid ${T.boxBorder}`,background:T.boxBg}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}><span style={{color:T.textM,fontSize:10,fontWeight:600}}>Przepływy MFC</span>
+              {flTotal>0&&<span style={{fontSize:9,color:T.textD}}>Σ {flTotal.toFixed(0)} sccm</span>}</div>
+            {flTotal>0&&<div style={{display:"flex",height:6,borderRadius:3,overflow:"hidden",marginBottom:3,background:T.gTrack}}>
+              {fl.map((v,mi)=>v>0?<div key={mi} style={{width:`${(v/flTotal)*100}%`,background:mfcCols[mi]}} title={`${mb.mfc[mi]?.gas}: ${v} sccm`}/>:null)}</div>}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:3}} onClick={e=>e.stopPropagation()}>{mb.mfc.map((d,mi)=>{const col=mfcCols[mi];return(<div key={mi}><div style={{color:col,fontSize:9,fontWeight:600}}>{d.name} ({d.gas})</div>
+              <input type="number" value={fl[mi]} onChange={e=>{const v=parseFloat(e.target.value)||0;setSegs(s=>s.map((x,j)=>j===i?{...x,flow:(x.flow||[0,0,0,0]).map((f,fi)=>fi===mi?v:f)}:x))}}
+                min={0} max={d.maxFlow} step={1} style={{...S.input,fontSize:12,padding:"2px 4px"}} placeholder={`0-${d.maxFlow}`}/></div>)})}</div></div>
+        </div>)})}
           {segs.length<6&&<button onClick={()=>setSegs(s=>[...s,{name:`Etap ${s.length+1}`,sp:100,ramp:5,hold:30,flow:[0,0,0,0]}])} style={{...S.btn,width:"100%",background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:12}}>+ Dodaj etap</button>}</div>
         <div style={{display:"flex",flexDirection:"column",minHeight:0}}><div style={{flex:1,minHeight:0}}><ResponsiveContainer width="100%" height="100%"><ComposedChart data={pData}>
           <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="time" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} label={{value:"min",position:"insideBottomRight",offset:-2,style:{fill:T.textD,fontSize:10}}}/>
@@ -298,7 +301,7 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
           {hasAnyFlow&&<YAxis yAxisId="flow" orientation="right" tick={{fill:T.textD,fontSize:11}} stroke={T.grid}/>}
           <Tooltip {...TT}/>
           <Area yAxisId="temp" type="linear" dataKey="temp" stroke="#ff8844" fill="#ff884420" strokeWidth={2} name="Temp °C" dot={{r:2,fill:"#ff8844"}} isAnimationActive={false}/>
-          {mb.mfc.map((d,mi)=>{const key=`f${mi+1}`;const show=pData.some(p=>p[key]>0);return show?<Line key={key} yAxisId="flow" type="stepAfter" dataKey={key} stroke={mfcCols[mi]} strokeWidth={1.5} dot={false} name={`${d.name} (${d.gas})`} strokeDasharray="5 3" isAnimationActive={false}/>:null})}
+          {mb.mfc.map((d,mi)=>{const key=`f${mi+1}`;const show=pData.some(p=>p[key]>0);return show?<Area key={key} yAxisId="flow" type="stepAfter" dataKey={key} stroke={mfcCols[mi]} fill={mfcCols[mi]+"44"} strokeWidth={1.5} stackId="flow" name={`${d.name} (${d.gas})`} isAnimationActive={false}/>:null})}
           <Legend wrapperStyle={{fontSize:11}}/></ComposedChart></ResponsiveContainer></div>
           <div style={{display:"flex",gap:6,marginTop:4,flexShrink:0}}>
             <button style={{...S.btn,fontSize:12,background:"#0077b6"}} onClick={()=>{const o={device:"AR200.B",kontroler:APP_VER,profile:profileName,segments:segs};const b=new Blob([JSON.stringify(o,null,2)],{type:"application/json"});dlBlob(b,`profil_${(profileName||"noname").replace(/\s+/g,"_")}.json`);addLog(`Eksport profilu "${profileName}"`,"export");toast("JSON OK","success")}}>📥 JSON</button>
@@ -318,15 +321,24 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
             <div style={{fontSize:12,opacity:.8,fontWeight:400,marginTop:2}}>Uruchom profil segmentowy bez przejścia na stronę pomiarową</div></button>
           <button onClick={()=>setShowConfirm(false)} style={{...S.btn,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:13,padding:"8px 16px"}}>Anuluj</button></div>
       </div></div>}
-    <div style={{...S.card,overflow:"hidden",display:"flex",flexDirection:"column"}}><div style={{...S.title,flexShrink:0}}><span>Nastawy</span></div>
+    <div style={S.card}>
+      <button onClick={()=>setNastawyOpen(o=>!o)} style={{...S.title,flexShrink:0,cursor:"pointer",background:"none",border:"none",width:"100%",textAlign:"left",padding:0,margin:0,marginBottom:nastawyOpen?12:0,borderBottom:nastawyOpen?`1px solid ${T.titleB}`:"none"}}>
+        <span style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:11,color:T.textD}}>{nastawyOpen?"▾":"▸"}</span>Nastawy</span>
+        <span style={{fontSize:12,color:T.textD,fontWeight:400}}>PV1: {mb.pv1.toFixed(1)}°C  SP: {mb.sp1.toFixed(0)}°C  MV: {(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</span></button>
+      {nastawyOpen&&<div>
       <div style={{display:"flex",justifyContent:"space-around",flexWrap:"wrap",gap:4}}>
         <Gauge value={mb.pv1} min={-50} max={500} unit="°C" label="PV1 Temp" sp={mb.sp1} color="#ff6644" warn={mb.sp1+5} danger={mb.sp1+10} T={T}/>
         <Gauge value={mb.manualMode?mb.mvManual:mb.mv} min={0} max={100} unit="%" label="MV Moc" color="#00cc66" warn={80} danger={95} T={T}/>
         <Gauge value={mb.pv2} min={0} max={100} unit="l/min" label="PV2 Flow" color="#00aaff" T={T}/></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:10}}>
         {[["SP1","sp1"],["SP2","sp2"],["SP3","sp3"]].map(([l,k])=>(<div key={k} style={S.box}><div style={S.lbl}>{l}°C</div>
-          <input type="number" value={mb[k]} step=".1" style={S.input} onChange={e=>{const v=parseFloat(e.target.value)||0;setMb(m=>({...m,[k]:v}));sendCmd?.("setpoint_command",{[k]:v});addLog(`${l}→${v}°C`,"setpoint")}}/></div>))}</div></div>
-    <div style={{...S.card,overflow:"auto",display:"flex",flexDirection:"column"}}><div style={{...S.title,flexShrink:0}}><span>Regulacja</span><span style={{fontSize:12,padding:"2px 6px",borderRadius:4,background:mb.manualMode?"#ff880022":"#00ff8822",color:mb.manualMode?"#ffaa44":"#22aa66"}}>{mb.manualMode?"MANUAL":"AUTO"}</span></div>
+          <input type="number" value={mb[k]} step=".1" style={S.input} onChange={e=>{const v=parseFloat(e.target.value)||0;setMb(m=>({...m,[k]:v}));sendCmd?.("setpoint_command",{[k]:v});addLog(`${l}→${v}°C`,"setpoint")}}/></div>))}</div></div>}</div>
+    <div style={S.card}>
+      <button onClick={()=>setRegulacjaOpen(o=>!o)} style={{...S.title,flexShrink:0,cursor:"pointer",background:"none",border:"none",width:"100%",textAlign:"left",padding:0,margin:0,marginBottom:regulacjaOpen?12:0,borderBottom:regulacjaOpen?`1px solid ${T.titleB}`:"none"}}>
+        <span style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:11,color:T.textD}}>{regulacjaOpen?"▾":"▸"}</span>Regulacja</span>
+        <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:12,padding:"2px 6px",borderRadius:4,background:mb.manualMode?"#ff880022":"#00ff8822",color:mb.manualMode?"#ffaa44":"#22aa66"}}>{mb.manualMode?"MANUAL":"AUTO"}</span>
+          <span style={{fontSize:12,color:mb.regStatus==="RUN"?"#00cc66":"#ff6644"}}>{mb.regStatus}</span></div></button>
+      {regulacjaOpen&&<div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
         {[["Pb°C","pidPb",.1],["Ti s","pidTi",1],["Td s","pidTd",1],["Hyst°C","hyst",.1],["Limit%","limitPower",1]].map(([l,k,st])=>(<div key={k} style={S.box}><div style={S.lbl}>{l}</div><input type="number" value={mb[k]} step={st} style={S.input} onChange={e=>setMb(m=>({...m,[k]:parseFloat(e.target.value)||0}))}/></div>))}</div>
       <div style={{...S.box,marginTop:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={S.lbl}>MV ręczne</div>
@@ -335,7 +347,7 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
       <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
         <button onClick={()=>{const ns=mb.regStatus==="RUN"?"STOP":"RUN";setMb(m=>({...m,regStatus:ns,pidI:0}));sendCmd?.("mode_command",{regStatus:ns});addLog(ns==="RUN"?"REG START":"REG STOP","mode");toast(ns,"success")}} style={{...S.btn,background:mb.regStatus==="RUN"?"#aa2211":"#22aa44"}}>{mb.regStatus==="RUN"?"⏹ STOP":"▶ START"}</button>
         <button style={{...S.btn,background:"#886600"}} onClick={()=>{const pid={pidPb:4.2,pidTi:95,pidTd:24};setMb(m=>({...m,...pid}));sendCmd?.("pid_command",pid);addLog("Autotune PID","config");toast("Autotune OK","success")}}>🔄 Autotune</button>
-        {mb.alarmLATCH&&<button style={{...S.btn,background:"#663366"}} onClick={()=>{setMb(m=>({...m,alarmLATCH:false}));sendCmd?.("alarm_clear",{latch:true});addLog("LATCH kasuj","alarm");toast("LATCH OK","info")}}>🔓 LATCH</button>}</div></div>
+        {mb.alarmLATCH&&<button style={{...S.btn,background:"#663366"}} onClick={()=>{setMb(m=>({...m,alarmLATCH:false}));sendCmd?.("alarm_clear",{latch:true});addLog("LATCH kasuj","alarm");toast("LATCH OK","info")}}>🔓 LATCH</button>}</div></div>}</div>
   </div>);}
 
 // ═══ P3 PRÓBKA I PROCES ═══
