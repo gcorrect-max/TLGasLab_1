@@ -11,7 +11,7 @@ const TH={
 };
 
 const USERS_INIT={admin:{password:"admin123",role:"admin",name:"Administrator",firstName:"Jan",lastName:"Kowalski",email:"admin@lab.pl",phone:"+48 600 100 100",theme:"dark"},operator:{password:"oper123",role:"user",name:"Operator",firstName:"Anna",lastName:"Nowak",email:"operator@lab.pl",phone:"",theme:"dark"},student:{password:"stud123",role:"student",name:"Student",firstName:"",lastName:"",email:"",phone:"",theme:"dark"},guest:{password:"guest",role:"guest",name:"Gość",firstName:"",lastName:"",email:"",phone:"",theme:"dark"}};
-const ROLE_ACCESS={admin:[1,2,3,7,8,4,5,6],user:[1,2,3,7,8,4,5,6],student:[1,2,3,7,8],guest:[1]};
+const ROLE_ACCESS={admin:[1,2,3,7,8,4,5,6,9],user:[1,2,3,7,8,4,5,6,9],student:[1,2,3,7,8,9],guest:[1,9]};
 
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 function dlBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;a.style.display="none";document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url)},300)}
@@ -824,6 +824,254 @@ function P8({mb,sendCmd,impData,T}){const S=mkS(T);const ifrRef=useRef(null);
     <iframe ref={ifrRef} src="/impedance.html" style={{width:"100%",height:"calc(100vh - 160px)",border:"none",borderRadius:8,marginTop:8,background:"#0a1929"}} title="Impedance Spectroscopy"/></div>);
 }
 
+// ═══ P9: HELP / POMOC ═══
+const HELP_DATA={
+  pl:{
+    meta:{title:"Pomoc i wsparcie",subtitle:"Dokumentacja i FAQ — Panel ThinFilmLab",contact_label:"Kontakt z pomocą techniczną",
+      contact_email:"support@thinfilm.lab",contact_phone:"+48 123 456 789",support_hours:"Pon–Pt 9:00–17:00"},
+    sections:[
+      {id:"general",title:"Ogólne",icon:"ℹ️",items:[
+        {q:"Czym jest ThinFilmLab?",a:"ThinFilmLab to system SCADA/HMI do monitorowania i sterowania procesem osadzania cienkich warstw gazoczułych. Łączy się z kontrolerem LabVIEW przez WebSocket i pozwala zarządzać temperaturą, przepływami MFC, profilami segmentowymi oraz zbierać dane pomiarowe."},
+        {q:"Jakie role użytkowników są dostępne?",a:"System obsługuje 4 role: Administrator (pełny dostęp), Operator (monitoring + sterowanie + raporty), Student (monitoring + ustawienia + raporty) oraz Gość (tylko podgląd P1)."},
+        {q:"Jak zmienić motyw kolorystyczny?",a:"Kliknij na swoje imię w prawym górnym rogu i wybierz \u00ABJasny motyw\u00BB lub \u00ABCiemny motyw\u00BB. Ustawienie jest zapamiętywane dla Twojego konta."},
+        {q:"Co oznaczają diody LED w nagłówku?",a:"WS (zielona) = połączenie WebSocket aktywne, DB (fioletowa) = połączenie z InfluxDB aktywne, ALM (czerwona) = aktywny alarm, REC (niebieska) = rejestracja danych."},
+        {q:"Co się dzieje gdy brak połączenia z LabVIEW?",a:"Dashboard automatycznie przechodzi w tryb DEMO — symulacja PID generuje realistyczne dane offline. Dioda WS gaśnie, a system próbuje reconnekcji z backoff 1–15s."}
+      ]},
+      {id:"monitoring",title:"Monitoring (P1)",icon:"📊",items:[
+        {q:"Jakie wykresy widzę na stronie głównej?",a:"Wykres temperatury (PV1, PV2, SP1 i profil SP) oraz wykres przepływów MFC (4 kanały). Oba wykresy aktualizują się w czasie rzeczywistym co 1 sekundę."},
+        {q:"Do czego służy selektor czasu (Na żywo / 1h / 6h / 24h / 7d)?",a:"Przełącza źródło danych wykresów: \u00ABNa żywo\u00BB = bufor pamięci (150 punktów), reszta = zapytania do InfluxDB z automatycznym downsampling'iem dla dłuższych zakresów."},
+        {q:"Co to jest schemat SVG na P1?",a:"Interaktywny schemat instalacji pomiarowej z 4 liniami gazowymi MFC, piecem i czujnikami. Wartości PV/SP aktualizują się na żywo. Można wgrać własny schemat SVG w P4."},
+        {q:"Jak działa lista alarmów?",a:"Alarmy przychodzące z LabVIEW wyświetlają się na P1 z kolorami priorytetu: czerwony (danger), żółty (warning), niebieski (info). Alarm LATCH wymaga ręcznego skasowania na P2."}
+      ]},
+      {id:"settings",title:"Ustawienia eksperymentu (P2)",icon:"⚙️",items:[
+        {q:"Jak utworzyć profil temperaturowy?",a:"Na P2 dodaj segmenty w tabeli profilu: nazwa, temperatura docelowa (SP), rampa [°C/min] i czas utrzymania [min]. Każdy segment może mieć osobne nastawy przepływów MFC."},
+        {q:"Jak uruchomić profil?",a:"Kliknij \u00AB\u25B6 Start\u00BB na P2. Możesz wybrać \u00ABPełny pomiar\u00BB (temp + przepływy) lub \u00ABTylko temperatura\u00BB. Profil wysyła komendy profile_command do LabVIEW."},
+        {q:"Jak przełączyć tryb ręczny/automatyczny?",a:"Przyciskiem MAN/AUTO na P2. W trybie ręcznym sterujemy mocą suwakiem MV (0–100%). W trybie AUTO działa regulator PID."},
+        {q:"Co to Autotune PID?",a:"Przycisk uruchamia procedurę samonastrajania parametrów PID (Pb, Ti, Td) po stronie LabVIEW. Nowe parametry zostaną odesłane przez status_update."},
+        {q:"Jak skonfigurować przepływy MFC per segment?",a:"Kliknij \u00AB\u25B8 Przepływy MFC\u00BB przy danym segmencie \u2014 rozwinie się panel z 4 polami (MFC-1..MFC-4) do wpisania nastaw w sccm. Wykres podglądu pokazuje temperaturę i przepływy na wspólnym wykresie."}
+      ]},
+      {id:"sample",title:"Próbka i proces (P3)",icon:"🧪",items:[
+        {q:"Jakie dane opisują próbkę?",a:"ID próbki, materiał warstwy, podłoże, metoda osadzania (PVD/CVD/Sol-Gel), grubość [nm], gaz docelowy, temperatura procesu, ciśnienie, atmosfera, moc źródła, czas procesu, przepływ gazu, operator, numer serii i cel eksperymentu."},
+        {q:"Gdzie zapisywane są dane próbki?",a:"Lokalnie w stanie aplikacji oraz wysyłane do LabVIEW przez komendę sample_info. W przyszłości planowane jest zapisywanie do bazy danych."}
+      ]},
+      {id:"config",title:"Konfiguracja (P4)",icon:"🔧",items:[
+        {q:"Jak skonfigurować połączenie WebSocket?",a:"W zakładce \u00ABKontroler\u00BB na P4 wpisz adres ws://IP:PORT i kliknij \u00ABPołącz\u00BB. Status połączenia widać na diodzie WS w nagłówku."},
+        {q:"Jak skonfigurować przepływomierze MFC?",a:"Zakładka \u00ABMFC\u00BB na P4 \u2014 dla każdego z 4 MFC ustaw: nazwę, typ gazu, adres IP, port MODBUS, slave address, zakres pełnoskalowy. Zapisz konfigurację (wysyła mfc_config do LV) i/lub wyślij nastawy (mfc_setpoint)."},
+        {q:"Co pokazuje zakładka Baza?",a:"Status połączenia z InfluxDB v2 (Docker), parametry: URL, organizacja, bucket, retencja. Przycisk \u00ABTest połączenia\u00BB sprawdza dostępność bazy."},
+        {q:"Jak zarządzać kontami użytkowników?",a:"Zakładka \u00ABUżytkownicy\u00BB na P4 (tylko admin) \u2014 dodawanie, edycja, usuwanie kont z przypisaniem roli i danych kontaktowych."}
+      ]},
+      {id:"reports",title:"Raporty (P7)",icon:"📄",items:[
+        {q:"Jak utworzyć raport pomiarowy?",a:"Na P7 kliknij \u00AB\u2795 Dodaj raport\u00BB \u2014 wypełnij tytuł, wybierz próbkę i profil, opisz wynik. Możesz dołączyć zdjęcia (base64). Raport jest wysyłany do LabVIEW (report_create)."},
+        {q:"Jak eksportować dane do CSV?",a:"Na P5 (Protokół JSON) wybierz zakres danych: pamięć / 1h / 24h / 7d i kliknij \u00ABEksportuj CSV\u00BB. Dane z InfluxDB są pobierane asynchronicznie."}
+      ]},
+      {id:"impedance",title:"Impedancja (P8)",icon:"〰️",items:[
+        {q:"Jak działa moduł impedancji?",a:"P8 ładuje iframe z /impedance.html — osobną aplikację do spektroskopii impedancyjnej. Komunikacja z LabVIEW odbywa się przez main WebSocket (impedance_request → impedance_data)."},
+        {q:"Jakie wykresy generuje moduł?",a:"Wykres Bode'go (|Z| i faza vs f), wykres Nyquista (-Z'' vs Z'), wykres R(f). Dane można symulować modelem Randles (Rs + Rp||Cdl) lub pobrać z urządzenia pomiarowego."}
+      ]},
+      {id:"influxdb",title:"InfluxDB",icon:"🗄️",items:[
+        {q:"Jak uruchomić bazę InfluxDB?",a:"Zainstaluj Docker Desktop, przejdź do katalogu projektu i uruchom: docker compose up -d. Baza startuje na porcie 8086 z automatyczną konfiguracją (org, bucket, token)."},
+        {q:"Jakie dane są zapisywane?",a:"Każdy punkt pomiarowy: pv1, pv2, sp1, mv, outAnalog, ch3, mfc1–mfc4 ze źródłem (ws/demo). Batching: 10 punktów lub co 5 sekund."},
+        {q:"Czy dashboard działa bez Dockera?",a:"Tak — brak połączenia z InfluxDB nie blokuje dashboardu. Dioda DB gaśnie, dane wyświetlają się z bufora pamięci (150 punktów). Zapytania historyczne (1h/6h/24h/7d) będą niedostępne."},
+        {q:"Jak otworzyć UI InfluxDB?",a:"Kliknij \u00AB\uD83D\uDCCA InfluxDB UI\u00BB na zakładce Baza (P4) lub otwórz http://localhost:8086. Login: admin / thinfilm2026."}
+      ]},
+      {id:"troubleshooting",title:"Rozwiązywanie problemów",icon:"🔍",items:[
+        {q:"Dashboard nie łączy się z LabVIEW",a:"Sprawdź: 1) czy serwer LabVIEW WS jest uruchomiony, 2) adres ws://IP:PORT w P4, 3) firewall/VPN, 4) konsolę deweloperską przeglądarki (F12 → Console). Dashboard próbuje reconnekcji automatycznie."},
+        {q:"InfluxDB nie odpowiada (dioda DB wyłączona)",a:"Sprawdź: 1) docker ps — czy kontener tfl-influxdb działa, 2) docker compose up -d aby go uruchomić, 3) czy port 8086 nie jest zajęty. Logi: docker logs tfl-influxdb."},
+        {q:"Wykresy są puste",a:"W trybie \u00ABNa żywo\u00BB potrzeba kilku sekund na zebranie danych. Przy zakresach historycznych (1h+) sprawdź połączenie z InfluxDB. Upewnij się że symulacja DEMO jest aktywna (brak WS = automatyczna symulacja)."},
+        {q:"MFC nie reaguje na nastawy",a:"Sprawdź: 1) czy MFC jest oznaczony jako \u00ABenabled\u00BB w P4, 2) konfigurację IP/port/slave MODBUS, 3) fizyczne połączenie Ethernet z przepływomierzem MKS."}
+      ]}
+    ]
+  },
+  en:{
+    meta:{title:"Help & Support",subtitle:"Documentation & FAQ — ThinFilmLab Dashboard",contact_label:"Contact Support",
+      contact_email:"support@thinfilm.lab",contact_phone:"+48 123 456 789",support_hours:"Mon–Fri 9:00–17:00"},
+    sections:[
+      {id:"general",title:"General",icon:"ℹ️",items:[
+        {q:"What is ThinFilmLab?",a:"ThinFilmLab is a SCADA/HMI system for monitoring and controlling thin-film gas-sensitive layer deposition. It connects to a LabVIEW controller via WebSocket and manages temperature, MFC flows, segmented profiles and measurement data acquisition."},
+        {q:"What user roles are available?",a:"The system supports 4 roles: Administrator (full access), Operator (monitoring + control + reports), Student (monitoring + settings + reports) and Guest (P1 view only)."},
+        {q:"How to change the color theme?",a:"Click your name in the top-right corner and select \"Light theme\" or \"Dark theme\". The setting is saved per user account."},
+        {q:"What do the header LED indicators mean?",a:"WS (green) = WebSocket connected, DB (purple) = InfluxDB connected, ALM (red) = active alarm, REC (blue) = data recording active."},
+        {q:"What happens when LabVIEW is disconnected?",a:"The dashboard automatically switches to DEMO mode — a PID simulation generates realistic offline data. The WS LED turns off and the system retries with 1–15s exponential backoff."}
+      ]},
+      {id:"monitoring",title:"Monitoring (P1)",icon:"📊",items:[
+        {q:"What charts are displayed on the main page?",a:"A temperature chart (PV1, PV2, SP1 and profile SP) and an MFC flow chart (4 channels). Both charts update in real-time every 1 second."},
+        {q:"What does the time range selector (Live / 1h / 6h / 24h / 7d) do?",a:"Switches the chart data source: \"Live\" = in-memory buffer (150 points), the rest = InfluxDB queries with automatic downsampling for longer ranges."},
+        {q:"What is the SVG diagram on P1?",a:"An interactive schematic of the measurement setup with 4 MFC gas lines, furnace and sensors. PV/SP values update live. You can upload a custom SVG in P4."},
+        {q:"How does the alarm list work?",a:"Alarms from LabVIEW are displayed on P1 with priority colors: red (danger), yellow (warning), blue (info). LATCH alarms require manual clearing on P2."}
+      ]},
+      {id:"settings",title:"Experiment Settings (P2)",icon:"⚙️",items:[
+        {q:"How to create a temperature profile?",a:"On P2, add segments in the profile table: name, target temperature (SP), ramp [°C/min] and hold time [min]. Each segment can have individual MFC flow setpoints."},
+        {q:"How to start a profile?",a:"Click \"▶ Start\" on P2. You can choose \"Full measurement\" (temp + flows) or \"Temperature only\". The profile sends profile_command messages to LabVIEW."},
+        {q:"How to switch manual/automatic mode?",a:"Use the MAN/AUTO button on P2. In manual mode, control power with the MV slider (0–100%). In AUTO mode, the PID controller runs."},
+        {q:"What is PID Autotune?",a:"The button triggers a self-tuning procedure for PID parameters (Pb, Ti, Td) on the LabVIEW side. New parameters are sent back via status_update."},
+        {q:"How to configure MFC flows per segment?",a:"Click \"▸ MFC Flows\" on a segment — a panel expands with 4 fields (MFC-1..MFC-4) for setpoints in sccm. The preview chart shows temperature and flows on a combined chart."}
+      ]},
+      {id:"sample",title:"Sample & Process (P3)",icon:"🧪",items:[
+        {q:"What data describes a sample?",a:"Sample ID, layer material, substrate, deposition method (PVD/CVD/Sol-Gel), thickness [nm], target gas, process temperature, pressure, atmosphere, source power, process time, gas flow, operator, batch number and experiment goal."},
+        {q:"Where is sample data saved?",a:"Locally in the application state and sent to LabVIEW via the sample_info command. Database persistence is planned for the future."}
+      ]},
+      {id:"config",title:"Configuration (P4)",icon:"🔧",items:[
+        {q:"How to configure the WebSocket connection?",a:"In the \"Controller\" tab on P4, enter the address ws://IP:PORT and click \"Connect\". Connection status is shown by the WS LED in the header."},
+        {q:"How to configure MFC flow controllers?",a:"\"MFC\" tab on P4 — for each of the 4 MFCs set: name, gas type, IP address, MODBUS port, slave address, full-scale range. Save configuration (sends mfc_config to LV) and/or send setpoints (mfc_setpoint)."},
+        {q:"What does the Database tab show?",a:"InfluxDB v2 (Docker) connection status, parameters: URL, organization, bucket, retention. The \"Test connection\" button checks database availability."},
+        {q:"How to manage user accounts?",a:"\"Users\" tab on P4 (admin only) — add, edit, delete accounts with role assignment and contact details."}
+      ]},
+      {id:"reports",title:"Reports (P7)",icon:"📄",items:[
+        {q:"How to create a measurement report?",a:"On P7 click \"➕ Add report\" — fill in title, select sample and profile, describe results. You can attach photos (base64). The report is sent to LabVIEW (report_create)."},
+        {q:"How to export data to CSV?",a:"On P5 (JSON Protocol) select data range: memory / 1h / 24h / 7d and click \"Export CSV\". Data from InfluxDB is fetched asynchronously."}
+      ]},
+      {id:"impedance",title:"Impedance (P8)",icon:"〰️",items:[
+        {q:"How does the impedance module work?",a:"P8 loads an iframe with /impedance.html — a separate impedance spectroscopy app. Communication with LabVIEW uses the main WebSocket (impedance_request → impedance_data)."},
+        {q:"What charts does the module generate?",a:"Bode plot (|Z| and phase vs f), Nyquist plot (-Z'' vs Z'), R(f) chart. Data can be simulated with a Randles model (Rs + Rp||Cdl) or fetched from the measurement device."}
+      ]},
+      {id:"influxdb",title:"InfluxDB",icon:"🗄️",items:[
+        {q:"How to start the InfluxDB database?",a:"Install Docker Desktop, navigate to the project directory and run: docker compose up -d. The database starts on port 8086 with automatic setup (org, bucket, token)."},
+        {q:"What data is recorded?",a:"Every measurement point: pv1, pv2, sp1, mv, outAnalog, ch3, mfc1–mfc4 with source tag (ws/demo). Batching: 10 points or every 5 seconds."},
+        {q:"Does the dashboard work without Docker?",a:"Yes — missing InfluxDB connection doesn't block the dashboard. The DB LED turns off, data is displayed from the in-memory buffer (150 points). Historical queries (1h/6h/24h/7d) will be unavailable."},
+        {q:"How to open the InfluxDB UI?",a:"Click \"📊 InfluxDB UI\" on the Database tab (P4) or open http://localhost:8086. Login: admin / thinfilm2026."}
+      ]},
+      {id:"troubleshooting",title:"Troubleshooting",icon:"🔍",items:[
+        {q:"Dashboard won't connect to LabVIEW",a:"Check: 1) LabVIEW WS server is running, 2) ws://IP:PORT address in P4, 3) firewall/VPN, 4) browser dev console (F12 → Console). The dashboard retries automatically."},
+        {q:"InfluxDB not responding (DB LED off)",a:"Check: 1) docker ps — is tfl-influxdb container running, 2) docker compose up -d to start it, 3) is port 8086 occupied. Logs: docker logs tfl-influxdb."},
+        {q:"Charts are empty",a:"In \"Live\" mode, wait a few seconds for data. For historical ranges (1h+) check InfluxDB connection. Make sure DEMO simulation is active (no WS = automatic simulation)."},
+        {q:"MFC doesn't respond to setpoints",a:"Check: 1) MFC is marked \"enabled\" in P4, 2) IP/port/slave MODBUS configuration, 3) physical Ethernet connection to the MKS flow controller."}
+      ]}
+    ]
+  }
+};
+
+function P9({T}){
+  const S=mkS(T);
+  const[lang,setLang]=useState(()=>{try{return localStorage.getItem("tfl_help_lang")||"pl"}catch{return"pl"}});
+  const[search,setSearch]=useState("");
+  const[selSec,setSelSec]=useState("all");
+  const[expanded,setExpanded]=useState(null);
+
+  const d=HELP_DATA[lang]||HELP_DATA.pl;
+  const{meta,sections}=d;
+
+  const changeLang=(l)=>{setLang(l);try{localStorage.setItem("tfl_help_lang",l)}catch{}};
+
+  const filtered=sections
+    .filter(s=>selSec==="all"||s.id===selSec)
+    .flatMap(s=>s.items
+      .filter(it=>!search||it.q.toLowerCase().includes(search.toLowerCase())||it.a.toLowerCase().includes(search.toLowerCase()))
+      .map((it,i)=>({key:`${s.id}-${i}`,secId:s.id,secTitle:s.title,secIcon:s.icon,q:it.q,a:it.a})));
+
+  const toggle=k=>setExpanded(p=>p===k?null:k);
+
+  const cardS={background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:10,overflow:"hidden"};
+  const headS={background:"linear-gradient(90deg,#0066aa,#0088cc)",color:"#fff",padding:"8px 12px",fontSize:14,fontWeight:700,display:"flex",alignItems:"center",gap:8};
+  const bodyS={padding:10};
+
+  return(<div style={{display:"flex",flexDirection:"column",gap:10,height:"100%",minHeight:0,overflow:"hidden"}}>
+    {/* Header */}
+    <div style={{flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
+      <div><h1 style={{margin:0,fontSize:22,fontWeight:800,color:T.textB}}>{meta.title}</h1>
+        <p style={{margin:"2px 0 0",fontSize:12,color:T.textD}}>{meta.subtitle}</p></div>
+      <div style={{display:"flex",gap:4}}>
+        {[["pl","🇵🇱 PL"],["en","🇬🇧 EN"]].map(([c,l])=>(
+          <button key={c} onClick={()=>changeLang(c)} style={{padding:"5px 12px",borderRadius:6,border:`1px solid ${lang===c?T.textA:T.cardBorder}`,
+            background:lang===c?"#0077b6":"transparent",color:lang===c?"#fff":T.textM,fontSize:12,fontWeight:600,cursor:"pointer"}}>{l}</button>))}
+      </div>
+    </div>
+
+    <div style={{display:"flex",flex:1,minHeight:0,gap:10,overflow:"hidden"}}>
+      {/* Left panel */}
+      <div style={{width:220,flexShrink:0,display:"flex",flexDirection:"column",gap:8,overflowY:"auto",paddingBottom:4}}>
+        {/* Search */}
+        <div style={cardS}>
+          <div style={headS}><span>🔍</span><span>{lang==="pl"?"Szukaj":"Search"}</span></div>
+          <div style={bodyS}>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder={lang==="pl"?"Szukaj w pomocy…":"Search help topics…"}
+              style={{...S.input,width:"100%",boxSizing:"border-box",marginBottom:8}}/>
+            <div style={{fontSize:11,fontWeight:600,color:T.textD,marginBottom:4}}>{lang==="pl"?"Sekcja":"Section"}</div>
+            <select value={selSec} onChange={e=>{setSelSec(e.target.value);setExpanded(null)}}
+              style={{...S.input,width:"100%",boxSizing:"border-box",cursor:"pointer"}}>
+              <option value="all">{lang==="pl"?"Wszystkie":"All"}</option>
+              {sections.map(s=><option key={s.id} value={s.id}>{s.icon} {s.title}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Sections nav */}
+        <div style={cardS}>
+          <div style={headS}><span>📑</span><span>{lang==="pl"?"Sekcje":"Sections"}</span></div>
+          <div style={{padding:6,display:"flex",flexDirection:"column",gap:2}}>
+            {sections.map(s=>(
+              <button key={s.id} onClick={()=>{setSelSec(s.id);setExpanded(null)}}
+                style={{display:"flex",alignItems:"center",gap:6,padding:"6px 8px",borderRadius:6,border:"none",cursor:"pointer",fontSize:12,fontWeight:selSec===s.id?700:500,textAlign:"left",width:"100%",
+                  background:selSec===s.id?T.actTab:"transparent",color:selSec===s.id?T.textA:T.textM}}>
+                <span>{s.icon}</span><span style={{flex:1}}>{s.title}</span>
+                <span style={{fontSize:10,color:T.textD,fontWeight:400}}>{s.items.length}</span>
+              </button>))}
+          </div>
+        </div>
+
+        {/* Contact */}
+        <div style={cardS}>
+          <div style={headS}><span>💬</span><span>{meta.contact_label}</span></div>
+          <div style={bodyS}>
+            <a href={`mailto:${meta.contact_email}`} style={{display:"flex",alignItems:"center",gap:8,padding:8,borderRadius:8,background:T.boxBg,textDecoration:"none",marginBottom:6}}>
+              <span style={{fontSize:16}}>✉️</span>
+              <div><div style={{fontSize:10,fontWeight:600,color:T.textA}}>Email</div>
+                <div style={{fontSize:11,color:T.textM}}>{meta.contact_email}</div></div></a>
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:8,borderRadius:8,background:T.boxBg,marginBottom:6}}>
+              <span style={{fontSize:16}}>📞</span>
+              <div><div style={{fontSize:10,fontWeight:600,color:"#22bb66"}}>Telefon</div>
+                <div style={{fontSize:11,color:T.textM}}>{meta.contact_phone}</div></div></div>
+            <div style={{fontSize:10,color:T.textD,textAlign:"center",marginTop:4}}>{meta.support_hours}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right panel — FAQ accordion */}
+      <div style={{flex:1,minHeight:0,overflowY:"auto"}}>
+        <div style={cardS}>
+          <div style={headS}><span>❓</span><span>FAQ ({filtered.length})</span></div>
+          <div style={bodyS}>
+            {filtered.length===0?(
+              <div style={{textAlign:"center",padding:"40px 20px"}}>
+                <div style={{fontSize:40,marginBottom:10}}>🔎</div>
+                <div style={{fontSize:16,color:T.textM,marginBottom:4}}>{lang==="pl"?"Brak wyników":"No results found"}</div>
+                <div style={{fontSize:12,color:T.textD}}>{lang==="pl"?"Spróbuj innych słów kluczowych lub zmień sekcję.":"Try different search terms or select another section."}</div>
+              </div>
+            ):(
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {(()=>{
+                  if(selSec!=="all") return filtered.map(it=>(
+                    <FaqItem key={it.key} k={it.key} q={it.q} a={it.a} expanded={expanded===it.key} toggle={toggle} T={T}/>));
+                  const groups=new Map();
+                  for(const it of filtered){if(!groups.has(it.secId))groups.set(it.secId,[]);groups.get(it.secId).push(it)}
+                  return Array.from(groups.entries()).map(([sid,items])=>(
+                    <div key={sid} style={{marginBottom:8}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6,padding:"0 4px"}}>
+                        <span>{items[0].secIcon}</span>
+                        <span style={{fontSize:12,fontWeight:700,color:T.textM,textTransform:"uppercase",letterSpacing:.5}}>{items[0].secTitle}</span>
+                        <div style={{flex:1,borderTop:`1px solid ${T.cardBorder}`,marginLeft:6}}/>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                        {items.map(it=>(<FaqItem key={it.key} k={it.key} q={it.q} a={it.a} expanded={expanded===it.key} toggle={toggle} T={T}/>))}
+                      </div>
+                    </div>));
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>);
+}
+
+function FaqItem({k,q,a,expanded,toggle,T}){
+  return(<div style={{border:`1px solid ${T.cardBorder}`,borderRadius:8,overflow:"hidden"}}>
+    <button onClick={()=>toggle(k)} style={{width:"100%",padding:"10px 14px",textAlign:"left",border:"none",cursor:"pointer",display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,
+      background:T.boxBg,color:T.textB,fontSize:13,fontWeight:600,lineHeight:1.4}}>{q}<span style={{flexShrink:0,color:T.textD,fontSize:14,marginTop:1}}>{expanded?"▾":"▸"}</span></button>
+    {expanded&&<div style={{padding:"10px 14px",background:T.cardBg,borderTop:`1px solid ${T.cardBorder}`,fontSize:13,color:T.textM,lineHeight:1.6}}>{a}</div>}
+  </div>);
+}
+
 // ═══ FOOTER ═══
 function Footer({T}){return(<footer style={{background:T.footBg,borderTop:`1px solid ${T.footB}`,padding:"8px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:4,flexShrink:0}}>
   <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:18,height:18,borderRadius:4,background:T.logoBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:7,fontWeight:800,color:"#fff"}}>TFL</div>
@@ -983,7 +1231,8 @@ export default function App(){
     {id:7,label:"Raporty pomiarowe",icon:"▤",tip:"Generowanie i eksport raportów z wynikami pomiarów w formacie PDF/CSV"},
     {id:4,label:"Konfiguracja",icon:"⛭",tip:"Ustawienia systemu: połączenie WS, konfiguracja MFC, konta użytkowników"},
     {id:5,label:"Protokół JSON",icon:"❴❵",tip:"Dokumentacja protokołu komunikacji WebSocket JSON z aplikacją LabVIEW"},
-    {id:6,label:"Logi akcji",icon:"☰",tip:"Historia zdarzeń systemowych, logowania, alarmów i komend użytkownika"}
+    {id:6,label:"Logi akcji",icon:"☰",tip:"Historia zdarzeń systemowych, logowania, alarmów i komend użytkownika"},
+    {id:9,label:"Pomoc",icon:"?",tip:"Dokumentacja, FAQ i kontakt z pomocą techniczną (PL/EN)"}
   ];
   const acc=pages.filter(p=>ROLE_ACCESS[user.role]?.includes(p.id));
 
@@ -1066,6 +1315,7 @@ export default function App(){
           {ac===6&&<P6 logs={logs} clearLogs={clearLogs} T={T}/>}
           {ac===7&&<P7 reports={reports} setReports={setReports} sample={sample} profileName={profileName} toast={toast} addLog={addLog} sendCmd={sendCmd} experiments={experiments} setExperiments={setExperiments} T={T}/>}
           {ac===8&&<P8 mb={mb} sendCmd={sendCmd} impData={impData} T={T}/>}
+          {ac===9&&<P9 T={T}/>}
         </main></div>
       <Footer T={T}/>
       <WsConsole open={showWsCon} onClose={()=>setShowWsCon(false)} wsCon={wsCon} clearCon={()=>setWsCon({rx:[],tx:[]})} T={T}/>
