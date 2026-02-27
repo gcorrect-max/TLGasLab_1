@@ -1,4 +1,4 @@
-# Protokół WebSocket JSON — ThinFilmLab v3.0
+﻿# Protokół WebSocket JSON — Stanowisko 2 (ThinFilmLab 2) v3.0
 
 ## Architektura połączenia
 
@@ -36,7 +36,7 @@ Po nawiązaniu połączenia (`onopen`) klient wysyła automatycznie dwie wiadomo
     "role": "user",
     "name": "Operator"
   },
-  "app": "Laboratorium badania cienkich warstw dla sensorów gazu",
+  "app": "Stanowisko 2 badania cienkich warstw dla sensorów gazu",
   "ver": "3.0"
 }
 ```
@@ -555,6 +555,9 @@ Struktura identyczna jak `report_create`. Pole `id` identyfikuje istniejący rap
     "outAnalog": 12.8,
     "out1": true,
     "manualMode": false,
+    "resistance": 125000.5,
+    "gasMixTemp": 24.8,
+    "gasMixHumidity": 45.2,
     "mfc": [
       {"id": 1, "pv": 148.5, "sp": 150.0, "enabled": true},
       {"id": 2, "pv": 95.2, "sp": 100.0, "enabled": true}
@@ -563,28 +566,32 @@ Struktura identyczna jak `report_create`. Pole `id` identyfikuje istniejący rap
 }
 ```
 
-| Pole data    | Typ     | Jednostka | Opis                           |
-|--------------|---------|-----------|--------------------------------|
-| `pv1`        | float   | °C        | Wartość procesu 1 — temperatura|
-| `pv2`        | float   | l/min     | Wartość procesu 2 — przepływ   |
-| `ch3`        | float   | —         | Kanał 3 (dowolny pomiar)       |
-| `sp1`        | float   | °C        | Aktualny setpoint              |
-| `mv`         | float   | %         | Moc wyjściowa regulatora       |
-| `outAnalog`  | float   | mA        | Wyjście analogowe (4–20 mA)    |
-| `out1`       | boolean | —         | Wyjście cyfrowe 1 (grzanie)    |
-| `manualMode` | boolean | —         | Aktualny tryb                  |
-| `mfc`        | array   | —         | Tablica aktywnych MFC (opcjonalne) |
-| `mfc[].id`   | number  | —         | ID przepływomierza (1–4)       |
-| `mfc[].pv`   | float   | sccm      | Aktualny przepływ              |
-| `mfc[].sp`   | float   | sccm      | Setpoint przepływu             |
-| `mfc[].enabled`| boolean| —        | Czy aktywny                    |
+| Pole data         | Typ     | Jednostka | Opis                                              |
+|-------------------|---------|-----------|---------------------------------------------------|
+| `pv1`             | float   | °C        | Wartość procesu 1 — temperatura pieca              |
+| `pv2`             | float   | °C        | Wartość procesu 2 — temperatura próbki             |
+| `ch3`             | float   | —         | Kanał 3 (dowolny pomiar)                          |
+| `sp1`             | float   | °C        | Aktualny setpoint                                 |
+| `mv`              | float   | %         | Moc wyjściowa regulatora                          |
+| `outAnalog`       | float   | mA        | Wyjście analogowe (4–20 mA)                       |
+| `out1`            | boolean | —         | Wyjście cyfrowe 1 (grzanie)                       |
+| `manualMode`      | boolean | —         | Aktualny tryb                                     |
+| `resistance`      | float   | Ω         | **Stanowisko 2:** Rezystancja sensora gazoczułego  |
+| `gasMixTemp`      | float   | °C        | **Stanowisko 2:** Temperatura mieszaniny gazowej   |
+| `gasMixHumidity`  | float   | %RH       | **Stanowisko 2:** Wilgotność względna mieszaniny   |
+| `mfc`             | array   | —         | Tablica aktywnych MFC (opcjonalne)                |
+| `mfc[].id`        | number  | —         | ID przepływomierza (1–4)                          |
+| `mfc[].pv`        | float   | sccm      | Aktualny przepływ                                 |
+| `mfc[].sp`        | float   | sccm      | Setpoint przepływu                                |
+| `mfc[].enabled`   | boolean | —         | Czy aktywny                                       |
 
 > Pole `mfc` jest **opcjonalne** — pojawia się tylko gdy przepływomierze MFC są skonfigurowane i aktywne.
+> Pola `resistance`, `gasMixTemp`, `gasMixHumidity` są specyficzne dla **Stanowiska 2** — Stanowisko 1 ich nie wysyła.
 
 **Efekt w UI:**
 - Aktualizuje wskaźniki, gauge'e, wykresy
 - Dodaje punkt do historii (ring buffer max 150 punktów)
-- Format punktu: `{t: "MM:SS", pv1, pv2, sp1, ch3, mv, outA}`
+- Format punktu: `{t: "MM:SS", pv1, pv2, sp1, ch3, mv, outA, resistance, gasMixTemp, gasMixHumidity}`
 
 ---
 
@@ -866,14 +873,17 @@ Obiekt `mb` jest centralnym stanem sterującym całym UI. Poniżej wszystkie pol
 
 ### Pomiary
 
-| Pole        | Typ     | Domyślnie     | Jednostka | Opis                          |
-|-------------|---------|---------------|-----------|-------------------------------|
-| `pv1`       | float   | ~25           | °C        | Temperatura (primary)          |
-| `pv2`       | float   | ~45           | l/min     | Przepływ (secondary)           |
-| `ch3`       | float   | 0             | —         | Kanał 3 (obliczeniowy)         |
-| `mv`        | float   | 0             | %         | Moc wyjściowa PID              |
-| `mvManual`  | float   | 50            | %         | Moc ręczna (tryb MANUAL)       |
-| `manualMode`| boolean | false         | —         | `true` = tryb ręczny           |
+| Pole              | Typ     | Domyślnie | Jednostka | Opis                                            |
+|-------------------|---------|-----------|-----------|-------------------------------------------------|
+| `pv1`             | float   | ~25       | °C        | Temperatura pieca (primary)                      |
+| `pv2`             | float   | ~45       | °C        | Temperatura próbki (secondary)                   |
+| `ch3`             | float   | 0         | —         | Kanał 3 (obliczeniowy)                           |
+| `mv`              | float   | 0         | %         | Moc wyjściowa PID                                |
+| `mvManual`        | float   | 50        | %         | Moc ręczna (tryb MANUAL)                         |
+| `manualMode`      | boolean | false     | —         | `true` = tryb ręczny                             |
+| `resistance`      | float   | null      | Ω         | **Stanowisko 2:** Rezystancja sensora gazoczułego |
+| `gasMixTemp`      | float   | null      | °C        | **Stanowisko 2:** Temperatura mieszaniny gazowej  |
+| `gasMixHumidity`  | float   | null      | %RH       | **Stanowisko 2:** Wilgotność mieszaniny gazowej   |
 
 ### Setpointy
 

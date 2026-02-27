@@ -1,8 +1,8 @@
-# Endpointy i interfejsy API — ThinFilmLab Dashboard
+# Endpointy i interfejsy API — Stanowisko 2 (ThinFilmLab 2)
 
 ## Przegląd
 
-ThinFilmLab korzysta z kilku interfejsów komunikacyjnych. Żaden z nich nie jest klasycznym REST API — dashboard to aplikacja SPA (Single Page Application) komunikująca się przez WebSocket, statyczne pliki i bezpośrednie zapytania do InfluxDB.
+Stanowisko 2 korzysta z kilku interfejsów komunikacyjnych. Żaden z nich nie jest klasycznym REST API — dashboard to aplikacja SPA (Single Page Application) komunikująca się przez WebSocket, statyczne pliki i bezpośrednie zapytania do InfluxDB.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -192,17 +192,20 @@ Zapisuje punkt pomiarowy do InfluxDB.
 **Parametr `data`:**
 ```javascript
 {
-  pv1: 156.3,      // Temperatura 1 (°C)
-  pv2: 45.2,       // Temperatura 2 (°C)
-  sp1: 200.0,      // Setpoint 1 (°C)
-  mv: 67.4,        // Moc regulatora (%)
-  outA: 12.8,      // Wyjście analogowe (mA)
-  ch3: 100.7,      // Kanał 3
-  mfc1: 120.5,     // Przepływ MFC-1 (sccm)
-  mfc2: 85.0,      // Przepływ MFC-2 (sccm)
-  mfc3: 0,         // Przepływ MFC-3 (sccm)
-  mfc4: 0,         // Przepływ MFC-4 (sccm)
-  _source: "ws"    // Tag: "ws" lub "demo"
+  pv1: 156.3,           // Temperatura pieca (°C)
+  pv2: 45.2,            // Temperatura próbki (°C)
+  sp1: 200.0,           // Setpoint 1 (°C)
+  mv: 67.4,             // Moc regulatora (%)
+  outA: 12.8,           // Wyjście analogowe (mA)
+  ch3: 100.7,           // Kanał 3
+  mfc1: 120.5,          // Przepływ MFC-1 (sccm)
+  mfc2: 85.0,           // Przepływ MFC-2 (sccm)
+  mfc3: 0,              // Przepływ MFC-3 (sccm)
+  mfc4: 0,              // Przepływ MFC-4 (sccm)
+  resistance: 125000,   // Stanowisko 2: Rezystancja sensora (Ω)
+  gasMixTemp: 24.8,     // Stanowisko 2: Temperatura mieszaniny gazowej (°C)
+  gasMixHumidity: 45.2, // Stanowisko 2: Wilgotność mieszaniny gazowej (%RH)
+  _source: "ws"         // Tag: "ws" lub "demo"
 }
 ```
 

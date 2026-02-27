@@ -1,4 +1,4 @@
-# ThinFilmLab UI w LabVIEW (Win11, localhost) — Runbook (WebView2)
+﻿# Stanowisko 2 (ThinFilmLab 2) — UI w LabVIEW (Win11, localhost) — Runbook (WebView2)
 
 Ten dokument opisuje **kolejne kroki** uruchomienia Twojej strony (React/Vite + WebSocket) **wewnątrz aplikacji LabVIEW** na **Windows 11** z założeniem **localhost**.
 

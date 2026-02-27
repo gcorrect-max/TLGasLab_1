@@ -1,13 +1,31 @@
-# BasiaLab1 — Gas Laboratory Dashboard
+# Stanowisko 2 — Badania cienkich warstw dla sensorów gazu
 
-React-based web dashboard for a gas mixing laboratory station. Communicates with LabVIEW in real-time via WebSocket (JSON protocol). Displays a live SVG schematic of the gas flow, MFC readings, sensor data, sample information, and historical charts.
+Dashboard SCADA/HMI do sterowania i monitorowania stanowiska laboratoryjnego do osadzania i badania cienkich warstw gazoczułych — rozszerzony o pomiary środowiska testowego (rezystancja sensora, temperatura i wilgotność mieszaniny gazowej).
+
+**Aplikacja:** ThinFilmLab 2
+**URL (dev):** http://localhost:3002
+**Repozytorium:** https://github.com/gcorrect-max/TLGasLab_1
 
 ---
 
-## Tech Stack
+## Architektura
 
-| Component | Version |
-|-----------|---------|
+```
+┌────────────────────┐    WebSocket (JSON)    ┌──────────────────────────┐
+│  React Dashboard    │ ◄────────────────────► │  LabVIEW WS Server       │
+│  http://host:3000  │                        │  AR200.B + DAQ           │
+│  Stanowisko 2       │   TX: komendy WEB→LV  │  Regulatory PID          │
+└────────────────────┘   RX: dane LV→WEB      │  4x MFC MKS (MODBUS)    │
+        │                                     │  Czujniki środowiskowe   │
+        ▼                                     └──────────────────────────┘
+ InfluxDB v2 (Docker)
+ bucket: measurements
+```
+
+## Stos technologiczny
+
+| Komponent | Wersja |
+|-----------|--------|
 | React | 19 |
 | Vite | 6 |
 | Recharts | 2.15 |
@@ -16,82 +34,166 @@ React-based web dashboard for a gas mixing laboratory station. Communicates with
 
 ---
 
-## Getting Started
+## Szybki start
 
 ```bash
 npm install
-npm run dev        # development server (default: http://localhost:5173)
-npm run build      # production build
-npm run preview    # preview production build
+npm run dev        # serwer dev (domyślnie: http://localhost:5173)
+npm run build      # build produkcyjny
+npm run preview    # podgląd buildu
 ```
 
-Default login credentials (configurable in `USERS_INIT`):
+### Domyślne konta (konfigurowalne w `USERS_INIT`)
 
-| User | Password | Role |
-|------|----------|------|
+| Użytkownik | Hasło | Rola |
+|------------|-------|------|
 | admin | admin123 | admin |
 | operator | oper123 | user |
 | student | stud123 | student |
 | guest | guest | guest |
 
----
+### InfluxDB (opcjonalne)
 
-## Architecture Overview
-
-```
-LabVIEW  ←──WebSocket (JSON)──→  React Dashboard
-              ws://host:8080
+```bat
+docker compose up -d
 ```
 
-The dashboard connects to a LabVIEW WebSocket server. All communication uses JSON messages with a `type` field as discriminator. The connection URL is configurable at runtime from the Settings page.
+Dostęp: http://localhost:8086 | login: admin | hasło: thinfilm2026
 
 ---
 
-## WebSocket Protocol
+## Struktura projektu
 
-### Message Structure
+```
+BasiaLab1/
+├── src/
+│   ├── App.jsx          # Główna aplikacja React (monolityczna)
+│   └── influx.js        # Klient InfluxDB (zapis + odczyt historii)
+├── public/
+│   ├── help.json        # FAQ PL/EN (strona P9)
+│   └── impedance.html   # Moduł spektroskopii impedancyjnej (iframe, P8)
+├── docs/                # Dokumentacja techniczna
+├── docker-compose.yml   # InfluxDB v2 w Dockerze
+├── index.html           # Browser tab: ThinFilmLab 2
+└── package.json
+```
 
-All messages follow this envelope:
+---
 
+## Funkcje dashboardu (strony P1–P9)
+
+| Strona | Nazwa | Opis |
+|--------|-------|------|
+| P1 | Monitorowanie | Schemat stanowiska (GasLab SVG), wykresy PV/SP/MV live, sterowanie eksperymentem, wykres rezystancji sensora i warunków środowiskowych |
+| P2 | Ustawienia | Setpointy SP1/SP2/SP3, tryb MAN/AUTO, suwak MV, PID, profil segmentowy |
+| P3 | Próbka | Formularz metadanych próbki, zapis do MySQL i WebSocket |
+| P4 | Konfiguracja | WS URL, MODBUS, konfiguracja 4 MFC MKS, import SVG |
+| P5 | Konsola WS | Log TX/RX, eksport CSV historii pomiarów |
+| P6 | Logi | Dziennik zdarzeń aplikacji |
+| P7 | Raporty | Tworzenie i edycja raportów pomiarowych ze zdjęciami |
+| P8 | Impedancja | Spektroskopia impedancyjna — wykresy Bode, Nyquist, R(f) |
+| P9 | Pomoc | FAQ PL/EN |
+
+---
+
+## Dodatkowe pola pomiarowe (względem Stanowiska 1)
+
+Stanowisko 2 obsługuje pomiary środowiska testowego sensora gazu:
+
+| Pole | Typ | Jednostka | Opis |
+|------|-----|-----------|------|
+| `resistance` | float | Ω | Rezystancja sensora gazoczułego (auto-formatowanie: Ω / kΩ / MΩ) |
+| `gasMixTemp` | float | °C | Temperatura mieszaniny gazowej (czujnik Sensirion) |
+| `gasMixHumidity` | float | %RH | Wilgotność względna mieszaniny gazowej (czujnik Sensirion) |
+
+Pola te są przesyłane w `measurement_update` z LabVIEW i wyświetlane jako osobna oś Y na wykresie P1.
+
+### Formatowanie rezystancji
+
+| Wartość | Wyświetlanie |
+|---------|--------------|
+| ≥ 1 MΩ (1 000 000) | `X.XX MΩ` |
+| ≥ 1 kΩ (1 000) | `X.X kΩ` |
+| < 1 kΩ | `X Ω` |
+
+---
+
+## Komunikacja WebSocket
+
+**Protokół:** JSON over WebSocket
+**Domyślny URL:** `ws://localhost:8080` (konfigurowalne w P4 → zakładka WebSocket)
+**Pełna dokumentacja:** [docs/PROTOCOL_JSON_WS.md](docs/PROTOCOL_JSON_WS.md)
+
+### Envelope — wspólny format wiadomości
+
+**TX (Dashboard → LabVIEW):**
 ```json
 {
-  "type": "message_type",
-  "ts": "2026-02-27T10:00:00.000Z",
+  "type": "<command_type>",
+  "ts": "2026-02-11T14:30:00.000Z",
+  "user": { "username": "operator", "role": "user", "name": "Operator" },
   "data": { ... }
 }
 ```
 
-Messages sent **from the dashboard to LabVIEW** additionally include:
-
+**RX (LabVIEW → Dashboard):**
 ```json
 {
-  "type": "...",
-  "ts": "...",
-  "data": { ... },
-  "user": "operator"
+  "type": "<message_type>",
+  "ts": "2026-02-11T14:30:00.000Z",
+  "data": { ... }
 }
 ```
 
----
+### TX: Dashboard → LabVIEW (14 typów)
 
-## LabVIEW → Web (incoming messages)
+| Typ | Opis |
+|-----|------|
+| `hello` | Identyfikacja klienta (auto po połączeniu) |
+| `config_request` | Żądanie konfiguracji (auto po połączeniu) |
+| `setpoint_command` | Zmiana SP1/SP2/SP3 |
+| `mode_command` | MAN/AUTO, START/STOP regulatora |
+| `manual_mv` | Moc ręczna 0–100% |
+| `pid_command` | Parametry PID (Pb, Ti, Td) |
+| `alarm_clear` | Kasowanie alarmu LATCH |
+| `profile_command` | Start/Stop profilu segmentowego (z nastawami MFC) |
+| `sample_info` | Dane próbki (P3) |
+| `report_create` | Nowy raport (P7) |
+| `report_update` | Edycja raportu (P7) |
+| `mfc_config` | Konfiguracja 4 MFC |
+| `mfc_setpoint` | Nastawa przepływomierza |
+| `impedance_request` | Żądanie pomiaru impedancji (P8) |
 
-### `measurement_update`
-Periodic measurement data. Sent at a configurable interval (e.g. every 1–5 s).
+### RX: LabVIEW → Dashboard (7 typów)
+
+| Typ | Opis |
+|-----|------|
+| `measurement_update` | PV1, PV2, SP1, MV, MFC[], resistance, gasMixTemp, gasMixHumidity — co ~1s |
+| `status_update` | Status regulacji, PID, profil |
+| `alarm_event` | Zdarzenie alarmu |
+| `state_snapshot` | Pełny snapshot stanu (po reconnect) |
+| `profile_status` | Postęp profilu segmentowego |
+| `impedance_data` | Wyniki pomiaru impedancji |
+| `config_data` | Konfiguracja systemu |
+
+### Format `measurement_update` (Stanowisko 2)
 
 ```json
 {
   "type": "measurement_update",
-  "ts": "2026-02-27T10:00:00.000Z",
+  "ts": "2026-02-11T14:30:01.000Z",
   "data": {
     "pv1": 156.3,
     "pv2": 45.2,
+    "ch3": 100.8,
+    "sp1": 160.0,
     "mv": 67.4,
-    "out1": true,
     "outAnalog": 12.8,
-    "resistance": 12500,
-    "gasMixTemp": 23.4,
-    "gasMixHumidity": 48.2,
+    "out1": true,
+    "manualMode": false,
+    "resistance": 125000.5,
+    "gasMixTemp": 24.8,
+    "gasMixHumidity": 45.2,
     "mfc": [
       { "id": 1, "pv": 120.5, "sp": 150, "enabled": true },
       { "id": 2, "pv": 85.0,  "sp": 100, "enabled": true },
@@ -102,496 +204,94 @@ Periodic measurement data. Sent at a configurable interval (e.g. every 1–5 s).
 }
 ```
 
-| Field | Type | Unit | Description |
-|-------|------|------|-------------|
-| `pv1` | float | °C | Process value — Thermocouple 1 (furnace) |
-| `pv2` | float | °C | Process value — Thermocouple 2 (sample) |
-| `mv` | float | % | Manipulated variable (heater power) |
-| `out1` | bool | — | Heater output state |
-| `outAnalog` | float | mA/V | Analog output value |
-| `resistance` | float | Ω | Sample electrical resistance |
-| `gasMixTemp` | float | °C | Gas mixture temperature (Sensirion) |
-| `gasMixHumidity` | float | % RH | Gas mixture relative humidity (Sensirion) |
-| `mfc[].id` | int | — | MFC identifier (1–4) |
-| `mfc[].pv` | float | sccm | Actual flow rate |
-| `mfc[].sp` | float | sccm | Flow setpoint |
-| `mfc[].enabled` | bool | — | MFC active state |
+| Pole | Typ | Jednostka | Opis |
+|------|-----|-----------|------|
+| `pv1` | float | °C | Temperatura pieca (termopara) |
+| `pv2` | float | °C | Temperatura próbki |
+| `mv` | float | % | Moc grzania (manipulated variable) |
+| `out1` | bool | — | Stan wyjścia grzewczego |
+| `outAnalog` | float | mA | Wyjście analogowe (4–20 mA) |
+| `resistance` | float | Ω | Rezystancja elektryczna sensora |
+| `gasMixTemp` | float | °C | Temperatura mieszaniny gazowej |
+| `gasMixHumidity` | float | %RH | Wilgotność mieszaniny gazowej |
+| `mfc[].id` | int | — | Nr MFC (1–4) |
+| `mfc[].pv` | float | sccm | Aktualny przepływ |
+| `mfc[].sp` | float | sccm | Nastawa przepływu |
+| `mfc[].enabled` | bool | — | Czy MFC aktywny |
 
-All fields are optional — missing fields retain their previous value in the dashboard state.
-
----
-
-### `status_update`
-Regulation status change.
-
-```json
-{
-  "type": "status_update",
-  "ts": "2026-02-27T10:00:00.000Z",
-  "data": {
-    "regMode": "PID",
-    "regStatus": "RUN",
-    "progStage": 2
-  }
-}
-```
-
-| Field | Type | Values | Description |
-|-------|------|--------|-------------|
-| `regMode` | string | `"PID"`, `"ON/OFF"` | Control mode |
-| `regStatus` | string | `"RUN"`, `"STOP"` | Regulation active |
-| `progStage` | int | 0–N | Current profile segment index |
+Wszystkie pola opcjonalne — brakujące pola zachowują poprzednią wartość w stanie dashboardu.
 
 ---
 
-### `alarm_event`
-Alarm notification.
+## Tryb DEMO (offline)
 
-```json
-{
-  "type": "alarm_event",
-  "ts": "2026-02-27T10:00:00.000Z",
-  "data": {
-    "alarmId": "AL_HI",
-    "severity": "danger",
-    "pv1": 210.5,
-    "msg": "Przekroczenie temperatury",
-    "latch": true
-  }
-}
-```
-
-| Field | Type | Values | Description |
-|-------|------|--------|-------------|
-| `alarmId` | string | `"AL_HI"`, `"AL_LO"` | Alarm identifier |
-| `severity` | string | `"danger"`, `"warning"`, `"info"` | Severity level |
-| `pv1` | float | °C | Temperature at alarm trigger |
-| `msg` | string | — | Optional alarm message |
-| `latch` | bool | — | If true, alarm latches until manually cleared |
+Gdy WS jest rozłączony, dashboard uruchamia symulację PID z realistycznym modelem pieca. Dane zapisywane do InfluxDB ze znacznikiem `_source: "demo"`. Reconnekcja z wykładniczym backoff 1–15s.
 
 ---
 
-### `profile_status`
-Profile execution status update.
+## InfluxDB
 
-```json
-{
-  "type": "profile_status",
-  "ts": "2026-02-27T10:00:00.000Z",
-  "data": {
-    "profileName": "Spiekanie ZnO",
-    "stage": 2,
-    "stageName": "Wygrzewanie"
-  }
-}
-```
+| Parametr | Wartość |
+|----------|---------|
+| URL | http://localhost:8086 |
+| Organizacja | ThinFilmLab |
+| Bucket | measurements |
+| Token | tfl-dev-token-2026 |
+| Retencja | 30 dni |
 
----
+Pola zapisywane: `pv1`, `pv2`, `sp1`, `mv`, `mfc1`–`mfc4`, `resistance`, `gasMixTemp`, `gasMixHumidity`
 
-### `impedance_data`
-Impedance spectroscopy sweep result.
-
-```json
-{
-  "type": "impedance_data",
-  "ts": "2026-02-27T10:00:00.000Z",
-  "data": {
-    "sweepId": 1,
-    "points": [
-      { "f": 1000000, "z_re": 51.2, "z_im": -3.5 },
-      { "f": 100000,  "z_re": 55.8, "z_im": -18.2 }
-    ]
-  }
-}
-```
-
-| Field | Type | Unit | Description |
-|-------|------|------|-------------|
-| `sweepId` | int | — | Sweep sequence number |
-| `points[].f` | float | Hz | Frequency |
-| `points[].z_re` | float | Ω | Impedance real part |
-| `points[].z_im` | float | Ω | Impedance imaginary part |
+Pełna dokumentacja: [docs/INFLUXDB_SETUP.md](docs/INFLUXDB_SETUP.md)
 
 ---
 
-### `config_data`
-System configuration response (sent after `config_request`).
+## Integracja z LabVIEW
 
-```json
-{
-  "type": "config_data",
-  "ts": "2026-02-27T10:00:00.000Z",
-  "data": {
-    "wsUrl": "ws://192.168.1.100:8080",
-    "ethIP": "192.168.1.100",
-    "ethPort": 502,
-    "mfc": [ { "id": 1, "name": "MFC-1", "gas": "N₂", "maxFlow": 500, "unit": "sccm" } ],
-    "users": {},
-    "roles": {},
-    "pages": []
-  }
-}
-```
+Wymagania po stronie LabVIEW:
+- Serwer WebSocket nasłuchujący na porcie 8080
+- Cykliczne `measurement_update` co ~1s z polami: `pv1`, `pv2`, `sp1`, `mv`, `mfc[]`, `resistance`, `gasMixTemp`, `gasMixHumidity`
+- Obsługa komend: `setpoint_command`, `mode_command`, `profile_command`, `mfc_setpoint`, `mfc_config`
+
+Osadzenie w WebView2:
+- Runtime: Microsoft Edge WebView2 (https://developer.microsoft.com/microsoft-edge/webview2/)
+- Wrapper VIPM: `sklein_lib_webview2` (https://www.vipm.io/package/sklein_lib_webview2/)
+
+Szczegóły: [docs/LABVIEW_INTEGRATION.md](docs/LABVIEW_INTEGRATION.md), [docs/LABVIEW_IMPLEMENTATION_GUIDE.md](docs/LABVIEW_IMPLEMENTATION_GUIDE.md)
 
 ---
 
-## Web → LabVIEW (outgoing messages)
+## Uprawnienia użytkowników
 
-### `setpoint_command`
-Change temperature setpoint.
-
-```json
-{
-  "type": "setpoint_command",
-  "ts": "...",
-  "data": { "target": "sp1", "value": 200 },
-  "user": "admin"
-}
-```
-
----
-
-### `mode_command`
-Start/stop regulation or switch manual/auto.
-
-```json
-{
-  "type": "mode_command",
-  "ts": "...",
-  "data": { "command": "start", "regMode": "PID" },
-  "user": "admin"
-}
-```
-
-| `command` | Effect |
-|-----------|--------|
-| `"start"` | Start regulation |
-| `"stop"` | Stop regulation |
-
----
-
-### `manual_mv`
-Set manual heater output (when in MANUAL mode).
-
-```json
-{
-  "type": "manual_mv",
-  "ts": "...",
-  "data": { "mv": 75 },
-  "user": "operator"
-}
-```
-
----
-
-### `profile_command`
-Send and start a temperature profile.
-
-```json
-{
-  "type": "profile_command",
-  "ts": "...",
-  "data": {
-    "command": "start",
-    "profile": {
-      "name": "Spiekanie ZnO",
-      "segments": [
-        { "name": "Rampa",      "sp": 400, "ramp": 5,  "hold": 0,   "flow": [100, 50, 0, 0] },
-        { "name": "Wygrzewanie","sp": 400, "ramp": 0,  "hold": 120, "flow": [100, 50, 0, 0] },
-        { "name": "Chłodzenie", "sp": 25,  "ramp": 2,  "hold": 0,   "flow": [0,   0,  0, 0] }
-      ]
-    }
-  },
-  "user": "admin"
-}
-```
-
-Segment fields:
-
-| Field | Type | Unit | Description |
-|-------|------|------|-------------|
-| `name` | string | — | Segment label |
-| `sp` | float | °C | Target temperature |
-| `ramp` | float | °C/min | Ramp rate (0 = step) |
-| `hold` | float | min | Hold duration |
-| `flow` | float[4] | sccm | MFC setpoints [MFC1, MFC2, MFC3, MFC4] |
-
----
-
-### `pid_command`
-Update PID parameters.
-
-```json
-{
-  "type": "pid_command",
-  "ts": "...",
-  "data": { "pidPb": 4.2, "pidTi": 95, "pidTd": 24 },
-  "user": "admin"
-}
-```
-
-| Field | Description |
-|-------|-------------|
-| `pidPb` | Proportional band (%) |
-| `pidTi` | Integral time (s) |
-| `pidTd` | Derivative time (s) |
-
----
-
-### `sample_info`
-Send sample metadata to LabVIEW for logging.
-
-```json
-{
-  "type": "sample_info",
-  "ts": "...",
-  "data": {
-    "sampleId": "ZnO-001",
-    "material": "ZnO",
-    "substrate": "Al₂O₃",
-    "method": "Sputtering",
-    "thickness": "200 nm",
-    "targetGas": "H₂S",
-    "processTemp": "400°C",
-    "pressure": "0.3 Pa",
-    "atmosphere": "Ar/O₂",
-    "sourcePower": "100 W",
-    "processTime": "60 min",
-    "gasFlow": "50/10 sccm",
-    "operator": "A. Nowak",
-    "batchNo": "B-2026-01",
-    "goal": "Badanie czułości",
-    "notes": "Warstwa referencyjna"
-  },
-  "user": "operator"
-}
-```
-
----
-
-### `mfc_setpoint`
-Set individual MFC flow setpoint.
-
-```json
-{
-  "type": "mfc_setpoint",
-  "ts": "...",
-  "data": { "id": 1, "sp": 100 },
-  "user": "operator"
-}
-```
-
----
-
-### `mfc_config`
-Update MFC configuration (gas type, IP, limits).
-
-```json
-{
-  "type": "mfc_config",
-  "ts": "...",
-  "data": {
-    "mfc": [
-      {
-        "id": 1,
-        "name": "MFC-1",
-        "gas": "N₂",
-        "gasComposition": "100% N₂",
-        "ip": "192.168.1.101",
-        "port": 502,
-        "slaveAddr": 1,
-        "maxFlow": 500,
-        "unit": "sccm",
-        "enabled": true
-      }
-    ]
-  },
-  "user": "admin"
-}
-```
-
----
-
-### `impedance_request`
-Request an impedance spectroscopy sweep.
-
-```json
-{
-  "type": "impedance_request",
-  "ts": "...",
-  "data": { "f_min": 0.01, "f_max": 1000000, "n_points": 60, "mode": "sweep" },
-  "user": "operator"
-}
-```
-
----
-
-### `config_request`
-Request current system configuration from LabVIEW (sent on startup).
-
-```json
-{
-  "type": "config_request",
-  "ts": "...",
-  "data": {},
-  "user": "admin"
-}
-```
-
----
-
-### `config_update`
-Push configuration changes to LabVIEW.
-
-```json
-{
-  "type": "config_update",
-  "ts": "...",
-  "data": { "ethIP": "192.168.1.100" },
-  "user": "admin"
-}
-```
-
----
-
-### `alarm_clear`
-Clear a latched alarm.
-
-```json
-{
-  "type": "alarm_clear",
-  "ts": "...",
-  "data": { "latch": true },
-  "user": "operator"
-}
-```
-
----
-
-## Dashboard State (`mb`)
-
-The central state object updated from WebSocket messages:
-
-```js
-{
-  // Temperatures
-  pv1: Number,           // °C — furnace thermocouple
-  pv2: Number,           // °C — sample thermocouple
-  pv1Name: String,       // display label for PV1
-  pv2Name: String,       // display label for PV2
-
-  // Gas mix sensor (Sensirion)
-  gasMixTemp: Number|null,      // °C
-  gasMixHumidity: Number|null,  // % RH
-
-  // Sample
-  resistance: Number|null,  // Ω — auto-formatted to Ω / kΩ / MΩ
-
-  // Control
-  mv: Number,            // % — manipulated variable
-  mvManual: Number,      // % — manual setpoint
-  manualMode: Boolean,
-  sp1: Number,           // °C — temperature setpoint
-  out1: Boolean,         // heater relay state
-  outAnalog: Number,     // analog output
-
-  // Alarms
-  alarm1: Boolean,       // HI alarm
-  alarm2: Boolean,       // LO alarm
-  alarmSTB: Boolean,     // standby alarm
-  alarmLATCH: Boolean,   // latched alarm
-
-  // Regulation
-  regMode: String,       // "PID" | "ON/OFF"
-  regStatus: String,     // "RUN" | "STOP"
-  pidPb: Number,         // proportional band
-  pidTi: Number,         // integral time
-  pidTd: Number,         // derivative time
-
-  // Profile execution
-  progStage: Number,
-  progStatus: String,    // "RUN" | "STOP"
-  progElapsed: Number,   // seconds
-
-  // MFC array (4 entries)
-  mfc: [
-    {
-      id: Number,
-      name: String,
-      gas: String,
-      gasComposition: String,
-      ip: String,
-      port: Number,
-      slaveAddr: Number,
-      maxFlow: Number,
-      unit: String,      // "sccm"
-      pv: Number,        // actual flow
-      sp: Number,        // setpoint
-      enabled: Boolean
-    }
-  ],
-
-  // Network / connectivity
-  wsUrl: String,
-  wsConnected: Boolean,
-  ethIP: String,
-  ethPort: Number
-}
-```
-
----
-
-## Resistance Display Logic
-
-The `resistance` field is auto-formatted on the diagram:
-
-| Value | Display |
-|-------|---------|
-| ≥ 1 MΩ (1 000 000) | `X.XX MΩ` |
-| ≥ 1 kΩ (1 000) | `X.X kΩ` |
-| < 1 kΩ | `X Ω` |
-
----
-
-## Data Persistence
-
-- **Real-time buffer** — last 150 data points in memory (`hist` array)
-- **InfluxDB** — every `measurement_update` is written via `writeDataPoint()` (configurable in `src/influx.js`)
-- **Historical ranges** — 1h / 6h / 24h / 7d queries via `queryHistory()`
-- **Export** — experiment JSON export, CSV download, HTML/PDF reports
-
----
-
-## User Roles
-
-| Role | Pages accessible |
+| Rola | Dostęp do stron |
 |------|-----------------|
-| admin | All (1–9) |
-| user | 1, 2, 3, 4, 5, 6, 7, 8, 9 |
-| student | 1, 2, 3, 7, 8, 9 |
-| guest | 1, 9 |
+| admin | Wszystkie (P1–P9) |
+| user (operator) | P1–P9 |
+| student | P1, P2, P3, P7, P8, P9 |
+| guest | P1, P9 |
 
 ---
 
-## Project Structure
+## Dokumentacja techniczna
 
-```
-BasiaLab1/
-├── src/
-│   ├── App.jsx          # Main application (single-file architecture)
-│   ├── influx.js        # InfluxDB client wrapper
-│   └── main.jsx         # React entry point
-├── public/
-├── package.json
-├── vite.config.js
-└── README.md
-```
+| Plik | Opis |
+|------|------|
+| [docs/PROTOCOL_JSON_WS.md](docs/PROTOCOL_JSON_WS.md) | Pełna specyfikacja protokołu WebSocket JSON |
+| [docs/ws_protocol.md](docs/ws_protocol.md) | Protokół WS — opis komend (wersja skrócona) |
+| [docs/LABVIEW_INTEGRATION.md](docs/LABVIEW_INTEGRATION.md) | Integracja z LabVIEW — przegląd |
+| [docs/LABVIEW_IMPLEMENTATION_GUIDE.md](docs/LABVIEW_IMPLEMENTATION_GUIDE.md) | Implementacja strony LabVIEW — szczegóły VI |
+| [docs/API_ENDPOINTS.md](docs/API_ENDPOINTS.md) | Endpointy i interfejsy API (WS, InfluxDB, MySQL) |
+| [docs/INFLUXDB_SETUP.md](docs/INFLUXDB_SETUP.md) | Instalacja i konfiguracja InfluxDB v2 |
+| [docs/ERROR_HANDLING.md](docs/ERROR_HANDLING.md) | Obsługa błędów i graceful degradation |
+| [docs/RUN_LABVIEW_WEBVIEW.md](docs/RUN_LABVIEW_WEBVIEW.md) | Uruchomienie UI w LabVIEW WebView2 |
+| [docs/ThinFilmLab_LabVIEW_WebView2_Runbook.md](docs/ThinFilmLab_LabVIEW_WebView2_Runbook.md) | Runbook WebView2 — krok po kroku |
+| [docs/SVG_DYNAMIC_WEBVIEW2.md](docs/SVG_DYNAMIC_WEBVIEW2.md) | Dynamiczny SVG z JavaScript i WebView2 |
+| [docs/LABVIEW_VI_COMMUNICATION.md](docs/LABVIEW_VI_COMMUNICATION.md) | Lista VI do komunikacji LabVIEW ↔ Web |
 
 ---
 
-## Notes
+## Uwagi
 
-- The WebSocket URL defaults to `ws://localhost:8080` and can be changed at runtime in the Settings page (Page 4)
-- The dashboard supports **custom SVG diagrams** — upload a drawio SVG export via the diagram settings
-- Both **dark and light themes** are supported; all SVG diagram colors adapt to the active theme via React state (`T.*` variables)
-- The `measurement_update` handler uses a spread pattern: any extra fields sent by LabVIEW are automatically merged into dashboard state — forward-compatible by design
+- URL WebSocket domyślnie `ws://localhost:8080`, zmiana w P4 → zakładka WebSocket
+- Dashboard obsługuje **własne diagramy SVG** — wgraj eksport z draw.io przez P4
+- Motywy **ciemny i jasny** — SVG automatycznie dostosowuje kolory przez zmienne motywu (`T.*`)
+- Handler `measurement_update` merge'uje wszystkie pola z LabVIEW — nowe pola są automatycznie obsługiwane bez zmian w dashboardzie

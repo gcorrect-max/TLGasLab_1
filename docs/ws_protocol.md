@@ -1,4 +1,4 @@
-# Protokół WebSocket JSON — Kontroler v3.0 ↔ LabVIEW
+﻿# Protokół WebSocket JSON — Stanowisko 2 (ThinFilmLab 2) ↔ LabVIEW
 
 ## Architektura połączenia
 
@@ -34,7 +34,7 @@ Wysyłane automatycznie po nawiązaniu połączenia (`ws.onopen`). Dwa komunikat
     "role": "user",
     "name": "Operator"
   },
-  "app": "Laboratorium badania cienkich warstw dla sensorów gazu",
+  "app": "Stanowisko 2 badania cienkich warstw dla sensorów gazu",
   "ver": "3.0"
 }
 ```

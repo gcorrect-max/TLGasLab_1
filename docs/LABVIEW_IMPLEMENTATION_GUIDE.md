@@ -1,4 +1,4 @@
-# Implementacja strony LabVIEW — ThinFilmLab WebSocket Bridge
+# Implementacja strony LabVIEW — Stanowisko 2 (ThinFilmLab 2) WebSocket Bridge
 
 ## Spis treści
 

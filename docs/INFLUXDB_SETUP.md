@@ -8,7 +8,7 @@
 ## Szybki start
 
 ```bash
-cd E:\Basia\ThinFilmLab
+cd E:\BasiaLab1
 docker compose up -d
 ```
 

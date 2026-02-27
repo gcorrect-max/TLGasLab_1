@@ -1,4 +1,4 @@
-# Obsługa błędów — ThinFilmLab Dashboard
+# Obsługa błędów — Stanowisko 2 (ThinFilmLab 2)
 
 ## Filozofia: Fail-Silent + Graceful Degradation
 

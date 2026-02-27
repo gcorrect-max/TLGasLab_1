@@ -1,8 +1,8 @@
-# Integracja ThinFilmLab z LabVIEW
+# Integracja Stanowiska 2 (ThinFilmLab 2) z LabVIEW
 
 ## Przegląd
 
-ThinFilmLab to aplikacja webowa (React + Vite) pełniąca rolę SCADA/HMI dla stanowiska laboratoryjnego do badania cienkich warstw gazoczułych. Komunikacja z kontrolerem LabVIEW odbywa się przez **WebSocket** z wymianą komunikatów w formacie **JSON**.
+ThinFilmLab 2 to aplikacja webowa (React + Vite) pełniąca rolę SCADA/HMI dla stanowiska laboratoryjnego do badania cienkich warstw gazoczułych. Stanowisko 2 rozszerza funkcje o pomiar rezystancji sensora oraz warunków środowiskowych mieszaniny gazowej (temperatura, wilgotność). Komunikacja z kontrolerem LabVIEW odbywa się przez **WebSocket** z wymianą komunikatów w formacie **JSON**.
 
 ```
 ┌─────────────────┐    WebSocket (JSON)    ┌────────────────────────┐
