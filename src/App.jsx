@@ -2,7 +2,7 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart } from "recharts";
 import { writeDataPoint, queryHistory, influxHealth } from "./influx.js";
 
-const APP_NAME = "Laboratorium badania cienkich warstw dla sensorów gazu";
+const APP_NAME = "Stanowisko 2 badania cienkich warstw dla sensorów gazu";
 const APP_VER = "3.0";
 
 const TH={
