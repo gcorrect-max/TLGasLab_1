@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
+﻿import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart } from "recharts";
 import { writeDataPoint, queryHistory, influxHealth } from "./influx.js";
 
@@ -18,7 +18,7 @@ function dlBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.
 function nowISO(){return new Date().toISOString()}
 
 const JSON_LV2WEB=[
-  {type:"measurement_update",desc:"Pomiary co interwał",ex:{type:"measurement_update",ts:"ISO",data:{pv1:156.3,pv2:45.2,mv:67.4,out1:true,outAnalog:12.8,mfc:[{id:1,pv:120.5,sp:150,enabled:true},{id:2,pv:85.0,sp:100,enabled:true}]}}},
+  {type:"measurement_update",desc:"Pomiary co interwał",ex:{type:"measurement_update",ts:"ISO",data:{pv1:156.3,pv2:45.2,mv:67.4,out1:true,outAnalog:12.8,resistance:12500,gasMixTemp:23.4,gasMixHumidity:48.2,mfc:[{id:1,pv:120.5,sp:150,enabled:true},{id:2,pv:85.0,sp:100,enabled:true}]}}},
   {type:"status_update",desc:"Status regulacji",ex:{type:"status_update",ts:"ISO",data:{regMode:"PID",regStatus:"RUN",progStage:2}}},
   {type:"alarm_event",desc:"Alarm",ex:{type:"alarm_event",ts:"ISO",data:{alarmId:"AL_HI",severity:"danger",pv1:210.5}}},
   {type:"profile_status",desc:"Status profilu",ex:{type:"profile_status",ts:"ISO",data:{profileName:"Spiekanie ZnO",stage:2,stageName:"Wygrzewanie"}}},
@@ -39,7 +39,7 @@ const JSON_WEB2LV=[
   {type:"config_request",desc:"Żądanie konfiguracji przy starcie",ex:{type:"config_request",ts:"ISO",data:{},user:"admin"}},
 ];
 
-function initMb(){return{pv1:25+Math.random()*2,pv2:23+Math.random()*2,pv1Name:"Termopara 1 (piec)",pv2Name:"Termopara 2 (próbka)",ch3:0,mv:0,mvManual:50,manualMode:false,sp1:100,sp2:60,sp3:80,out1:false,out2:false,outAnalog:0,alarm1:false,alarm2:false,alarmSTB:false,alarmLATCH:false,regMode:"PID",regStatus:"RUN",pidPb:5,pidTi:120,pidTd:30,pidI:0,pidPrevE:0,limitPower:100,hyst:1,progStage:0,progStatus:"STOP",progElapsed:0,modbusAddr:1,baudRate:9600,charFmt:"8N1",ethIP:"192.168.1.100",ethPort:502,mqttBroker:"192.168.1.1",mqttPort:1883,mqttTopic:"LAB/ThinFilm",recStatus:"REC",recInterval:5,memUsed:42,rtc:new Date(),inType1:"TC-K",wsUrl:"ws://localhost:8080",wsConnected:false,
+function initMb(){return{pv1:25+Math.random()*2,pv2:23+Math.random()*2,pv1Name:"Termopara 1 (piec)",pv2Name:"Termopara 2 (próbka)",resistance:null,gasMixTemp:null,gasMixHumidity:null,ch3:0,mv:0,mvManual:50,manualMode:false,sp1:100,sp2:60,sp3:80,out1:false,out2:false,outAnalog:0,alarm1:false,alarm2:false,alarmSTB:false,alarmLATCH:false,regMode:"PID",regStatus:"RUN",pidPb:5,pidTi:120,pidTd:30,pidI:0,pidPrevE:0,limitPower:100,hyst:1,progStage:0,progStatus:"STOP",progElapsed:0,modbusAddr:1,baudRate:9600,charFmt:"8N1",ethIP:"192.168.1.100",ethPort:502,mqttBroker:"192.168.1.1",mqttPort:1883,mqttTopic:"LAB/ThinFilm",recStatus:"REC",recInterval:5,memUsed:42,rtc:new Date(),inType1:"TC-K",wsUrl:"ws://localhost:8080",wsConnected:false,
 mfc:[
   {id:1,name:"MFC-1",gas:"N\u2082",gasComposition:"100% N\u2082",ip:"192.168.1.101",port:502,slaveAddr:1,maxFlow:500,unit:"sccm",pv:0,sp:0,enabled:false},
   {id:2,name:"MFC-2",gas:"Ar",gasComposition:"100% Ar",ip:"192.168.1.102",port:502,slaveAddr:1,maxFlow:200,unit:"sccm",pv:0,sp:0,enabled:false},
@@ -87,7 +87,7 @@ const crdL={...S.card,display:"flex",flexDirection:"column",overflow:"hidden"};
 const[showConfirm,setShowConfirm]=useState(false);
 const[pendingExp,setPendingExp]=useState(null);
 const fileRef=useRef(null);
-const[chartVis,setChartVis]=useState({profSP:true,pv1:true,pv2:true,sp1:true,mv:true,mfc1:true,mfc2:true,mfc3:true,mfc4:true});
+const[chartVis,setChartVis]=useState({profSP:true,pv1:true,pv2:true,sp1:true,mv:true,mfc1:true,mfc2:true,mfc3:true,mfc4:true,gasMixTemp:true,gasMixHumidity:true});
 const togVis=k=>setChartVis(v=>({...v,[k]:!v[k]}));
 const[histRange,setHistRange]=useState("live");
 const[histData,setHistData]=useState([]);
@@ -133,57 +133,146 @@ const confirmExp=()=>{if(!pendingExp)return;const ex=pendingExp;
   toast("Eksperyment uruchomiony!","success");setShowConfirm(false);setPendingExp(null)};
 
 const pe=pendingExp;
-return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:"auto auto auto",gap:10}}>
-  <div style={{...crdL,height:"calc(38vh)",gridColumn:1,gridRow:1}}><div style={{...S.title,flexShrink:0}}><span>Schemat stanowiska</span><span style={{fontSize:12,color:mb.out1?"#ff6644":T.textD}}>{mb.out1?"🔥 GRZANIE":"○ IDLE"}</span></div>
-    <div style={{flex:1,minHeight:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
-    {customSvg?<div dangerouslySetInnerHTML={{__html:customSvg}} style={{width:"100%",maxHeight:"100%",overflow:"hidden"}}/>:
-    <svg viewBox="0 0 440 200" style={{width:"100%",maxHeight:"100%"}}>
-      {mb.mfc.map((d,i)=>{const y=22+i*44;const col=["#00aaff","#ffaa00","#00cc66","#cc44ff"][i];return(<g key={d.id} opacity={d.enabled?1:.3}>
-        <rect x="4" y={y} width="46" height="32" rx="4" fill={T.svgBg} stroke={col} strokeWidth="1"/>
-        <text x="27" y={y+14} textAnchor="middle" fill={col} fontSize="7" fontWeight="600">{d.gas}</text>
-        <text x="27" y={y+24} textAnchor="middle" fill={T.textD} fontSize="5">{d.pv.toFixed(1)} {d.unit}</text>
-        <rect x="62" y={y+5} width="32" height="22" rx="3" fill={T.svgBg} stroke={T.svgS}/>
-        <text x="78" y={y+18} textAnchor="middle" fill={col} fontSize="6" fontWeight="600">MFC</text>
-        <line x1="50" y1={y+16} x2="62" y2={y+16} stroke={col} strokeWidth="1.5"/>
-        <line x1="94" y1={y+16} x2="170" y2={100} stroke={col} strokeWidth="1.2"/>
-      </g>)})}
-      <rect x="170" y="42" width="115" height="118" rx="9" fill={T.fFill} stroke={mb.out1?"#ff4400":T.fStroke} strokeWidth="2"/>
-      <text x="227" y="58" textAnchor="middle" fill="#cc4422" fontSize="9" fontWeight="700">{D.furnace}</text>
-      <text x="196" y="72" textAnchor="start" fill={T.textD} fontSize="5">{mb.pv1Name||"PV1"}</text>
-      <text x="227" y="88" textAnchor="middle" fill={T.pv1} fontSize="16" fontWeight="700">{mb.pv1.toFixed(1)}°C</text>
-      <text x="196" y="100" textAnchor="start" fill={T.textD} fontSize="5">{mb.pv2Name||"PV2"}</text>
-      <text x="227" y="114" textAnchor="middle" fill="#aa44ff" fontSize="14" fontWeight="700">{mb.pv2.toFixed(1)}°C</text>
-      <text x="227" y="128" textAnchor="middle" fill={T.textD} fontSize="6">Nastawa:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</text>
-      <text x="227" y="152" textAnchor="middle" fill={T.textD} fontSize="5">{mb.mfc.filter(d=>d.enabled).length} gaz aktywn.</text>
-      <line x1="275" y1="100" x2="340" y2="100" stroke="#00aadd44" strokeWidth="1.5" strokeDasharray="3 2"/>
-      <rect x="340" y="78" width="60" height="44" rx="4" fill={T.svgBg} stroke="#00aadd" strokeWidth="1.5"/>
-      <text x="370" y="96" textAnchor="middle" fill="#00ccff" fontSize="8" fontWeight="700">{D.bridge}</text>
-      <text x="370" y="108" textAnchor="middle" fill={T.textD} fontSize="5">{D.bridgeSub}</text>
+return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:"1fr auto",gap:10,height:"100%"}}>
+  <div style={{...crdL,gridColumn:1,gridRow:"1 / 3",minHeight:0}}><div style={{...S.title,flexShrink:0}}><span>Schemat stanowiska</span></div>
+    <div style={{flex:1,minHeight:0,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",borderRadius:6}}>
+    {customSvg?<div dangerouslySetInnerHTML={{__html:customSvg}} style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center"}}/>:
+    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="-0.5 -0.5 810 912" style={{width:"auto",height:"100%",maxWidth:"100%",display:"block"}}>
+      <defs/>
+      <g>
+        <path d="M 568 260 L 568 460 L 278.1 460" fill="none" stroke={T.text} strokeWidth="3" strokeMiterlimit="10"/>
+        <path d="M 271.35 460 L 280.35 455.5 L 278.1 460 L 280.35 464.5 Z" fill={T.text} stroke={T.text} strokeWidth="3" strokeMiterlimit="10"/>
+        <path d="M 408 260 L 408 340 L 158 340 L 158 140 L 91.33 140 L 91.33 169.9" fill="none" stroke={T.text} strokeWidth="3" strokeMiterlimit="10"/>
+        <path d="M 91.33 176.65 L 86.83 167.65 L 91.33 169.9 L 95.83 167.65 Z" fill={T.text} stroke={T.text} strokeWidth="3" strokeMiterlimit="10"/>
+        <path d="M 248 260 L 248 429.9" fill="none" stroke={T.text} strokeWidth="3" strokeMiterlimit="10"/>
+        <path d="M 248 436.65 L 243.5 427.65 L 248 429.9 L 252.5 427.65 Z" fill={T.text} stroke={T.text} strokeWidth="3" strokeMiterlimit="10"/>
+        <rect x="233" y="80" width="30" height="40" fill="none" stroke={T.text} strokeWidth="3"/>
+        <rect x="233" y="238" width="30" height="40" fill="none" stroke={T.text} strokeWidth="3"/>
+        <rect x="393" y="80" width="30" height="40" fill="none" stroke={T.text} strokeWidth="3"/>
+        <rect x="393" y="238" width="30" height="40" fill="none" stroke={T.text} strokeWidth="3"/>
+        <rect x="553" y="81" width="30" height="40" fill="none" stroke={T.text} strokeWidth="3"/>
+        <rect x="553" y="239" width="30" height="40" fill="none" stroke={T.text} strokeWidth="3"/>
+        <path d="M 248 480 L 248 579.9" fill="none" stroke={T.text} strokeWidth="3" strokeMiterlimit="10"/>
+        <path d="M 248 586.65 L 243.5 577.65 L 248 579.9 L 252.5 577.65 Z" fill={T.text} stroke={T.text} strokeWidth="3" strokeMiterlimit="10"/>
+        <ellipse cx="248" cy="460" rx="20" ry="20" fill="none" stroke={T.text}/>
+        <rect x="38" y="261.4" width="80" height="39.3" fill="#3399ff" stroke={T.text}/>
+        <rect x="58" y="180" width="13.33" height="70.18" fill="none" stroke={T.text}/>
+        <rect x="38" y="238.95" width="80" height="61.75" fill="none" stroke={T.text}/>
+        <path d="M 38 308 L 58 300.7 L 98 300.7 L 118 308 Z" fill="#3399ff" stroke={T.text} strokeMiterlimit="10" transform="translate(0,304.35)scale(1,-1)translate(0,-304.35)"/>
+        <rect x="84.67" y="180" width="13.33" height="115.09" fill="none" stroke={T.text} strokeDasharray="3 3"/>
+        <path d="M 38 238.95 L 58 216.49 L 98 216.49 L 118 238.95 Z" fill="none" stroke={T.text} strokeMiterlimit="10"/>
+        <rect x="58" y="210" width="40" height="6.49" fill="none" stroke={T.text} strokeWidth="2"/>
+        <rect x="53" y="190" width="50" height="20" fill="none" stroke={T.text} strokeWidth="2"/>
+        <path d="M 248 630 L 248 679.9" fill="none" stroke={T.text} strokeWidth="3" strokeMiterlimit="10"/>
+        <path d="M 248 686.65 L 243.5 677.65 L 248 679.9 L 252.5 677.65 Z" fill={T.text} stroke={T.text} strokeWidth="3" strokeMiterlimit="10"/>
+        <ellipse cx="248" cy="610" rx="20" ry="20" fill="none" stroke={T.text} strokeWidth="5"/>
+        <path d="M 64.67 180 L 64.67 140 L 8 140 L 8 460 L 217.9 460" fill="none" stroke={T.text} strokeWidth="3" strokeMiterlimit="10"/>
+        <path d="M 224.65 460 L 215.65 464.5 L 217.9 460 L 215.65 455.5 Z" fill={T.text} stroke={T.text} strokeWidth="3" strokeMiterlimit="10"/>
+        <path d="M 243 280.5 L 253 280.5 L 253 300.5 L 263.5 300.5 L 248 319.5 L 232.5 300.5 L 243 300.5 Z" fill="#b3b3b3" stroke="#b3b3b3" strokeLinejoin="round" strokeMiterlimit="10"/>
+        <path d="M 402.86 280.5 L 412.86 280.5 L 412.86 300.5 L 423.36 300.5 L 407.86 319.5 L 392.36 300.5 L 402.86 300.5 Z" fill="#b3b3b3" stroke="#b3b3b3" strokeLinejoin="round" strokeMiterlimit="10"/>
+        <path d="M 562.58 280.5 L 572.58 280.5 L 572.58 300.5 L 583.08 300.5 L 567.58 319.5 L 552.08 300.5 L 562.58 300.5 Z" fill="#b3b3b3" stroke="#b3b3b3" strokeLinejoin="round" strokeMiterlimit="10"/>
+        <path d="M 248.5 34 L 248.5 24 L 402.98 24 Q 413.02 24 412.98 34.04 L 412.88 59.52 L 423.38 59.56 L 407.8 78.5 L 392.38 59.44 L 402.88 59.48 L 402.98 34 Z" fill="none" stroke={T.text} strokeLinejoin="round" strokeMiterlimit="10"/>
+        <path d="M 412.88 59.52 L 423.38 59.56 L 407.8 78.5 L 392.38 59.44 L 402.88 59.48" fill="none" stroke={T.text} strokeMiterlimit="4"/>
+        <path d="M 243 -0.5 L 253 -0.5 L 253 59.5 L 263.5 59.5 L 248 78.5 L 232.5 59.5 L 243 59.5 Z" fill="none" stroke={T.text} strokeLinejoin="round" strokeMiterlimit="10"/>
+        <path d="M 562.8 -0.5 L 572.8 -0.5 L 572.8 59.5 L 583.3 59.5 L 567.8 78.5 L 552.3 59.5 L 562.8 59.5 Z" fill="#b3b3b3" stroke={T.text} strokeLinejoin="round" strokeMiterlimit="10"/>
+        <path d="M 262.14 474.14 L 233.86 445.86" fill="none" stroke={T.text} strokeMiterlimit="10"/>
+        <path d="M 262.14 445.86 L 233.86 474.14" fill="none" stroke={T.text} strokeMiterlimit="10"/>
+        {[{x:208,cx:248,idx:0,label:"MKS1"},{x:368,cx:408,idx:1,label:"MKS2"},{x:528,cx:568,idx:2,label:"MKS3"}].map(({x,cx,idx,label})=>{const d=mb.mfc[idx];return(<g key={label}>
+          <rect x={x} y="100" width="80" height="160" fill="none" stroke={T.text} strokeWidth="5"/>
+          <text x={cx} y="140" fill={T.textM} fontFamily="Helvetica" fontSize="14px" textAnchor="middle" fontWeight="bold">{label}</text>
+          <text x={cx} y="165" fill={T.text} fontFamily="Helvetica" fontSize="18px" textAnchor="middle" fontWeight="bold">{d?.pv!=null?d.pv.toFixed(1):"—"}</text>
+          <text x={cx} y="185" fill={T.textD} fontFamily="Helvetica" fontSize="13px" textAnchor="middle">{d?.unit||"sccm"}</text>
+          <text x={cx} y="207" fill={T.textA} fontFamily="Helvetica" fontSize="14px" textAnchor="middle" fontWeight="bold">{d?.gas||""}</text>
+        </g>)})}
+        <rect x="713" y="81" width="30" height="40" fill="none" stroke={T.text} strokeWidth="3"/>
+        <rect x="713" y="239" width="30" height="40" fill="none" stroke={T.text} strokeWidth="3"/>
+        <path d="M 722.58 280.5 L 732.58 280.5 L 732.58 300.5 L 743.08 300.5 L 727.58 319.5 L 712.08 300.5 L 722.58 300.5 Z" fill="#b3b3b3" stroke="#b3b3b3" strokeLinejoin="round" strokeMiterlimit="10"/>
+        <path d="M 722.8 -0.5 L 732.8 -0.5 L 732.8 59.5 L 743.3 59.5 L 727.8 78.5 L 712.3 59.5 L 722.8 59.5 Z" fill="#b3b3b3" stroke={T.text} strokeLinejoin="round" strokeMiterlimit="10"/>
+        {(()=>{const d=mb.mfc[3];return(<g>
+          <rect x="688" y="100" width="80" height="160" fill="none" stroke={T.text} strokeWidth="5"/>
+          <text x="728" y="140" fill={T.textM} fontFamily="Helvetica" fontSize="14px" textAnchor="middle" fontWeight="bold">MKS4</text>
+          <text x="728" y="165" fill={T.text} fontFamily="Helvetica" fontSize="18px" textAnchor="middle" fontWeight="bold">{d?.pv!=null?d.pv.toFixed(1):"—"}</text>
+          <text x="728" y="185" fill={T.textD} fontFamily="Helvetica" fontSize="13px" textAnchor="middle">{d?.unit||"sccm"}</text>
+          <text x="728" y="207" fill={T.textA} fontFamily="Helvetica" fontSize="14px" textAnchor="middle" fontWeight="bold">{d?.gas||""}</text>
+        </g>)})()}
+        <rect x="273" y="580" width="200" height="72" fill="none" stroke={T.cardBorder} strokeWidth="2" rx="6"/>
+        <text x="373" y="598" fill={T.textM} fontFamily="Helvetica" fontSize="13px" textAnchor="middle">SENSIRION</text>
+        <text x="283" y="622" fill={T.text} fontFamily="Helvetica" fontSize="15px" fontWeight="bold">
+          {"T: "}{mb.gasMixTemp!=null?`${mb.gasMixTemp.toFixed(1)} °C`:"— °C"}
+        </text>
+        <text x="283" y="644" fill={T.textA} fontFamily="Helvetica" fontSize="15px" fontWeight="bold">
+          {"RH: "}{mb.gasMixHumidity!=null?`${mb.gasMixHumidity.toFixed(1)} %`:"— %"}
+        </text>
+        <text x="81" y="335" fill={T.text} fontFamily="Helvetica" fontSize="16px" textAnchor="middle">Nawilzanie</text>
+        <text x="81" y="355" fill={T.text} fontFamily="Helvetica" fontSize="16px" textAnchor="middle">powietrza</text>
+        <text x="163" y="22" fill={T.text} fontFamily="Helvetica" fontSize="20px" textAnchor="middle">POWIETRZE</text>
+        <text x="163" y="46" fill={T.text} fontFamily="Helvetica" fontSize="20px" textAnchor="middle">Z BUTLI</text>
+        <text x="618" y="36" fill={T.text} fontFamily="Helvetica" fontSize="20px" textAnchor="middle">GAZ 1</text>
+        <text x="773" y="36" fill={T.text} fontFamily="Helvetica" fontSize="20px" textAnchor="middle">GAZ2</text>
+        <text x="378" y="455" fill={T.text} fontFamily="Helvetica" fontSize="16px" textAnchor="middle">GAZ1</text>
+        <text x="255" y="390" fill={T.text} fontFamily="Helvetica" fontSize="16px">Powietrze</text>
+        <text x="255" y="410" fill={T.text} fontFamily="Helvetica" fontSize="16px">suche</text>
+        <text x="113" y="454" fill={T.text} fontFamily="Helvetica" fontSize="16px" textAnchor="middle">Powietrze wilgotne</text>
+        <path d="M 728 320 L 728 520 L 278.1 520" fill="none" stroke={T.text} strokeWidth="3" strokeMiterlimit="10"/>
+        <path d="M 271.35 520 L 280.35 515.5 L 278.1 520 L 280.35 524.5 Z" fill={T.text} stroke={T.text} strokeWidth="3" strokeMiterlimit="10"/>
+        <ellipse cx="248" cy="520" rx="20" ry="20" fill="none" stroke={T.text}/>
+        <path d="M 263 534.14 L 234.72 505.86" fill="none" stroke={T.text} strokeMiterlimit="10"/>
+        <path d="M 263 505.86 L 234.72 534.14" fill="none" stroke={T.text} strokeMiterlimit="10"/>
+        <text x="378" y="515" fill={T.text} fontFamily="Helvetica" fontSize="16px" textAnchor="middle">GAZ2</text>
+        <path d="M 253 34 L 253 24" fill="none" stroke="transparent" strokeWidth="3" strokeMiterlimit="10"/>
+        <rect x="138" y="690" width="220" height="220" fill="none" stroke={T.cardBorder} strokeWidth="2"/>
+        <ellipse cx="248" cy="800" rx="80" ry="80" fill="none" stroke={T.text} strokeWidth="2"/>
+        <rect x="188" y="766" width="120" height="64" fill="none" stroke={T.cardBorder} strokeWidth="3"/>
+        <text x="248" y="782" fill={T.text} fontFamily="Helvetica" fontSize="16px" textAnchor="middle">Rezystancja</text>
+        {mb.resistance!=null
+          ?<text x="248" y="820" fill="#ff6666" fontFamily="Helvetica" fontSize="24px" textAnchor="middle" fontWeight="bold">{mb.resistance>=1e6?(mb.resistance/1e6).toFixed(2)+" MΩ":mb.resistance>=1e3?(mb.resistance/1e3).toFixed(1)+" kΩ":mb.resistance.toFixed(0)+" Ω"}</text>
+          :<text x="248" y="820" fill={T.textD} fontFamily="Helvetica" fontSize="22px" textAnchor="middle">— Ω</text>
+        }
+        <rect x="78" y="720" width="60" height="20" fill="none" stroke={T.text} strokeWidth="3"/>
+        <rect x="78" y="857" width="60" height="20" fill="none" stroke={T.text} strokeWidth="3"/>
+        <rect x="375" y="700" width="390" height="200" fill="none" stroke={T.cardBorder} strokeWidth="2" rx="6"/>
+        <text x="570" y="724" fill={T.textM} fontFamily="Helvetica" fontSize="13px" textAnchor="middle">Próbka</text>
+        <text x="391" y="754" fill={T.textM} fontFamily="Helvetica" fontSize="12px">ID:</text>
+        <text x="391" y="754" dx="28" fill={T.text} fontFamily="Helvetica" fontSize="14px" fontWeight="bold">{sample?.sampleId||"—"}</text>
+        <text x="391" y="778" fill={T.textM} fontFamily="Helvetica" fontSize="12px">Materiał:</text>
+        <text x="391" y="778" dx="60" fill={T.text} fontFamily="Helvetica" fontSize="14px">{sample?.material||"—"}</text>
+        <text x="391" y="802" fill={T.textM} fontFamily="Helvetica" fontSize="12px">Podłoże:</text>
+        <text x="391" y="802" dx="60" fill={T.text} fontFamily="Helvetica" fontSize="14px">{sample?.substrate||"—"}</text>
+        <text x="391" y="826" fill={T.textM} fontFamily="Helvetica" fontSize="12px">Metoda:</text>
+        <text x="391" y="826" dx="54" fill={T.text} fontFamily="Helvetica" fontSize="14px">{sample?.method||"—"}</text>
+        <text x="391" y="850" fill={T.textM} fontFamily="Helvetica" fontSize="12px">Operator:</text>
+        <text x="391" y="850" dx="62" fill={T.text} fontFamily="Helvetica" fontSize="14px">{sample?.operator||"—"}</text>
+        <text x="391" y="874" fill={T.textM} fontFamily="Helvetica" fontSize="12px">Uwagi:</text>
+        <text x="391" y="874" dx="46" fill={T.textD} fontFamily="Helvetica" fontSize="12px" fontStyle="italic">{sample?.notes||"—"}</text>
+      </g>
     </svg>}</div></div>
 
-  <div style={{...crdL,gridColumn:2,gridRow:"1 / 3",height:"calc(55vh)"}}><div style={{...S.title,flexShrink:0}}><span>Temperatura i przepływ — {profileName||"brak profilu"}</span>
+  <div style={{...crdL,gridColumn:2,gridRow:1,minHeight:0}}><div style={{...S.title,flexShrink:0}}><span>Temperatura i przepływ — {profileName||"brak profilu"}</span>
     <div style={{display:"flex",alignItems:"center",gap:6}}>
       <div style={{display:"flex",gap:3}}>{mb.mfc.map((d,i)=>d.enabled&&<span key={d.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:["#00aaff22","#ffaa0022","#00cc6622","#cc44ff22"][i],color:["#44bbff","#ffbb33","#33dd77","#dd66ff"][i],fontWeight:600}}>{d.gas}</span>)}</div>
       <span style={{fontSize:12,color:mb.regStatus==="RUN"?"#00cc66":"#ff6644"}}>● {mb.regStatus}{mb.manualMode?" MAN":" AUTO"}</span></div></div>
-    <div style={{display:"flex",gap:3,marginBottom:4,flexShrink:0}}>{[["live","Na żywo"],["-1h","1h"],["-6h","6h"],["-24h","24h"],["-7d","7d"]].map(([k,l])=>(<button key={k} onClick={()=>loadRange(k)} style={{padding:"2px 7px",borderRadius:4,border:"none",fontSize:11,fontWeight:600,cursor:"pointer",background:histRange===k?"#0077b6":T.boxBg,color:histRange===k?"#fff":T.textM}}>{l}</button>))}{histLoading&&<span style={{fontSize:11,color:T.textD,alignSelf:"center"}}>⏳</span>}</div>
+    <div style={{display:"flex",gap:3,marginBottom:4,flexShrink:0}}>{[["live","Na żywo"],["-1h","1h"],["-6h","6h"],["-24h","24h"],["-7d","7d"]].map(([k,l])=>(<button key={k} onClick={()=>loadRange(k)} style={{padding:"2px 7px",borderRadius:4,border:"none",fontSize:11,fontWeight:600,cursor:"pointer",background:histRange===k?T.actTab:T.boxBg,color:histRange===k?T.textA:T.textM}}>{l}</button>))}{histLoading&&<span style={{fontSize:11,color:T.textD,alignSelf:"center"}}>⏳</span>}</div>
     <div style={{flex:1,minHeight:0}}>
     <ResponsiveContainer width="100%" height="100%"><ComposedChart data={histRange==="live"?hist.slice(-80):histData}>
       <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} interval="preserveStartEnd"/>
       <YAxis yAxisId="temp" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} domain={["auto","auto"]} label={{value:"°C",position:"insideTopLeft",fill:T.tick,fontSize:11}}/>
       <YAxis yAxisId="flow" orientation="right" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} domain={[0,"auto"]} label={{value:"sccm",position:"insideTopRight",fill:T.tick,fontSize:11}}/>
+      <YAxis yAxisId="rh" orientation="right" tick={{fill:T.tick,fontSize:10}} stroke={T.grid} domain={[0,100]} width={32} label={{value:"%",position:"insideTopRight",fill:T.tick,fontSize:11}}/>
       <Tooltip {...TT}/>
       {chartVis.profSP&&<Line yAxisId="temp" type="stepAfter" dataKey="profSP" stroke="#555577" strokeWidth={2.5} strokeDasharray="8 4" dot={false} name="Profil temp." isAnimationActive={false}/>}
       {chartVis.pv1&&<Line yAxisId="temp" type="monotone" dataKey="pv1" stroke="#ff6644" strokeWidth={2} dot={false} name={mb.pv1Name||"PV1"} isAnimationActive={false}/>}
       {chartVis.pv2&&<Line yAxisId="temp" type="monotone" dataKey="pv2" stroke="#aa44ff" strokeWidth={2} dot={false} name={mb.pv2Name||"PV2"} isAnimationActive={false}/>}
       {chartVis.sp1&&<Line yAxisId="temp" type="monotone" dataKey="sp1" stroke="#00cc66" strokeWidth={1.5} strokeDasharray="5 3" dot={false} name="Nastawa temp." isAnimationActive={false}/>}
       {chartVis.mv&&<Line yAxisId="temp" type="monotone" dataKey="mv" stroke="#ffaa00" strokeWidth={1} dot={false} name="MV%" isAnimationActive={false}/>}
+      {chartVis.gasMixTemp&&<Line yAxisId="temp" type="monotone" dataKey="gasMixTemp" stroke="#ff88cc" strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="T miesz." isAnimationActive={false}/>}
+      {chartVis.gasMixHumidity&&<Line yAxisId="rh" type="monotone" dataKey="gasMixHumidity" stroke="#44ddff" strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="RH miesz." isAnimationActive={false}/>}
       {chartVis.mfc1&&<Line yAxisId="flow" type="monotone" dataKey="mfc1" stroke="#00aaff" strokeWidth={2} dot={false} name={mb.mfc[0]?.gas||"MFC1"} isAnimationActive={false}/>}
       {chartVis.mfc2&&<Line yAxisId="flow" type="monotone" dataKey="mfc2" stroke="#ffaa00" strokeWidth={2} dot={false} name={mb.mfc[1]?.gas||"MFC2"} isAnimationActive={false}/>}
       {chartVis.mfc3&&<Line yAxisId="flow" type="monotone" dataKey="mfc3" stroke="#00cc66" strokeWidth={2} dot={false} name={mb.mfc[2]?.gas||"MFC3"} isAnimationActive={false}/>}
       {chartVis.mfc4&&<Line yAxisId="flow" type="monotone" dataKey="mfc4" stroke="#cc44ff" strokeWidth={2} dot={false} name={mb.mfc[3]?.gas||"MFC4"} isAnimationActive={false}/>}
     </ComposedChart></ResponsiveContainer></div>
     <div style={{display:"flex",gap:6,flexWrap:"wrap",padding:"4px 0",flexShrink:0,alignItems:"center"}}>
-      {[["profSP","#555577","Profil temp."],["pv1","#ff6644",mb.pv1Name||"PV1"],["pv2","#aa44ff",mb.pv2Name||"PV2"],["sp1","#00cc66","Nastawa temp."],["mv","#ffaa00","MV%"]].map(([k,c,l])=>(
+      {[["profSP","#555577","Profil temp."],["pv1","#ff6644",mb.pv1Name||"PV1"],["pv2","#aa44ff",mb.pv2Name||"PV2"],["sp1","#00cc66","Nastawa temp."],["mv","#ffaa00","MV%"],["gasMixTemp","#ff88cc","T miesz."],["gasMixHumidity","#44ddff","RH miesz."]].map(([k,c,l])=>(
         <label key={k} style={{display:"flex",alignItems:"center",gap:3,cursor:"pointer",fontSize:11,color:chartVis[k]?c:T.textD,opacity:chartVis[k]?1:.45,userSelect:"none"}}>
           <input type="checkbox" checked={chartVis[k]} onChange={()=>togVis(k)} style={{width:10,height:10,accentColor:c}}/>{l}</label>))}
       <span style={{color:T.titleB,margin:"0 2px"}}>│</span>
@@ -191,13 +280,13 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
         <label key={k} style={{display:"flex",alignItems:"center",gap:3,cursor:"pointer",fontSize:11,color:chartVis[k]?c:T.textD,opacity:chartVis[k]?1:.45,userSelect:"none"}}>
           <input type="checkbox" checked={chartVis[k]} onChange={()=>togVis(k)} style={{width:10,height:10,accentColor:c}}/>{d?.gas||`MFC${i}`}</label>)})}</div></div>
 
-  <div style={{...crdL,gridColumn:1,gridRow:2}}><div style={{...S.title,flexShrink:0}}><span>Sterowanie eksperymentem</span>
+  <div style={{...crdL,gridColumn:2,gridRow:2}}><div style={{...S.title,flexShrink:0}}><span>Sterowanie eksperymentem</span>
     <span style={{fontSize:12,color:mb.progStatus==="RUN"?"#00cc66":T.textD}}>{mb.progStatus==="RUN"?`▶ Etap ${mb.progStage}`:"STOP"}</span></div>
     <div style={{flex:1,minHeight:0,overflowY:"auto",display:"flex",flexDirection:"column",gap:8,padding:"4px 0"}}>
       <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
         <input ref={fileRef} type="file" accept=".json" onChange={handleFile} style={{display:"none"}}/>
-        <button onClick={()=>fileRef.current?.click()} style={{...S.btn,background:"linear-gradient(135deg,#0077b6,#005f8a)",fontSize:13,padding:"8px 14px"}}>📂 Załaduj eksperyment</button>
-        <button onClick={exportExp} style={{...S.btn,background:"#886600",fontSize:13,padding:"8px 14px"}}>📥 Eksportuj bieżący</button></div>
+        <button onClick={()=>fileRef.current?.click()} style={{...S.btn,background:T.boxBg,fontSize:13,padding:"8px 14px"}}>📂 Załaduj eksperyment</button>
+        <button onClick={exportExp} style={{...S.btn,background:T.boxBg,fontSize:13,padding:"8px 14px"}}>📥 Eksportuj bieżący</button></div>
       <div style={{fontSize:12,color:T.textM,lineHeight:1.5}}>
         Plik JSON zawiera profil temperaturowy, dane próbki i operatora. Załadowanie pliku otworzy podgląd z potwierdzeniem przed uruchomieniem.</div>
       {alog.length>0&&<div style={{borderTop:`1px solid ${T.titleB}`,paddingTop:6}}>
@@ -206,7 +295,7 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
           <span style={{color:T.textD,fontFamily:"monospace",fontSize:11}}>{a.time}</span><span>{a.msg}</span></div>))}</div>}
     </div></div>
 
-  <div style={{...S.card,gridColumn:"1 / -1"}}>
+  <div style={{...S.card,gridColumn:"1 / -1",display:"none"}}>
     <div style={S.title}><span>Panel przepływomierzy — status</span></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
       {mb.mfc.map((d,i)=>{const col=["#00aaff","#ffaa00","#00cc66","#cc44ff"][i];return(
@@ -254,7 +343,7 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
         <div style={{background:T.tIn,border:"1px solid #4488cc44",borderRadius:8,padding:"8px 12px",fontSize:13,color:T.textA}}>
           ⚠ Załadowanie eksperymentu nadpisze bieżące ustawienia profilu temperaturowego i danych próbki, a następnie uruchomi program segmentowy.</div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={confirmExp} style={{...S.btn,flex:1,background:"linear-gradient(135deg,#22aa44,#118833)",fontSize:14,padding:"10px 16px"}}>
+          <button onClick={confirmExp} style={{...S.btn,flex:1,background:T.boxBg,fontSize:14,padding:"10px 16px"}}>
             <div style={{fontWeight:700}}>🔬 Potwierdź i uruchom</div>
             <div style={{fontSize:11,opacity:.8,fontWeight:400,marginTop:2}}>Zastosuj dane i rozpocznij eksperyment</div></button>
           <button onClick={()=>{setShowConfirm(false);setPendingExp(null)}} style={{...S.btn,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:13,padding:"10px 20px"}}>Anuluj</button></div>
@@ -304,8 +393,8 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
           {mb.mfc.map((d,mi)=>{const key=`f${mi+1}`;const show=pData.some(p=>p[key]>0);return show?<Area key={key} yAxisId="flow" type="stepAfter" dataKey={key} stroke={mfcCols[mi]} fill={mfcCols[mi]+"44"} strokeWidth={1.5} stackId="flow" name={`${d.name} (${d.gas})`} isAnimationActive={false}/>:null})}
           <Legend wrapperStyle={{fontSize:11}}/></ComposedChart></ResponsiveContainer></div>
           <div style={{display:"flex",gap:6,marginTop:4,flexShrink:0}}>
-            <button style={{...S.btn,fontSize:12,background:"#0077b6"}} onClick={()=>{const o={device:"AR200.B",kontroler:APP_VER,profile:profileName,segments:segs};const b=new Blob([JSON.stringify(o,null,2)],{type:"application/json"});dlBlob(b,`profil_${(profileName||"noname").replace(/\s+/g,"_")}.json`);addLog(`Eksport profilu "${profileName}"`,"export");toast("JSON OK","success")}}>📥 JSON</button>
-            <button style={{...S.btn,fontSize:12,background:mb.progStatus==="RUN"?"#aa2211":"#22aa44"}} onClick={()=>{if(mb.progStatus==="RUN"){doStop()}else{setShowConfirm(true)}}}>{mb.progStatus==="RUN"?"⏹ Stop":"▶ Start"}</button></div></div></div></div>
+            <button style={{...S.btn,fontSize:12,background:T.boxBg}} onClick={()=>{const o={device:"AR200.B",kontroler:APP_VER,profile:profileName,segments:segs};const b=new Blob([JSON.stringify(o,null,2)],{type:"application/json"});dlBlob(b,`profil_${(profileName||"noname").replace(/\s+/g,"_")}.json`);addLog(`Eksport profilu "${profileName}"`,"export");toast("JSON OK","success")}}>📥 JSON</button>
+            <button style={{...S.btn,fontSize:12,background:T.boxBg}} onClick={()=>{if(mb.progStatus==="RUN"){doStop()}else{setShowConfirm(true)}}}>{mb.progStatus==="RUN"?"⏹ Stop":"▶ Start"}</button></div></div></div></div>
     {showConfirm&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}} onClick={()=>setShowConfirm(false)}>
       <div onClick={e=>e.stopPropagation()} style={{background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:14,padding:28,minWidth:380,maxWidth:460,boxShadow:"0 20px 60px rgba(0,0,0,.3)",animation:"si .2s ease-out"}}>
         <div style={{fontSize:16,fontWeight:700,color:T.textB,marginBottom:6}}>▶ Uruchomienie profilu</div>
@@ -313,10 +402,10 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
         <div style={{fontSize:13,color:T.textD,marginBottom:8}}>Etapy: {segs.map((s,i)=>`${i+1}. ${s.name} (${s.sp}°C)`).join(" → ")}</div>
         {hasAnyFlow&&<div style={{fontSize:12,color:T.textD,marginBottom:16}}>{mb.mfc.map((d,mi)=>{const vals=segs.map(s=>(s.flow||[0,0,0,0])[mi]);return vals.some(v=>v>0)?<span key={mi} style={{marginRight:8}}><span style={{color:mfcCols[mi],fontWeight:600}}>{d.name}:</span> {vals.join("→")} {d.unit}</span>:null})}</div>}
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          <button onClick={()=>doStart(true)} style={{...S.btn,background:"linear-gradient(135deg,#22aa44,#118833)",fontSize:14,padding:"10px 16px",textAlign:"left"}}>
+          <button onClick={()=>doStart(true)} style={{...S.btn,background:T.boxBg,fontSize:14,padding:"10px 16px",textAlign:"left"}}>
             <div style={{fontWeight:700}}>🔬 Start — pełny pomiar</div>
             <div style={{fontSize:12,opacity:.8,fontWeight:400,marginTop:2}}>Profil temp. + rejestracja danych + przejście do Eksperyment</div></button>
-          <button onClick={()=>doStart(false)} style={{...S.btn,background:"linear-gradient(135deg,#0077b6,#005f8a)",fontSize:14,padding:"10px 16px",textAlign:"left"}}>
+          <button onClick={()=>doStart(false)} style={{...S.btn,background:T.boxBg,fontSize:14,padding:"10px 16px",textAlign:"left"}}>
             <div style={{fontWeight:700}}>🌡 Start — tylko temperatura</div>
             <div style={{fontSize:12,opacity:.8,fontWeight:400,marginTop:2}}>Uruchom profil segmentowy bez przejścia na stronę pomiarową</div></button>
           <button onClick={()=>setShowConfirm(false)} style={{...S.btn,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:13,padding:"8px 16px"}}>Anuluj</button></div>
@@ -342,12 +431,12 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
         {[["Pb°C","pidPb",.1],["Ti s","pidTi",1],["Td s","pidTd",1],["Hyst°C","hyst",.1],["Limit%","limitPower",1]].map(([l,k,st])=>(<div key={k} style={S.box}><div style={S.lbl}>{l}</div><input type="number" value={mb[k]} step={st} style={S.input} onChange={e=>setMb(m=>({...m,[k]:parseFloat(e.target.value)||0}))}/></div>))}</div>
       <div style={{...S.box,marginTop:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={S.lbl}>MV ręczne</div>
-        <button onClick={()=>{const nm=!mb.manualMode;setMb(m=>({...m,manualMode:nm}));sendCmd?.("mode_command",{manualMode:nm});addLog(nm?"→MANUAL":"→AUTO","mode");toast(nm?"MANUAL":"AUTO","info")}} style={{...S.btn,padding:"3px 10px",fontSize:12,background:mb.manualMode?"#886600":"#224488"}}>{mb.manualMode?"→AUTO":"→MAN"}</button></div>
+        <button onClick={()=>{const nm=!mb.manualMode;setMb(m=>({...m,manualMode:nm}));sendCmd?.("mode_command",{manualMode:nm});addLog(nm?"→MANUAL":"→AUTO","mode");toast(nm?"MANUAL":"AUTO","info")}} style={{...S.btn,padding:"3px 10px",fontSize:12,background:T.boxBg}}>{mb.manualMode?"→AUTO":"→MAN"}</button></div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4,opacity:mb.manualMode?1:.3}}><input type="range" min="0" max="100" value={mb.mvManual} disabled={!mb.manualMode} onChange={e=>{const v=parseFloat(e.target.value);setMb(m=>({...m,mvManual:v}));sendCmd?.("manual_mv",{mvManual:v})}} style={{flex:1,accentColor:"#00aaff"}}/><span style={{color:T.textB,fontFamily:"monospace",fontSize:15}}>{mb.mvManual.toFixed(0)}%</span></div></div>
       <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
-        <button onClick={()=>{const ns=mb.regStatus==="RUN"?"STOP":"RUN";setMb(m=>({...m,regStatus:ns,pidI:0}));sendCmd?.("mode_command",{regStatus:ns});addLog(ns==="RUN"?"REG START":"REG STOP","mode");toast(ns,"success")}} style={{...S.btn,background:mb.regStatus==="RUN"?"#aa2211":"#22aa44"}}>{mb.regStatus==="RUN"?"⏹ STOP":"▶ START"}</button>
-        <button style={{...S.btn,background:"#886600"}} onClick={()=>{const pid={pidPb:4.2,pidTi:95,pidTd:24};setMb(m=>({...m,...pid}));sendCmd?.("pid_command",pid);addLog("Autotune PID","config");toast("Autotune OK","success")}}>🔄 Autotune</button>
-        {mb.alarmLATCH&&<button style={{...S.btn,background:"#663366"}} onClick={()=>{setMb(m=>({...m,alarmLATCH:false}));sendCmd?.("alarm_clear",{latch:true});addLog("LATCH kasuj","alarm");toast("LATCH OK","info")}}>🔓 LATCH</button>}</div></div>}</div>
+        <button onClick={()=>{const ns=mb.regStatus==="RUN"?"STOP":"RUN";setMb(m=>({...m,regStatus:ns,pidI:0}));sendCmd?.("mode_command",{regStatus:ns});addLog(ns==="RUN"?"REG START":"REG STOP","mode");toast(ns,"success")}} style={{...S.btn,background:T.boxBg}}>{mb.regStatus==="RUN"?"⏹ STOP":"▶ START"}</button>
+        <button style={{...S.btn,background:T.boxBg}} onClick={()=>{const pid={pidPb:4.2,pidTi:95,pidTd:24};setMb(m=>({...m,...pid}));sendCmd?.("pid_command",pid);addLog("Autotune PID","config");toast("Autotune OK","success")}}>🔄 Autotune</button>
+        {mb.alarmLATCH&&<button style={{...S.btn,background:T.boxBg}} onClick={()=>{setMb(m=>({...m,alarmLATCH:false}));sendCmd?.("alarm_clear",{latch:true});addLog("LATCH kasuj","alarm");toast("LATCH OK","info")}}>🔓 LATCH</button>}</div></div>}</div>
   </div>);}
 
 // ═══ P3 PRÓBKA I PROCES ═══
@@ -411,7 +500,7 @@ function P3({sample,setSample,toast,addLog,sendCmd,T}){const S=mkS(T);
         <div style={S.lbl}>Dodaj ścieżkę do zdjęcia</div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
           <input value={newPhoto} onChange={e=>setNewPhoto(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addPhoto()}} placeholder="/data/images/sample_001.jpg" style={{...S.input,flex:1,fontFamily:"monospace",fontSize:13}}/>
-          <button onClick={()=>addPhoto()} style={{...S.btn,background:"#0077b6",padding:"5px 12px",fontSize:12,flexShrink:0}}>+ Dodaj</button></div></div>
+          <button onClick={()=>addPhoto()} style={{...S.btn,background:T.boxBg,padding:"5px 12px",fontSize:12,flexShrink:0}}>+ Dodaj</button></div></div>
       {sample.photos.length>0&&<div style={{display:"flex",flexDirection:"column",gap:4}}>
         {sample.photos.map((p,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 8px",borderRadius:6,background:T.boxBg,border:`1px solid ${T.boxBorder}`}}>
           <span style={{fontSize:12,color:T.textA,fontWeight:600,flexShrink:0}}>📷 {i+1}</span>
@@ -427,9 +516,9 @@ function P3({sample,setSample,toast,addLog,sendCmd,T}){const S=mkS(T);
         <button onClick={dbHealth} style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:12}}>⟳</button></div></div>
 
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-        <button style={{...S.btn,background:"linear-gradient(135deg,#22aa44,#118833)",opacity:dbLoading?.5:1}} disabled={dbLoading} onClick={dbInsert}>🗄 Zapisz do MySQL</button>
-        <button style={{...S.btn,background:"#0077b6",opacity:dbLoading?.5:1}} disabled={dbLoading} onClick={dbLoadAll}>📋 Pokaż wszystkie</button>
-        <button style={{...S.btn,background:"#886600"}} onClick={()=>{sendCmd?.("sample_info",sample);addLog(`WS sample_info: ${sample.sampleId||"?"}`,"data");toast("Wysłano WS","success")}}>📡 Wyślij WS</button>
+        <button style={{...S.btn,background:T.boxBg,opacity:dbLoading?.5:1}} disabled={dbLoading} onClick={dbInsert}>🗄 Zapisz do MySQL</button>
+        <button style={{...S.btn,background:T.boxBg,opacity:dbLoading?.5:1}} disabled={dbLoading} onClick={dbLoadAll}>📋 Pokaż wszystkie</button>
+        <button style={{...S.btn,background:T.boxBg}} onClick={()=>{sendCmd?.("sample_info",sample);addLog(`WS sample_info: ${sample.sampleId||"?"}`,"data");toast("Wysłano WS","success")}}>📡 Wyślij WS</button>
         <button style={{...S.btn,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM}} onClick={()=>{const b=new Blob([JSON.stringify({type:"sample_info",data:sample},null,2)],{type:"application/json"});dlBlob(b,`sample_${sample.sampleId||"x"}.json`);addLog(`Eksport próbki ${sample.sampleId}`,"export");toast("JSON OK","success")}}>📥 JSON</button></div>
 
       <div style={{...S.box,marginBottom:10}}>
@@ -438,7 +527,7 @@ function P3({sample,setSample,toast,addLog,sendCmd,T}){const S=mkS(T);
           <select value={srchField} onChange={e=>setSrchField(e.target.value)} style={{...S.input,width:160,fontSize:13}}>
             {allFields.map(([k,l])=><option key={k} value={k}>{l}</option>)}</select>
           <input value={srchQuery} onChange={e=>setSrchQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")dbSearch(srchField,srchQuery)}} placeholder="Szukana fraza..." style={{...S.input,flex:1,fontSize:13}}/>
-          <button style={{...S.btn,background:"#0077b6",padding:"5px 12px",opacity:dbLoading?.5:1}} disabled={dbLoading} onClick={()=>dbSearch(srchField,srchQuery)}>Szukaj</button></div>
+          <button style={{...S.btn,background:T.boxBg,padding:"5px 12px",opacity:dbLoading?.5:1}} disabled={dbLoading} onClick={()=>dbSearch(srchField,srchQuery)}>Szukaj</button></div>
         <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}}>
           {allFields.map(([k,l])=><button key={k} onClick={()=>{setSrchField(k);const v=k==="photos"?(sample.photos[0]||""):sample[k]||"";if(v){setSrchQuery(v);dbSearch(k,v)}else{setSrchField(k)}}} style={{padding:"2px 6px",borderRadius:4,border:`1px solid ${srchField===k?T.textA:T.boxBorder}`,background:srchField===k?T.textA+"22":"transparent",color:srchField===k?T.textA:T.textD,fontSize:10,cursor:"pointer"}}>{l}</button>)}</div></div>
 
@@ -496,7 +585,7 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
   const adminTabs=isAdmin?[["users","👥 Użytkownicy"]]:[];
   const mfcUnits=["sccm","slm","l/min"];
   const updMfc=(idx,k,v)=>setMb(m=>({...m,mfc:m.mfc.map((d,i)=>i===idx?{...d,[k]:v}:d)}));
-  const tabBtn=(id,l)=><button key={id} onClick={()=>sTab(id)} style={{padding:"5px 10px",borderRadius:6,border:"none",background:tab===id?"#0077b6":T.boxBg,color:tab===id?"#fff":T.textM,fontSize:12,fontWeight:600,cursor:"pointer"}}>{l}</button>;
+  const tabBtn=(id,l)=><button key={id} onClick={()=>sTab(id)} style={{padding:"5px 10px",borderRadius:6,border:"none",background:tab===id?T.actTab:T.boxBg,color:tab===id?T.textA:T.textM,fontSize:12,fontWeight:600,cursor:"pointer"}}>{l}</button>;
 
   return(<div>
     <div style={{display:"flex",gap:10,marginBottom:10,alignItems:"center",flexWrap:"wrap"}}>
@@ -515,7 +604,7 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
     {tab==="ctrl"&&<div style={S.card}><div style={S.title}><span>Komunikacja AR200.B</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
         {[["Addr MODBUS",mb.modbusAddr,"modbusAddr","number"],["Baud",mb.baudRate,"baudRate","number"],["IP",mb.ethIP,"ethIP","text"],["Port TCP",mb.ethPort,"ethPort","number"],["MQTT Broker",mb.mqttBroker,"mqttBroker","text"],["MQTT Port",mb.mqttPort,"mqttPort","number"]].map(([l,v,k,t])=>
           <F key={l} label={l}><input type={t} defaultValue={v} style={S.input} onChange={e=>setMb(m=>({...m,[k]:t==="number"?parseFloat(e.target.value)||0:e.target.value}))}/></F>)}</div>
-        <button style={{...S.btn,marginTop:8,background:"#0077b6"}} onClick={()=>{addLog("Config kontroler zapisana","config");toast("OK","success")}}>💾 Zapisz</button></div>}
+        <button style={{...S.btn,marginTop:8,background:T.boxBg}} onClick={()=>{addLog("Config kontroler zapisana","config");toast("OK","success")}}>💾 Zapisz</button></div>}
     {tab==="ui_names"&&<div style={S.card}><div style={S.title}><span>Nazwy kanałów temperaturowych</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
         <div style={S.box}><div style={S.lbl}>Nazwa PV1 (termopara 1)</div><StableInput value={mb.pv1Name} onCommit={v=>setMb(m=>({...m,pv1Name:v}))} placeholder="Termopara 1 (piec)"/></div>
         <div style={S.box}><div style={S.lbl}>Nazwa PV2 (termopara 2)</div><StableInput value={mb.pv2Name} onCommit={v=>setMb(m=>({...m,pv2Name:v}))} placeholder="Termopara 2 (próbka)"/></div></div></div>}
@@ -539,20 +628,20 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
           <F label="Setpoint"><input type="number" value={d.sp} onChange={e=>{const v=parseFloat(e.target.value)||0;updMfc(i,"sp",v)}} style={S.input}/></F>
         </div></div>))}
       <div style={{display:"flex",gap:8}}>
-        <button style={{...S.btn,background:"#0077b6"}} onClick={()=>{sendCmd("mfc_config",{mfc:mb.mfc});addLog("Konfiguracja przepływomierzy wysłana","config");toast("Konfiguracja przepływomierzy zapisana","success")}}>💾 Zapisz konfigurację</button>
-        <button style={{...S.btn,background:"#226644"}} onClick={()=>{mb.mfc.forEach(d=>{if(d.enabled)sendCmd("mfc_setpoint",{id:d.id,sp:d.sp})});toast("Nastawy przepływomierzy wysłane","success")}}>📤 Wyślij nastawy</button>
+        <button style={{...S.btn,background:T.boxBg}} onClick={()=>{sendCmd("mfc_config",{mfc:mb.mfc});addLog("Konfiguracja przepływomierzy wysłana","config");toast("Konfiguracja przepływomierzy zapisana","success")}}>💾 Zapisz konfigurację</button>
+        <button style={{...S.btn,background:T.boxBg}} onClick={()=>{mb.mfc.forEach(d=>{if(d.enabled)sendCmd("mfc_setpoint",{id:d.id,sp:d.sp})});toast("Nastawy przepływomierzy wysłane","success")}}>📤 Wyślij nastawy</button>
       </div></div>}
     {tab==="diag"&&<div style={{display:"grid",gap:12}}>
       <div style={S.card}><div style={S.title}><span>Nazwy elementów schematu</span></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
           {diagFields.map(([k,label,ph])=><F key={k} label={label}><input value={diagram[k]||""} onChange={e=>setDiagram(d=>({...d,[k]:e.target.value}))} placeholder={ph} style={S.input}/></F>)}</div>
-        <button style={{...S.btn,marginTop:8,background:"#0077b6"}} onClick={()=>{addLog("Nazwy diagramu zapisane","config");toast("Diagram zapisany","success")}}>💾 Zapisz nazwy</button></div>
+        <button style={{...S.btn,marginTop:8,background:T.boxBg}} onClick={()=>{addLog("Nazwy diagramu zapisane","config");toast("Diagram zapisany","success")}}>💾 Zapisz nazwy</button></div>
       <div style={S.card}><div style={S.title}><span>Własny schemat SVG</span></div>
         <p style={{color:T.textM,fontSize:13,margin:"0 0 10px"}}>Załaduj własny plik SVG jako schemat stanowiska. SVG zastąpi domyślny diagram na stronie Eksperyment.</p>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-          <label style={{...S.btn,background:"linear-gradient(135deg,#0077b6,#005f8a)",display:"inline-flex",alignItems:"center",gap:5,cursor:"pointer"}}>
+          <label style={{...S.btn,background:T.boxBg,display:"inline-flex",alignItems:"center",gap:5,cursor:"pointer"}}>
             📂 Załaduj SVG<input type="file" accept=".svg" onChange={handleSvgUpload} style={{display:"none"}}/></label>
-          {customSvg&&<button style={{...S.btn,background:"#aa2211"}} onClick={()=>{setCustomSvg(null);addLog("SVG usunięty","config");toast("SVG usunięty","info")}}>🗑 Usuń SVG</button>}
+          {customSvg&&<button style={{...S.btn,background:T.boxBg}} onClick={()=>{setCustomSvg(null);addLog("SVG usunięty","config");toast("SVG usunięty","info")}}>🗑 Usuń SVG</button>}
           <span style={{fontSize:12,color:customSvg?T.textA:T.textD}}>{customSvg?"✓ Własny SVG aktywny":"Domyślny schemat"}</span></div>
         {customSvg&&<div style={{...S.box,marginTop:10,maxHeight:180,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
           <div dangerouslySetInnerHTML={{__html:customSvg}} style={{maxWidth:"100%",maxHeight:170}}/></div>}</div>
@@ -561,15 +650,15 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
       <F label="WebSocket URL"><input value={mb.wsUrl} onChange={e=>setMb(m=>({...m,wsUrl:e.target.value}))} style={S.input}/></F>
       <F label="Status"><div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}><Led on={mb.wsConnected} color="#00cc66" label={mb.wsConnected?"Połączony":"Rozłączony"} T={T}/></div></F></div>
       <p style={{color:T.textM,fontSize:13,margin:"8px 0"}}>LabVIEW = WebSocket Server. Kontroler = klient. Dane JSON. Auto-reconnect z exponential backoff.</p>
-      <div style={{display:"flex",gap:6}}><button style={{...S.btn,background:mb.wsConnected?"#888":"#22aa44",opacity:mb.wsConnected?.5:1}} disabled={mb.wsConnected} onClick={()=>connectWs?.({manual:true})}>🔌 Połącz</button>
-        <button style={{...S.btn,background:!mb.wsConnected?"#888":"#aa2211",opacity:!mb.wsConnected?.5:1}} disabled={!mb.wsConnected} onClick={()=>disconnectWs?.("manual")}>⏏ Rozłącz</button></div></div>}
+      <div style={{display:"flex",gap:6}}><button style={{...S.btn,background:T.boxBg,opacity:mb.wsConnected?.5:1}} disabled={mb.wsConnected} onClick={()=>connectWs?.({manual:true})}>🔌 Połącz</button>
+        <button style={{...S.btn,background:T.boxBg,opacity:!mb.wsConnected?.5:1}} disabled={!mb.wsConnected} onClick={()=>disconnectWs?.("manual")}>⏏ Rozłącz</button></div></div>}
     {tab==="db"&&<div style={S.card}><div style={S.title}><span>InfluxDB v2 — Time Series</span>
       <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:8,height:8,borderRadius:"50%",background:influxOk?"#8844ff":"#555"}}/><span style={{fontSize:12,color:influxOk?T.textA:T.textD}}>{influxOk?"Połączono":"Brak połączenia"}</span></div></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
       {[["URL","http://localhost:8086"],["Organizacja","ThinFilmLab"],["Bucket","measurements"],["Retencja","30 dni (raw)"],["Token","tfl-dev-token-****"],["Port Docker","8086"]].map(([l,v])=><F key={l} label={l}><input defaultValue={v} readOnly style={{...S.input,opacity:.7}}/></F>)}</div>
       <div style={{display:"flex",gap:8,marginTop:8}}>
-      <button style={{...S.btn,background:"#8844ff"}} onClick={()=>{influxHealth().then(ok=>{setInfluxOk(ok);toast(ok?"InfluxDB: połączono":"InfluxDB: brak połączenia",ok?"success":"error")})}}>🔄 Test połączenia</button>
-      <a href="http://localhost:8086" target="_blank" rel="noreferrer" style={{...S.btn,background:"#0077b6",textDecoration:"none",display:"inline-flex",alignItems:"center"}}>📊 InfluxDB UI</a></div></div>}
+      <button style={{...S.btn,background:T.boxBg}} onClick={()=>{influxHealth().then(ok=>{setInfluxOk(ok);toast(ok?"InfluxDB: połączono":"InfluxDB: brak połączenia",ok?"success":"error")})}}>🔄 Test połączenia</button>
+      <a href="http://localhost:8086" target="_blank" rel="noreferrer" style={{...S.btn,background:T.boxBg,textDecoration:"none",display:"inline-flex",alignItems:"center"}}>📊 InfluxDB UI</a></div></div>}
     {tab==="users"&&isAdmin&&<div style={{display:"grid",gap:12}}>
       <div style={S.card}><div style={S.title}><span>Zarządzanie użytkownikami</span><span style={{fontSize:12,color:T.textD}}>{Object.keys(users).length} kont</span></div>
         <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
@@ -587,7 +676,7 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
               <button onClick={()=>setEditUser(editUser===login?null:login)} style={{background:"none",border:"none",color:T.textA,cursor:"pointer",fontSize:14}} title="Edytuj">✏</button>
               {login!=="admin"&&<button onClick={()=>setConfirmDel(login)} style={{background:"none",border:"none",color:"#ff4455",cursor:"pointer",fontSize:14}} title="Usuń">🗑</button>}</div></td>
           </tr>))}</tbody></table></div>
-        <button onClick={()=>setShowAdd(!showAdd)} style={{...S.btn,marginTop:10,background:showAdd?"#aa2211":"linear-gradient(135deg,#22aa44,#118833)",fontSize:13}}>{showAdd?"✕ Anuluj":"➕ Dodaj użytkownika"}</button></div>
+        <button onClick={()=>setShowAdd(!showAdd)} style={{...S.btn,marginTop:10,background:T.boxBg,fontSize:13}}>{showAdd?"✕ Anuluj":"➕ Dodaj użytkownika"}</button></div>
 
       {showAdd&&<div style={S.card}><div style={S.title}><span>➕ Nowy użytkownik</span>
         <button onClick={()=>{setShowAdd(false);setNewUser(emptyUser)}} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:16}}>✕</button></div>
@@ -601,7 +690,7 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
           <F label="Nazwisko"><input value={newUser.lastName} onChange={e=>nU("lastName",e.target.value)} placeholder="Nowak" style={S.input}/></F>
           <F label="Email"><input type="email" value={newUser.email} onChange={e=>nU("email",e.target.value)} placeholder="jan@lab.pl" style={S.input}/></F>
           <F label="Telefon"><input value={newUser.phone} onChange={e=>nU("phone",e.target.value)} placeholder="+48 600..." style={S.input}/></F></div>
-        <button onClick={addUser} style={{...S.btn,marginTop:10,background:"linear-gradient(135deg,#22aa44,#118833)",fontSize:13}}>✓ Utwórz konto</button></div>}
+        <button onClick={addUser} style={{...S.btn,marginTop:10,background:T.boxBg,fontSize:13}}>✓ Utwórz konto</button></div>}
 
       {editUser&&users[editUser]&&<div style={S.card}><div style={S.title}><span>✏ Edycja: <span style={{color:T.textA,fontFamily:"monospace"}}>{editUser}</span></span>
         <button onClick={()=>setEditUser(null)} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:16}}>✕</button></div>
@@ -609,7 +698,7 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
           {uFields.map(([k,label])=><F key={k} label={label}><input type={k==="password"?"text":"text"} value={users[editUser][k]||""} onChange={e=>uU(editUser,k,e.target.value)} style={S.input}/></F>)}
           <F label="Rola"><select value={users[editUser].role} onChange={e=>uU(editUser,"role",e.target.value)} style={S.input} disabled={editUser==="admin"}>
             {roles.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></F></div>
-        <button style={{...S.btn,marginTop:8,background:"#0077b6"}} onClick={()=>{addLog(`Użytkownik ${editUser} zaktualizowany`,"config");toast(`${editUser} zapisany`,"success");setEditUser(null)}}>💾 Zapisz</button></div>}
+        <button style={{...S.btn,marginTop:8,background:T.boxBg}} onClick={()=>{addLog(`Użytkownik ${editUser} zaktualizowany`,"config");toast(`${editUser} zapisany`,"success");setEditUser(null)}}>💾 Zapisz</button></div>}
     </div>}
 
     {confirmDel&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}} onClick={()=>setConfirmDel(null)}>
@@ -623,7 +712,7 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
         <div style={{background:"#ff335515",border:"1px solid #ff335533",borderRadius:8,padding:"8px 12px",marginBottom:16,fontSize:13,color:"#ff6677"}}>⚠ Ta operacja jest nieodwracalna. Użytkownik utraci dostęp do systemu.</div>
         <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
           <button onClick={()=>setConfirmDel(null)} style={{...S.btn,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,padding:"8px 18px"}}>Anuluj</button>
-          <button onClick={()=>{delUser(confirmDel);setConfirmDel(null)}} style={{...S.btn,background:"linear-gradient(135deg,#dd2244,#aa1133)",padding:"8px 18px"}}>🗑 Usuń</button></div>
+          <button onClick={()=>{delUser(confirmDel);setConfirmDel(null)}} style={{...S.btn,background:T.boxBg,padding:"8px 18px"}}>🗑 Usuń</button></div>
       </div></div>}
   </div>);}
 
@@ -638,16 +727,16 @@ function P5({mb,hist,T}){const S=mkS(T);const[tab,sTab]=useState("lv2web");
   return(<div style={{display:"grid",gap:12}}>
     <div style={S.card}><div style={S.title}><span>Protokół JSON — LabVIEW ↔ Kontroler</span></div>
       <div style={{display:"flex",gap:4,marginBottom:8}}>
-        <button onClick={()=>sTab("lv2web")} style={{...S.btn,padding:"5px 10px",fontSize:12,background:tab==="lv2web"?"#0077b6":T.boxBg,color:tab==="lv2web"?"#fff":T.textM}}>LabVIEW → Web</button>
-        <button onClick={()=>sTab("web2lv")} style={{...S.btn,padding:"5px 10px",fontSize:12,background:tab==="web2lv"?"#0077b6":T.boxBg,color:tab==="web2lv"?"#fff":T.textM}}>Web → LabVIEW</button></div>
+        <button onClick={()=>sTab("lv2web")} style={{...S.btn,padding:"5px 10px",fontSize:12,background:tab==="lv2web"?T.actTab:T.boxBg,color:tab==="lv2web"?T.textA:T.textM}}>LabVIEW → Web</button>
+        <button onClick={()=>sTab("web2lv")} style={{...S.btn,padding:"5px 10px",fontSize:12,background:tab==="web2lv"?T.actTab:T.boxBg,color:tab==="web2lv"?T.textA:T.textM}}>Web → LabVIEW</button></div>
       {schemas.map((s,i)=>(<div key={i} style={{...S.box,marginBottom:6}}>
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:T.textA,fontSize:13,fontWeight:700}}>{s.type}</span><span style={{color:T.textD,fontSize:12}}>{s.desc}</span></div>
         <pre style={S.code}>{JSON.stringify(s.ex,null,2)}</pre></div>))}</div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
       <div style={S.card}><div style={S.title}><span>Eksport CSV</span></div>
         <div style={{color:T.textD,fontSize:13,marginBottom:8}}>Pamięć: <strong style={{color:T.pv2}}>{hist.length}</strong> rekordów</div>
-        <div style={{display:"flex",gap:4,marginBottom:8,flexWrap:"wrap"}}>{[["mem","Pamięć"],["-1h","1h"],["-24h","24h"],["-7d","7d"]].map(([k,l])=>(<button key={k} onClick={()=>setCsvRange(k)} style={{padding:"3px 8px",borderRadius:4,border:"none",fontSize:11,fontWeight:600,cursor:"pointer",background:csvRange===k?"#22aa44":T.boxBg,color:csvRange===k?"#fff":T.textM}}>{l}</button>))}</div>
-        <button onClick={csvExport} disabled={csvBusy} style={{...S.btn,background:"#22aa44",opacity:csvBusy?.5:1}}>📄 {csvBusy?"Eksportowanie...":"CSV"}</button></div>
+        <div style={{display:"flex",gap:4,marginBottom:8,flexWrap:"wrap"}}>{[["mem","Pamięć"],["-1h","1h"],["-24h","24h"],["-7d","7d"]].map(([k,l])=>(<button key={k} onClick={()=>setCsvRange(k)} style={{padding:"3px 8px",borderRadius:4,border:"none",fontSize:11,fontWeight:600,cursor:"pointer",background:csvRange===k?T.actTab:T.boxBg,color:csvRange===k?T.textA:T.textM}}>{l}</button>))}</div>
+        <button onClick={csvExport} disabled={csvBusy} style={{...S.btn,background:T.boxBg,opacity:csvBusy?.5:1}}>📄 {csvBusy?"Eksportowanie...":"CSV"}</button></div>
       <div style={S.card}><div style={S.title}><span>Komunikacja</span></div>
         {[["WebSocket",mb.wsUrl,mb.wsConnected],["MODBUS-RTU",`Addr:${mb.modbusAddr}`,true],["MODBUS-TCP",`${mb.ethIP}:${mb.ethPort}`,true]].map(([l,d,on])=>(<div key={l} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",marginBottom:4,borderRadius:6,background:T.boxBg,border:`1px solid ${T.boxBorder}`}}><div style={{width:7,height:7,borderRadius:"50%",background:on?"#00cc66":"#999"}}/><div><div style={{color:T.tblT,fontSize:13,fontWeight:600}}>{l}</div><div style={{color:T.textD,fontSize:11,fontFamily:"monospace"}}>{d}</div></div></div>))}</div></div>
   </div>);}
@@ -660,9 +749,9 @@ function P6({logs,clearLogs,T}){const S=mkS(T);const[flt,sF]=useState("all");
   const exp=()=>{const h="Czas,Kat,User,Akcja\n";const r=logs.map(l=>`${l.time},${l.cat},${l.user},${l.msg.replace(/,/g,";")}`).join("\n");const b=new Blob([h+r],{type:"text/csv"});dlBlob(b,`logs_${Date.now()}.csv`)};
   return(<div style={S.card}>
     <div style={S.title}><span>Logi akcji kontrolera</span><div style={{display:"flex",gap:4}}><span style={{color:T.textD,fontSize:12}}>{logs.length}</span>
-      <button onClick={exp} style={{...S.btn,padding:"2px 8px",fontSize:12,background:"#22aa44"}}>CSV</button>
-      <button onClick={clearLogs} style={{...S.btn,padding:"2px 8px",fontSize:12,background:"#aa2211"}}>🗑</button></div></div>
-    <div style={{display:"flex",gap:3,marginBottom:8,flexWrap:"wrap"}}>{Object.entries(cats).map(([k,v])=><button key={k} onClick={()=>sF(k)} style={{padding:"3px 8px",borderRadius:6,border:"none",background:flt===k?"#0077b6":T.boxBg,color:flt===k?"#fff":T.textM,fontSize:12,fontWeight:600,cursor:"pointer"}}>{v}</button>)}</div>
+      <button onClick={exp} style={{...S.btn,padding:"2px 8px",fontSize:12,background:T.boxBg}}>CSV</button>
+      <button onClick={clearLogs} style={{...S.btn,padding:"2px 8px",fontSize:12,background:T.boxBg}}>🗑</button></div></div>
+    <div style={{display:"flex",gap:3,marginBottom:8,flexWrap:"wrap"}}>{Object.entries(cats).map(([k,v])=><button key={k} onClick={()=>sF(k)} style={{padding:"3px 8px",borderRadius:6,border:"none",background:flt===k?T.actTab:T.boxBg,color:flt===k?T.textA:T.textM,fontSize:12,fontWeight:600,cursor:"pointer"}}>{v}</button>)}</div>
     <div style={{maxHeight:380,overflowY:"auto"}}>
       <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:`1px solid ${T.cardBorder}`}}>
         {["Czas","Kat","User","Akcja"].map(h=><th key={h} style={{padding:"4px 6px",textAlign:"left",color:T.textM,fontWeight:600,fontSize:12,position:"sticky",top:0,background:T.tblH}}>{h}</th>)}</tr></thead>
@@ -701,17 +790,17 @@ function P7({reports,setReports,sample,profileName,toast,addLog,sendCmd,experime
 
   return(<div style={{display:"grid",gap:12}}>
     <div style={{display:"flex",gap:4}}>
-      {[["reports","📑 Raporty pomiarowe"],["experiments","🔬 Zapisane eksperymenty"]].map(([id,l])=><button key={id} onClick={()=>setTab7(id)} style={{padding:"7px 14px",borderRadius:8,border:"none",background:tab7===id?"#0077b6":T.boxBg,color:tab7===id?"#fff":T.textM,fontSize:13,fontWeight:600,cursor:"pointer"}}>{l}{id==="experiments"&&experiments.length>0?` (${experiments.length})`:""}</button>)}</div>
+      {[["reports","📑 Raporty pomiarowe"],["experiments","🔬 Zapisane eksperymenty"]].map(([id,l])=><button key={id} onClick={()=>setTab7(id)} style={{padding:"7px 14px",borderRadius:8,border:"none",background:tab7===id?T.actTab:T.boxBg,color:tab7===id?T.textA:T.textM,fontSize:13,fontWeight:600,cursor:"pointer"}}>{l}{id==="experiments"&&experiments.length>0?` (${experiments.length})`:""}</button>)}</div>
 
     {tab7==="reports"&&<>
     <div style={S.card}><div style={S.title}><span>{edit>=0?"✏ Edycja raportu":"➕ Nowy raport pomiarowy"}</span>
-      <div style={{display:"flex",gap:4}}><button onClick={exportHTML} disabled={!reports.length} style={{...S.btn,padding:"4px 10px",fontSize:12,background:reports.length?"#0077b6":"#888",opacity:reports.length?1:.4}}>📄 HTML</button>
-        <button onClick={exportPDF} disabled={!reports.length} style={{...S.btn,padding:"4px 10px",fontSize:12,background:reports.length?"#886600":"#888",opacity:reports.length?1:.4}}>📋 PDF</button></div></div>
+      <div style={{display:"flex",gap:4}}><button onClick={exportHTML} disabled={!reports.length} style={{...S.btn,padding:"4px 10px",fontSize:12,background:T.boxBg,opacity:reports.length?1:.4}}>📄 HTML</button>
+        <button onClick={exportPDF} disabled={!reports.length} style={{...S.btn,padding:"4px 10px",fontSize:12,background:T.boxBg,opacity:reports.length?1:.4}}>📋 PDF</button></div></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8}}>
         {fld.map(([l,k,ph])=><div key={k} style={S.box}><div style={S.lbl}>{l}</div><input value={form[k]||""} onChange={e=>uF(k,e.target.value)} placeholder={ph} style={S.input}/></div>)}</div>
       <div style={{...S.box,marginTop:8}}><div style={S.lbl}>Zdjęcia próbek</div>
         <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-          <label style={{...S.btn,padding:"6px 12px",fontSize:12,background:"linear-gradient(135deg,#0077b6,#005f8a)",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4}}>
+          <label style={{...S.btn,padding:"6px 12px",fontSize:12,background:T.boxBg,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4}}>
             📷 Dodaj zdjęcia<input type="file" accept="image/*" multiple onChange={addPhoto} style={{display:"none"}}/></label>
           <span style={{color:T.textD,fontSize:12}}>{form.photos.length} zdjęć</span></div>
         {form.photos.length>0&&<div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>{form.photos.map((p,i)=>(
@@ -720,7 +809,7 @@ function P7({reports,setReports,sample,profileName,toast,addLog,sendCmd,experime
             <button onClick={()=>rmPhoto(i)} style={{position:"absolute",top:2,right:2,width:18,height:18,borderRadius:"50%",background:"rgba(0,0,0,.6)",color:"#fff",border:"none",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
             <div style={{fontSize:9,color:T.textD,padding:"1px 3px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:90}}>{p.name}</div></div>))}</div>}</div>
       <div style={{display:"flex",gap:6,marginTop:8}}>
-        <button onClick={save} style={{...S.btn,background:"linear-gradient(135deg,#22aa44,#118833)"}}>{edit>=0?"💾 Zapisz zmiany":"➕ Dodaj raport"}</button>
+        <button onClick={save} style={{...S.btn,background:T.boxBg}}>{edit>=0?"💾 Zapisz zmiany":"➕ Dodaj raport"}</button>
         {edit>=0&&<button onClick={()=>{setForm(empty);setEdit(-1)}} style={{...S.btn,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM}}>Anuluj</button>}</div></div>
 
     <div style={S.card}><div style={S.title}><span>Tabela raportów</span><span style={{fontSize:12,color:T.textD}}>{reports.length} raportów</span></div>
@@ -804,7 +893,7 @@ function WsConsole({open,onClose,wsCon,clearCon,T}){const S=mkS(T);const[tab,sTa
       <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
         <div><div style={{fontWeight:700,fontSize:15,color:T.textB}}>🛰 WS Console</div><div style={{fontSize:12,color:T.textD}}>Podgląd RX/TX JSON na żywo</div></div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          {["rx","tx"].map(id=><button key={id} onClick={()=>sTab(id)} style={{padding:"4px 10px",borderRadius:6,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",background:tab===id?"#0077b6":T.boxBg,color:tab===id?"#fff":T.textM}}>{id.toUpperCase()} ({(id==="rx"?wsCon.rx:wsCon.tx).length})</button>)}
+          {["rx","tx"].map(id=><button key={id} onClick={()=>sTab(id)} style={{padding:"4px 10px",borderRadius:6,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",background:tab===id?T.actTab:T.boxBg,color:tab===id?T.textA:T.textM}}>{id.toUpperCase()} ({(id==="rx"?wsCon.rx:wsCon.tx).length})</button>)}
           <button onClick={clearCon} style={{...S.btn,padding:"4px 8px",fontSize:11,background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM}}>Wyczyść</button>
           <button onClick={onClose} style={{background:"none",border:"none",color:T.textD,cursor:"pointer",fontSize:18}}>✕</button></div></div>
       <div style={{flex:1,minHeight:0,overflowY:"auto",padding:10}}>
@@ -888,7 +977,7 @@ function P9({T}){
       <div style={{display:"flex",gap:4}}>
         {[["pl","🇵🇱 PL"],["en","🇬🇧 EN"]].map(([c,l])=>(
           <button key={c} onClick={()=>changeLang(c)} style={{padding:"5px 12px",borderRadius:6,border:`1px solid ${lang===c?T.textA:T.cardBorder}`,
-            background:lang===c?"#0077b6":"transparent",color:lang===c?"#fff":T.textM,fontSize:12,fontWeight:600,cursor:"pointer"}}>{l}</button>))}
+            background:lang===c?T.actTab:T.boxBg,color:lang===c?T.textA:T.textM,fontSize:12,fontWeight:600,cursor:"pointer"}}>{l}</button>))}
       </div>
     </div>
 
@@ -1039,7 +1128,7 @@ export default function App(){
         if(mfcData){next.mfc=m.mfc.map(d=>{const upd=mfcData.find(x=>x.id===d.id);return upd?{...d,pv:upd.pv??d.pv,sp:upd.sp??d.sp,enabled:upd.enabled??d.enabled}:d})}
         return next});
       const t=new Date();const label=`${String(t.getMinutes()).padStart(2,"0")}:${String(t.getSeconds()).padStart(2,"0")}`;
-      const hp={t:label,pv1:+(data.pv1??0),pv2:+(data.pv2??0),sp1:+(data.sp1??0),profSP:+(data.sp1??0),ch3:+(data.ch3??0),mv:+(data.mv??0),outA:+(data.outAnalog??0)};
+      const hp={t:label,pv1:+(data.pv1??0),pv2:+(data.pv2??0),sp1:+(data.sp1??0),profSP:+(data.sp1??0),ch3:+(data.ch3??0),mv:+(data.mv??0),outA:+(data.outAnalog??0),gasMixTemp:data.gasMixTemp??null,gasMixHumidity:data.gasMixHumidity??null,resistance:data.resistance??null};
       if(mfcData){mfcData.forEach(x=>{if(x.id>=1&&x.id<=4)hp[`mfc${x.id}`]=+(x.pv??0)})}
       setHist(h=>[...h,hp].slice(-150));writeDataPoint({...hp,_source:"ws"});return;}
     if(type==="status_update"){setMb(m=>({...m,...data}));return;}
@@ -1201,11 +1290,6 @@ export default function App(){
           {acc.map(pg=>(<button key={pg.id} onClick={()=>sAc(pg.id)} title={pg.tip} style={{width:"100%",padding:"8px 10px",borderRadius:7,border:"none",textAlign:"left",marginBottom:2,cursor:"pointer",
             background:ac===pg.id?T.actTab:"transparent",color:ac===pg.id?T.textA:T.textM,fontSize:13,fontWeight:ac===pg.id?700:500,
             borderLeft:ac===pg.id?`3px solid ${T.textA}`:"3px solid transparent"}}><span style={{marginRight:4}}>{pg.icon}</span>{pg.label}</button>))}
-          <div style={{marginTop:14,padding:6,borderTop:`1px solid ${T.titleB}`}}>
-            <div style={{color:T.textD,fontSize:10,fontWeight:700,letterSpacing:1,marginBottom:5,textTransform:"uppercase"}}>Status</div>
-            <div style={{display:"flex",flexDirection:"column",gap:3}}>
-              <ABadge on={mb.alarm1} label="HI" type="danger" T={T}/><ABadge on={mb.alarm2} label="LO" type="warning" T={T}/>
-              <ABadge on={mb.alarmLATCH} label="LATCH" type="info" T={T}/><ABadge on={mb.regStatus==="RUN"} label="Regulacja" type="ok" T={T}/></div></div>
           <div style={{marginTop:8,padding:6,borderTop:`1px solid ${T.titleB}`}}>
             <div style={{fontSize:10,color:T.textD,fontWeight:600,marginBottom:2}}>{mb.pv1Name||"PV1"}</div>
             <div style={{fontSize:19,fontWeight:700,color:mb.alarm1?T.pv1A:T.pv1,fontFamily:"monospace"}}>{mb.pv1.toFixed(1)}<span style={{fontSize:11,color:T.textD}}>°C</span></div>
