@@ -254,10 +254,10 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
     <div style={{display:"flex",gap:3,marginBottom:4,flexShrink:0}}>{[["live","Na żywo"],["-1h","1h"],["-6h","6h"],["-24h","24h"],["-7d","7d"]].map(([k,l])=>(<button key={k} onClick={()=>loadRange(k)} style={{padding:"2px 7px",borderRadius:4,border:"none",fontSize:11,fontWeight:600,cursor:"pointer",background:histRange===k?T.actTab:T.boxBg,color:histRange===k?T.textA:T.textM}}>{l}</button>))}{histLoading&&<span style={{fontSize:11,color:T.textD,alignSelf:"center"}}>⏳</span>}</div>
     <div style={{flex:1,minHeight:0}}>
     <ResponsiveContainer width="100%" height="100%"><ComposedChart data={histRange==="live"?hist.slice(-80):histData}>
-      <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} interval="preserveStartEnd"/>
-      <YAxis yAxisId="temp" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} domain={["auto","auto"]} label={{value:"°C",position:"insideTopLeft",fill:T.tick,fontSize:11}}/>
-      <YAxis yAxisId="flow" orientation="right" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} domain={[0,"auto"]} label={{value:"sccm",position:"insideTopRight",fill:T.tick,fontSize:11}}/>
-      <YAxis yAxisId="rh" orientation="right" tick={{fill:T.tick,fontSize:10}} stroke={T.grid} domain={[0,100]} width={32} label={{value:"%",position:"insideTopRight",fill:T.tick,fontSize:11}}/>
+      <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:17}} stroke={T.grid} interval="preserveStartEnd"/>
+      <YAxis yAxisId="temp" tick={{fill:T.tick,fontSize:17}} stroke={T.grid} domain={["auto","auto"]} label={{value:"°C",position:"insideTopLeft",fill:T.tick,fontSize:17}}/>
+      <YAxis yAxisId="flow" orientation="right" tick={{fill:T.tick,fontSize:17}} stroke={T.grid} domain={[0,"auto"]} label={{value:"sccm",position:"insideTopRight",fill:T.tick,fontSize:17}}/>
+      <YAxis yAxisId="rh" orientation="right" tick={{fill:T.tick,fontSize:15}} stroke={T.grid} domain={[0,100]} width={32} label={{value:"%",position:"insideTopRight",fill:T.tick,fontSize:17}}/>
       <Tooltip {...TT}/>
       {chartVis.profSP&&<Line yAxisId="temp" type="stepAfter" dataKey="profSP" stroke="#555577" strokeWidth={2.5} strokeDasharray="8 4" dot={false} name="Profil temp." isAnimationActive={false}/>}
       {chartVis.pv1&&<Line yAxisId="temp" type="monotone" dataKey="pv1" stroke="#ff6644" strokeWidth={2} dot={false} name={mb.pv1Name||"PV1"} isAnimationActive={false}/>}
@@ -385,13 +385,13 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
         </div>)})}
           {segs.length<6&&<button onClick={()=>setSegs(s=>[...s,{name:`Etap ${s.length+1}`,sp:100,ramp:5,hold:30,flow:[0,0,0,0]}])} style={{...S.btn,width:"100%",background:T.boxBg,border:`1px solid ${T.boxBorder}`,color:T.textM,fontSize:12}}>+ Dodaj etap</button>}</div>
         <div style={{display:"flex",flexDirection:"column",minHeight:0}}><div style={{flex:1,minHeight:0}}><ResponsiveContainer width="100%" height="100%"><ComposedChart data={pData}>
-          <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="time" tick={{fill:T.tick,fontSize:11}} stroke={T.grid} label={{value:"min",position:"insideBottomRight",offset:-2,style:{fill:T.textD,fontSize:10}}}/>
-          <YAxis yAxisId="temp" tick={{fill:"#ff8844",fontSize:11}} stroke={T.grid}/>
-          {hasAnyFlow&&<YAxis yAxisId="flow" orientation="right" tick={{fill:T.textD,fontSize:11}} stroke={T.grid}/>}
+          <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="time" tick={{fill:T.tick,fontSize:17}} stroke={T.grid} label={{value:"min",position:"insideBottomRight",offset:-2,style:{fill:T.textD,fontSize:15}}}/>
+          <YAxis yAxisId="temp" tick={{fill:"#ff8844",fontSize:17}} stroke={T.grid}/>
+          {hasAnyFlow&&<YAxis yAxisId="flow" orientation="right" tick={{fill:T.textD,fontSize:17}} stroke={T.grid}/>}
           <Tooltip {...TT}/>
           <Area yAxisId="temp" type="linear" dataKey="temp" stroke="#ff8844" fill="#ff884420" strokeWidth={2} name="Temp °C" dot={{r:2,fill:"#ff8844"}} isAnimationActive={false}/>
           {mb.mfc.map((d,mi)=>{const key=`f${mi+1}`;const show=pData.some(p=>p[key]>0);return show?<Area key={key} yAxisId="flow" type="stepAfter" dataKey={key} stroke={mfcCols[mi]} fill={mfcCols[mi]+"44"} strokeWidth={1.5} stackId="flow" name={`${d.name} (${d.gas})`} isAnimationActive={false}/>:null})}
-          <Legend wrapperStyle={{fontSize:11}}/></ComposedChart></ResponsiveContainer></div>
+          <Legend wrapperStyle={{fontSize:17}}/></ComposedChart></ResponsiveContainer></div>
           <div style={{display:"flex",gap:6,marginTop:4,flexShrink:0}}>
             <button style={{...S.btn,fontSize:12,background:T.boxBg}} onClick={()=>{const o={device:"AR200.B",kontroler:APP_VER,profile:profileName,segments:segs};const b=new Blob([JSON.stringify(o,null,2)],{type:"application/json"});dlBlob(b,`profil_${(profileName||"noname").replace(/\s+/g,"_")}.json`);addLog(`Eksport profilu "${profileName}"`,"export");toast("JSON OK","success")}}>📥 JSON</button>
             <button style={{...S.btn,fontSize:12,background:T.boxBg}} onClick={()=>{if(mb.progStatus==="RUN"){doStop()}else{setShowConfirm(true)}}}>{mb.progStatus==="RUN"?"⏹ Stop":"▶ Start"}</button></div></div></div></div>
