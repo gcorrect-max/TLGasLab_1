@@ -39,7 +39,7 @@ const JSON_WEB2LV=[
   {type:"config_request",desc:"Żądanie konfiguracji przy starcie",ex:{type:"config_request",ts:"ISO",data:{},user:"admin"}},
 ];
 
-function initMb(){return{pv1:25+Math.random()*2,pv2:23+Math.random()*2,pv1Name:"Termopara 1 (piec)",pv2Name:"Termopara 2 (próbka)",resistance:null,gasMixTemp:null,gasMixHumidity:null,ch3:0,mv:0,mvManual:50,manualMode:false,sp1:100,sp2:60,sp3:80,out1:false,out2:false,outAnalog:0,alarm1:false,alarm2:false,alarmSTB:false,alarmLATCH:false,regMode:"PID",regStatus:"RUN",pidPb:5,pidTi:120,pidTd:30,pidI:0,pidPrevE:0,limitPower:100,hyst:1,progStage:0,progStatus:"STOP",progElapsed:0,modbusAddr:1,baudRate:9600,charFmt:"8N1",ethIP:"192.168.1.100",ethPort:502,mqttBroker:"192.168.1.1",mqttPort:1883,mqttTopic:"LAB/ThinFilm",recStatus:"REC",recInterval:5,memUsed:42,rtc:new Date(),inType1:"TC-K",wsUrl:"ws://localhost:8080",wsConnected:false,
+function initMb(){return{pv1:25+Math.random()*2,pv2:23+Math.random()*2,pv1Name:"Termopara 1 (piec)",pv2Name:"Termopara 2 (próbka)",resistance:null,gasMixTemp:null,gasMixHumidity:null,ch3:0,mv:0,mvManual:50,manualMode:false,sp1:100,sp2:60,sp3:80,out1:false,out2:false,outAnalog:0,alarm1:false,alarm2:false,alarmSTB:false,alarmLATCH:false,regMode:"PID",regStatus:"RUN",pidPb:5,pidTi:120,pidTd:30,pidI:0,pidPrevE:0,limitPower:100,hyst:1,progStage:0,progStatus:"STOP",progElapsed:0,modbusAddr:1,baudRate:9600,charFmt:"8N1",ethIP:"192.168.1.100",ethPort:502,mqttBroker:"192.168.1.1",mqttPort:1883,mqttTopic:"LAB/ThinFilm",recStatus:"REC",recInterval:5,memUsed:42,rtc:new Date(),inType1:"TC-K",wsUrl:(()=>{try{return localStorage.getItem("tfl_wsurl")||"ws://localhost:6060"}catch{return"ws://localhost:6060"}})(),wsConnected:false,
 mfc:[
   {id:1,name:"MFC-1",gas:"N\u2082",gasComposition:"100% N\u2082",ip:"192.168.1.101",port:502,slaveAddr:1,maxFlow:500,unit:"sccm",pv:0,sp:0,enabled:false},
   {id:2,name:"MFC-2",gas:"Ar",gasComposition:"100% Ar",ip:"192.168.1.102",port:502,slaveAddr:1,maxFlow:200,unit:"sccm",pv:0,sp:0,enabled:false},
@@ -646,12 +646,13 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
         {customSvg&&<div style={{...S.box,marginTop:10,maxHeight:180,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
           <div dangerouslySetInnerHTML={{__html:customSvg}} style={{maxWidth:"100%",maxHeight:170}}/></div>}</div>
     </div>}
-    {tab==="ws"&&<div style={S.card}><div style={S.title}><span>WebSocket ↔ LabVIEW</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-      <F label="WebSocket URL"><input value={mb.wsUrl} onChange={e=>setMb(m=>({...m,wsUrl:e.target.value}))} style={S.input}/></F>
+    {tab==="ws"&&<div style={S.card}><div style={S.title}><span>WebSocket ↔ LabVIEW</span><span style={{fontSize:11,color:T.textD,fontWeight:400,letterSpacing:0}}>💾 URL zapisywany automatycznie</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+      <F label="WebSocket URL"><input value={mb.wsUrl} onChange={e=>setMb(m=>({...m,wsUrl:e.target.value}))} style={S.input} placeholder="ws://192.168.x.x:6060"/></F>
       <F label="Status"><div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}><Led on={mb.wsConnected} color="#00cc66" label={mb.wsConnected?"Połączony":"Rozłączony"} T={T}/></div></F></div>
       <p style={{color:T.textM,fontSize:13,margin:"8px 0"}}>LabVIEW = WebSocket Server. Kontroler = klient. Dane JSON. Auto-reconnect z exponential backoff.</p>
-      <div style={{display:"flex",gap:6}}><button style={{...S.btn,background:T.boxBg,opacity:mb.wsConnected?.5:1}} disabled={mb.wsConnected} onClick={()=>connectWs?.({manual:true})}>🔌 Połącz</button>
-        <button style={{...S.btn,background:T.boxBg,opacity:!mb.wsConnected?.5:1}} disabled={!mb.wsConnected} onClick={()=>disconnectWs?.("manual")}>⏏ Rozłącz</button></div></div>}
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}><button style={{...S.btn,background:T.boxBg,opacity:mb.wsConnected?.5:1}} disabled={mb.wsConnected} onClick={()=>connectWs?.({manual:true})}>🔌 Połącz</button>
+        <button style={{...S.btn,background:T.boxBg,opacity:!mb.wsConnected?.5:1}} disabled={!mb.wsConnected} onClick={()=>disconnectWs?.("manual")}>⏏ Rozłącz</button>
+        <button style={{...S.btn,background:"#1a4a2e",border:"1px solid #2d7a4a"}} onClick={()=>{disconnectWs?.("manual");setTimeout(()=>connectWs?.({manual:true}),700);addLog?.(`WS URL zmieniony na: ${mb.wsUrl}`,"ws");toast("Rozłączanie → reconnect z nowym URL…","info")}}>🔄 Zastosuj URL</button></div></div>}
     {tab==="db"&&<div style={S.card}><div style={S.title}><span>InfluxDB v2 — Time Series</span>
       <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:8,height:8,borderRadius:"50%",background:influxOk?"#8844ff":"#555"}}/><span style={{fontSize:12,color:influxOk?T.textA:T.textD}}>{influxOk?"Połączono":"Brak połączenia"}</span></div></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -1114,8 +1115,8 @@ export default function App(){
   const addLog=useCallback((msg,cat="info")=>{sLogs(l=>[...l.slice(-500),{time:new Date().toLocaleTimeString("pl-PL"),msg,cat,user:curUser.current}])},[]);
   const clearLogs=useCallback(()=>{sLogs([]);toast("Logi wyczyszczone","info")},[toast]);
 
-  // ── WebSocket URL sync ──
-  useEffect(()=>{wsUrlRef.current=mb.wsUrl},[mb.wsUrl]);
+  // ── WebSocket URL sync + persist to localStorage ──
+  useEffect(()=>{wsUrlRef.current=mb.wsUrl;try{localStorage.setItem("tfl_wsurl",mb.wsUrl)}catch{}},[mb.wsUrl]);
 
   // ── applyLvMessage: handle incoming LabVIEW messages ──
   const applyLvMessage=useCallback((msg)=>{
