@@ -606,8 +606,8 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
           <F key={l} label={l}><input type={t} defaultValue={v} style={S.input} onChange={e=>setMb(m=>({...m,[k]:t==="number"?parseFloat(e.target.value)||0:e.target.value}))}/></F>)}</div>
         <button style={{...S.btn,marginTop:8,background:T.boxBg}} onClick={()=>{addLog("Config kontroler zapisana","config");toast("OK","success")}}>💾 Zapisz</button></div>}
     {tab==="ui_names"&&<div style={S.card}><div style={S.title}><span>Nazwy kanałów temperaturowych</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-        <div style={S.box}><div style={S.lbl}>Nazwa PV1 (termopara 1)</div><StableInput value={mb.pv1Name} onCommit={v=>setMb(m=>({...m,pv1Name:v}))} placeholder="Termopara 1 (piec)"/></div>
-        <div style={S.box}><div style={S.lbl}>Nazwa PV2 (termopara 2)</div><StableInput value={mb.pv2Name} onCommit={v=>setMb(m=>({...m,pv2Name:v}))} placeholder="Termopara 2 (próbka)"/></div></div></div>}
+        <div style={S.box}><div style={S.lbl}>Nazwa termopary 1</div><StableInput value={mb.pv1Name} onCommit={v=>setMb(m=>({...m,pv1Name:v}))} placeholder="Termopara 1 (piec)"/></div>
+        <div style={S.box}><div style={S.lbl}>Nazwa termopary 2</div><StableInput value={mb.pv2Name} onCommit={v=>setMb(m=>({...m,pv2Name:v}))} placeholder="Termopara 2 (próbka)"/></div></div></div>}
     {tab==="mfc"&&<div style={{display:"grid",gap:12}}>
       <div style={{...S.title,margin:0,border:"none",paddingBottom:0}}><span>Przepływomierze MKS — MODBUS Ethernet</span><span style={{fontSize:12,color:T.textD}}>{mb.mfc.filter(d=>d.enabled).length}/{mb.mfc.length} aktywnych</span></div>
       {mb.mfc.map((d,i)=>(<div key={d.id} style={{...S.card,opacity:d.enabled?1:.6}}>
