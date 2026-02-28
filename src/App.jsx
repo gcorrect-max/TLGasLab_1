@@ -51,7 +51,7 @@ function mkS(T){return{
   card:{background:T.cardBg,borderRadius:12,padding:16,border:`1px solid ${T.cardBorder}`},
   title:{color:T.titleC,fontSize:14,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:12,paddingBottom:8,borderBottom:`1px solid ${T.titleB}`,display:"flex",justifyContent:"space-between",alignItems:"center"},
   input:{width:"100%",padding:"8px 10px",borderRadius:6,background:T.inputBg,border:`1px solid ${T.inputBorder}`,color:T.inputText,fontSize:15,outline:"none"},
-  btn:{padding:"10px 18px",borderRadius:8,border:"none",color:"#fff",fontSize:14,fontWeight:600,cursor:"pointer"},
+  btn:{padding:"10px 18px",borderRadius:8,border:"none",color:T.textB,fontSize:14,fontWeight:600,cursor:"pointer"},
   box:{background:T.boxBg,borderRadius:8,padding:10,border:`1px solid ${T.boxBorder}`},
   lbl:{color:T.textM,fontSize:12,fontWeight:600,marginBottom:4},
   code:{background:T.codeBg,border:`1px solid ${T.codeB}`,borderRadius:8,padding:12,fontFamily:"monospace",fontSize:13,color:T.codeT,overflowX:"auto",whiteSpace:"pre-wrap",maxHeight:180,overflowY:"auto"},
@@ -652,7 +652,7 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
       <p style={{color:T.textM,fontSize:13,margin:"8px 0"}}>LabVIEW = WebSocket Server. Kontroler = klient. Dane JSON. Auto-reconnect z exponential backoff.</p>
       <div style={{display:"flex",gap:6,flexWrap:"wrap"}}><button style={{...S.btn,background:T.boxBg,opacity:mb.wsConnected?.5:1}} disabled={mb.wsConnected} onClick={()=>connectWs?.({manual:true})}>🔌 Połącz</button>
         <button style={{...S.btn,background:T.boxBg,opacity:!mb.wsConnected?.5:1}} disabled={!mb.wsConnected} onClick={()=>disconnectWs?.("manual")}>⏏ Rozłącz</button>
-        <button style={{...S.btn,background:"#1a4a2e",border:"1px solid #2d7a4a"}} onClick={()=>{disconnectWs?.("manual");setTimeout(()=>connectWs?.({manual:true}),700);addLog?.(`WS URL zmieniony na: ${mb.wsUrl}`,"ws");toast("Rozłączanie → reconnect z nowym URL…","info")}}>🔄 Zastosuj URL</button></div></div>}
+        <button style={{...S.btn,background:"#1a4a2e",border:"1px solid #2d7a4a",color:"#fff"}} onClick={()=>{disconnectWs?.("manual");setTimeout(()=>connectWs?.({manual:true}),700);addLog?.(`WS URL zmieniony na: ${mb.wsUrl}`,"ws");toast("Rozłączanie → reconnect z nowym URL…","info")}}>🔄 Zastosuj URL</button></div></div>}
     {tab==="db"&&<div style={S.card}><div style={S.title}><span>InfluxDB v2 — Time Series</span>
       <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:8,height:8,borderRadius:"50%",background:influxOk?"#8844ff":"#555"}}/><span style={{fontSize:12,color:influxOk?T.textA:T.textD}}>{influxOk?"Połączono":"Brak połączenia"}</span></div></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
