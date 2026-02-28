@@ -281,18 +281,18 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
           <input type="checkbox" checked={chartVis[k]} onChange={()=>togVis(k)} style={{width:14,height:14,accentColor:c}}/>{d?.gas||`MFC${i}`}</label>)})}</div></div>
 
   <div style={{...crdL,gridColumn:2,gridRow:2}}><div style={{...S.title,flexShrink:0}}><span>Sterowanie eksperymentem</span>
-    <span style={{fontSize:12,color:mb.progStatus==="RUN"?"#00cc66":T.textD}}>{mb.progStatus==="RUN"?`▶ Etap ${mb.progStage}`:"STOP"}</span></div>
+    <span style={{fontSize:16,color:mb.progStatus==="RUN"?"#00cc66":T.textD}}>{mb.progStatus==="RUN"?`▶ Etap ${mb.progStage}`:"STOP"}</span></div>
     <div style={{flex:1,minHeight:0,overflowY:"auto",display:"flex",flexDirection:"column",gap:8,padding:"4px 0"}}>
       <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
         <input ref={fileRef} type="file" accept=".json" onChange={handleFile} style={{display:"none"}}/>
-        <button onClick={()=>fileRef.current?.click()} style={{...S.btn,background:T.boxBg,fontSize:13,padding:"8px 14px"}}>📂 Załaduj eksperyment</button>
-        <button onClick={exportExp} style={{...S.btn,background:T.boxBg,fontSize:13,padding:"8px 14px"}}>📥 Eksportuj bieżący</button></div>
-      <div style={{fontSize:12,color:T.textM,lineHeight:1.5}}>
+        <button onClick={()=>fileRef.current?.click()} style={{...S.btn,background:T.boxBg,fontSize:17,padding:"8px 14px"}}>📂 Załaduj eksperyment</button>
+        <button onClick={exportExp} style={{...S.btn,background:T.boxBg,fontSize:17,padding:"8px 14px"}}>📥 Eksportuj bieżący</button></div>
+      <div style={{fontSize:15,color:T.textM,lineHeight:1.5}}>
         Plik JSON zawiera profil temperaturowy, dane próbki i operatora. Załadowanie pliku otworzy podgląd z potwierdzeniem przed uruchomieniem.</div>
       {alog.length>0&&<div style={{borderTop:`1px solid ${T.titleB}`,paddingTop:6}}>
-        <div style={{fontSize:12,fontWeight:600,color:T.textM,marginBottom:4}}>Ostatnie alarmy ({alog.length})</div>
-        {alog.slice(-6).reverse().map((a,i)=>(<div key={i} style={{display:"flex",gap:5,padding:"2px 5px",borderBottom:`1px solid ${T.tblB}`,color:a.sev==="danger"?"#ff7788":"#ffbb55",fontSize:12}}>
-          <span style={{color:T.textD,fontFamily:"monospace",fontSize:11}}>{a.time}</span><span>{a.msg}</span></div>))}</div>}
+        <div style={{fontSize:16,fontWeight:600,color:T.textM,marginBottom:4}}>Ostatnie alarmy ({alog.length})</div>
+        {alog.slice(-6).reverse().map((a,i)=>(<div key={i} style={{display:"flex",gap:5,padding:"2px 5px",borderBottom:`1px solid ${T.tblB}`,color:a.sev==="danger"?"#ff7788":"#ffbb55",fontSize:15}}>
+          <span style={{color:T.textD,fontFamily:"monospace",fontSize:13}}>{a.time}</span><span>{a.msg}</span></div>))}</div>}
     </div></div>
 
   <div style={{...S.card,gridColumn:"1 / -1",display:"none"}}>
@@ -1292,19 +1292,19 @@ export default function App(){
             background:ac===pg.id?T.actTab:"transparent",color:ac===pg.id?T.textA:T.textM,fontSize:13,fontWeight:ac===pg.id?700:500,
             borderLeft:ac===pg.id?`3px solid ${T.textA}`:"3px solid transparent"}}><span style={{marginRight:4}}>{pg.icon}</span>{pg.label}</button>))}
           <div style={{marginTop:8,padding:6,borderTop:`1px solid ${T.titleB}`}}>
-            <div style={{fontSize:10,color:T.textD,fontWeight:600,marginBottom:2}}>{mb.pv1Name||"PV1"}</div>
-            <div style={{fontSize:19,fontWeight:700,color:mb.alarm1?T.pv1A:T.pv1,fontFamily:"monospace"}}>{mb.pv1.toFixed(1)}<span style={{fontSize:11,color:T.textD}}>°C</span></div>
-            <div style={{fontSize:11,color:T.textD}}>Nastawa:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</div>
-            <div style={{fontSize:10,color:T.textD,fontWeight:600,marginTop:5,marginBottom:2}}>{mb.pv2Name||"PV2"}</div>
-            <div style={{fontSize:16,fontWeight:600,color:"#aa44ff",fontFamily:"monospace"}}>{mb.pv2.toFixed(1)}<span style={{fontSize:11,color:T.textD}}>°C</span></div>
+            <div style={{fontSize:14,color:T.textD,fontWeight:600,marginBottom:2}}>{mb.pv1Name||"PV1"}</div>
+            <div style={{fontSize:19,fontWeight:700,color:mb.alarm1?T.pv1A:T.pv1,fontFamily:"monospace"}}>{mb.pv1.toFixed(1)}<span style={{fontSize:15,color:T.textD}}>°C</span></div>
+            <div style={{fontSize:15,color:T.textD}}>Nastawa:{mb.sp1.toFixed(1)} MV:{(mb.manualMode?mb.mvManual:mb.mv).toFixed(0)}%</div>
+            <div style={{fontSize:14,color:T.textD,fontWeight:600,marginTop:5,marginBottom:2}}>{mb.pv2Name||"PV2"}</div>
+            <div style={{fontSize:16,fontWeight:600,color:"#aa44ff",fontFamily:"monospace"}}>{mb.pv2.toFixed(1)}<span style={{fontSize:15,color:T.textD}}>°C</span></div>
           </div>
           <div style={{marginTop:8,padding:6,borderTop:`1px solid ${T.titleB}`}}>
-            <div style={{color:T.textD,fontSize:10,fontWeight:700,letterSpacing:1,marginBottom:4,textTransform:"uppercase"}}>Przepływ</div>
+            <div style={{color:T.textD,fontSize:14,fontWeight:700,letterSpacing:1,marginBottom:4,textTransform:"uppercase"}}>Przepływ</div>
             <div style={{display:"flex",flexDirection:"column",gap:3}}>
               {mb.mfc.map((d,i)=>{const col=["#00aaff","#ffaa00","#00cc66","#cc44ff"][i];return(
                 <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",opacity:d.enabled?1:.35}}>
-                  <span style={{fontSize:11,color:col,fontWeight:600}}>{d.gas}</span>
-                  <span style={{fontSize:12,fontFamily:"monospace",color:d.enabled?col:T.textD}}>{d.pv.toFixed(1)}<span style={{fontSize:9,color:T.textD}}> {d.unit}</span></span>
+                  <span style={{fontSize:15,color:col,fontWeight:600}}>{d.gas}</span>
+                  <span style={{fontSize:16,fontFamily:"monospace",color:d.enabled?col:T.textD}}>{d.pv.toFixed(1)}<span style={{fontSize:12,color:T.textD}}> {d.unit}</span></span>
                 </div>)})}
             </div></div></nav>
         <main style={{flex:1,padding:12,minHeight:0,overflowY:"auto",overflowX:"hidden"}}>
