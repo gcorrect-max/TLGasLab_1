@@ -273,12 +273,12 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
     </ComposedChart></ResponsiveContainer></div>
     <div style={{display:"flex",gap:6,flexWrap:"wrap",padding:"4px 0",flexShrink:0,alignItems:"center"}}>
       {[["profSP","#555577","Profil temp."],["pv1","#ff6644",mb.pv1Name||"PV1"],["pv2","#aa44ff",mb.pv2Name||"PV2"],["sp1","#00cc66","Nastawa temp."],["mv","#ffaa00","MV%"],["gasMixTemp","#ff88cc","T miesz."],["gasMixHumidity","#44ddff","RH miesz."]].map(([k,c,l])=>(
-        <label key={k} style={{display:"flex",alignItems:"center",gap:3,cursor:"pointer",fontSize:11,color:chartVis[k]?c:T.textD,opacity:chartVis[k]?1:.45,userSelect:"none"}}>
-          <input type="checkbox" checked={chartVis[k]} onChange={()=>togVis(k)} style={{width:10,height:10,accentColor:c}}/>{l}</label>))}
-      <span style={{color:T.titleB,margin:"0 2px"}}>│</span>
+        <label key={k} style={{display:"flex",alignItems:"center",gap:5,cursor:"pointer",fontSize:17,color:chartVis[k]?c:T.textD,opacity:chartVis[k]?1:.45,userSelect:"none"}}>
+          <input type="checkbox" checked={chartVis[k]} onChange={()=>togVis(k)} style={{width:14,height:14,accentColor:c}}/>{l}</label>))}
+      <span style={{color:T.titleB,margin:"0 4px"}}>│</span>
       {[[1,"#00aaff"],[2,"#ffaa00"],[3,"#00cc66"],[4,"#cc44ff"]].map(([i,c])=>{const k=`mfc${i}`;const d=mb.mfc[i-1];return(
-        <label key={k} style={{display:"flex",alignItems:"center",gap:3,cursor:"pointer",fontSize:11,color:chartVis[k]?c:T.textD,opacity:chartVis[k]?1:.45,userSelect:"none"}}>
-          <input type="checkbox" checked={chartVis[k]} onChange={()=>togVis(k)} style={{width:10,height:10,accentColor:c}}/>{d?.gas||`MFC${i}`}</label>)})}</div></div>
+        <label key={k} style={{display:"flex",alignItems:"center",gap:5,cursor:"pointer",fontSize:17,color:chartVis[k]?c:T.textD,opacity:chartVis[k]?1:.45,userSelect:"none"}}>
+          <input type="checkbox" checked={chartVis[k]} onChange={()=>togVis(k)} style={{width:14,height:14,accentColor:c}}/>{d?.gas||`MFC${i}`}</label>)})}</div></div>
 
   <div style={{...crdL,gridColumn:2,gridRow:2}}><div style={{...S.title,flexShrink:0}}><span>Sterowanie eksperymentem</span>
     <span style={{fontSize:12,color:mb.progStatus==="RUN"?"#00cc66":T.textD}}>{mb.progStatus==="RUN"?`▶ Etap ${mb.progStage}`:"STOP"}</span></div>
