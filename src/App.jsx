@@ -133,7 +133,7 @@ const confirmExp=()=>{if(!pendingExp)return;const ex=pendingExp;
   toast("Eksperyment uruchomiony!","success");setShowConfirm(false);setPendingExp(null)};
 
 const pe=pendingExp;
-return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:"1fr auto",gap:10,height:"100%"}}>
+return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:"1fr 2fr",gap:10,height:"100%"}}>
   <div style={{...crdL,gridColumn:1,gridRow:"1 / 3",minHeight:0}}><div style={{...S.title,flexShrink:0}}><span>Schemat stanowiska</span></div>
     <div style={{flex:1,minHeight:0,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",borderRadius:6}}>
     {customSvg?<div dangerouslySetInnerHTML={{__html:customSvg}} style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center"}}/>:
