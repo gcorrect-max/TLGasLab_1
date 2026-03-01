@@ -133,7 +133,7 @@ const confirmExp=()=>{if(!pendingExp)return;const ex=pendingExp;
   toast("Eksperyment uruchomiony!","success");setShowConfirm(false);setPendingExp(null)};
 
 const pe=pendingExp;
-return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:"1fr 2fr",gap:10,height:"100%"}}>
+return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:"3fr 2fr",gap:10,height:"100%"}}>
   <div style={{...crdL,gridColumn:1,gridRow:"1 / 3",minHeight:0}}><div style={{...S.title,flexShrink:0}}><span>Schemat stanowiska</span></div>
     <div style={{flex:1,minHeight:0,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",borderRadius:6}}>
     {customSvg?<div dangerouslySetInnerHTML={{__html:customSvg}} style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center"}}/>:
@@ -249,9 +249,9 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
 
   <div style={{...crdL,gridColumn:2,gridRow:1,minHeight:0}}><div style={{...S.title,flexShrink:0}}><span>Temperatura i przepływ — {profileName||"brak profilu"}</span>
     <div style={{display:"flex",alignItems:"center",gap:6}}>
-      <div style={{display:"flex",gap:3}}>{mb.mfc.map((d,i)=>d.enabled&&<span key={d.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:["#00aaff22","#ffaa0022","#00cc6622","#cc44ff22"][i],color:["#44bbff","#ffbb33","#33dd77","#dd66ff"][i],fontWeight:600}}>{d.gas}</span>)}</div>
-      <span style={{fontSize:12,color:mb.regStatus==="RUN"?"#00cc66":"#ff6644"}}>● {mb.regStatus}{mb.manualMode?" MAN":" AUTO"}</span></div></div>
-    <div style={{display:"flex",gap:3,marginBottom:4,flexShrink:0}}>{[["live","Na żywo"],["-1h","1h"],["-6h","6h"],["-24h","24h"],["-7d","7d"]].map(([k,l])=>(<button key={k} onClick={()=>loadRange(k)} style={{padding:"2px 7px",borderRadius:4,border:"none",fontSize:11,fontWeight:600,cursor:"pointer",background:histRange===k?T.actTab:T.boxBg,color:histRange===k?T.textA:T.textM}}>{l}</button>))}{histLoading&&<span style={{fontSize:11,color:T.textD,alignSelf:"center"}}>⏳</span>}</div>
+      <div style={{display:"flex",gap:3}}>{mb.mfc.map((d,i)=>d.enabled&&<span key={d.id} style={{fontSize:14,padding:"1px 5px",borderRadius:3,background:["#00aaff22","#ffaa0022","#00cc6622","#cc44ff22"][i],color:["#44bbff","#ffbb33","#33dd77","#dd66ff"][i],fontWeight:600}}>{d.gas}</span>)}</div>
+      <span style={{fontSize:15,color:mb.regStatus==="RUN"?"#00cc66":"#ff6644"}}>● {mb.regStatus}{mb.manualMode?" MAN":" AUTO"}</span></div></div>
+    <div style={{display:"flex",gap:3,marginBottom:4,flexShrink:0}}>{[["live","Na żywo"],["-1h","1h"],["-6h","6h"],["-24h","24h"],["-7d","7d"]].map(([k,l])=>(<button key={k} onClick={()=>loadRange(k)} style={{padding:"2px 7px",borderRadius:4,border:"none",fontSize:14,fontWeight:600,cursor:"pointer",background:histRange===k?T.actTab:T.boxBg,color:histRange===k?T.textA:T.textM}}>{l}</button>))}{histLoading&&<span style={{fontSize:14,color:T.textD,alignSelf:"center"}}>⏳</span>}</div>
     <div style={{flex:1,minHeight:0}}>
     <ResponsiveContainer width="100%" height="100%"><ComposedChart data={histRange==="live"?hist.slice(-80):histData}>
       <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/><XAxis dataKey="t" tick={{fill:T.tick,fontSize:17}} stroke={T.grid} interval="preserveStartEnd"/>
