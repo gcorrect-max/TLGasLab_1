@@ -2,7 +2,7 @@
   "pl": {
     "meta": {
       "title": "Pomoc i wsparcie",
-      "subtitle": "Dokumentacja i FAQ — Panel ThinFilmLab",
+      "subtitle": "Dokumentacja i FAQ — Stanowisko 2 badania cienkich warstw dla sensorów gazu",
       "contact_label": "Kontakt z pomocą techniczną",
       "contact_email": "support@thinfilm.lab",
       "contact_phone": "+48 123 456 789",
@@ -25,7 +25,8 @@
           {"q": "Jakie wykresy widzę na stronie głównej?", "a": "Wykres temperatury (PV1, PV2, SP1 i profil SP) oraz wykres przepływów MFC (4 kanały). Oba wykresy aktualizują się w czasie rzeczywistym co 1 sekundę."},
           {"q": "Do czego służy selektor czasu (Na żywo / 1h / 6h / 24h / 7d)?", "a": "Przełącza źródło danych wykresów: «Na żywo» = bufor pamięci (150 punktów), reszta = zapytania do InfluxDB z automatycznym downsamplingiem dla dłuższych zakresów."},
           {"q": "Co to jest schemat SVG na P1?", "a": "Interaktywny schemat instalacji pomiarowej z 4 liniami gazowymi MFC, piecem i czujnikami. Wartości PV/SP aktualizują się na żywo. Można wgrać własny schemat SVG w P4."},
-          {"q": "Jak działa lista alarmów?", "a": "Alarmy przychodzące z LabVIEW wyświetlają się na P1 z kolorami priorytetu: czerwony (danger), żółty (warning), niebieski (info). Alarm LATCH wymaga ręcznego skasowania na P2."}
+          {"q": "Jak działa lista alarmów?", "a": "Alarmy przychodzące z LabVIEW wyświetlają się na P1 z kolorami priorytetu: czerwony (danger), żółty (warning), niebieski (info). Alarm LATCH wymaga ręcznego skasowania w panelu Sterowanie (P1)."},
+          {"q": "Co to są pola res, tm, rhm i XLab na wykresie?", "a": "res = rezystancja sensora gazoczułego [Ω] wyświetlana w kółku 'Rezystancja' na schemacie. tm = temperatura mieszaniny gazów [°C] (czujnik Sensirion). rhm = wilgotność względna mieszaniny [%RH] (czujnik Sensirion). xlabzre/xlabzim = część rzeczywista i urojona impedancji z urządzenia XLab [Ω]. xlabr = rezystancja XLab [Ω]. Wszystkie widoczne w legendzie wykresu i zapisywane do InfluxDB."}
         ]
       },
       {
@@ -72,7 +73,7 @@
         "id": "influxdb", "title": "InfluxDB", "icon": "🗄️",
         "items": [
           {"q": "Jak uruchomić bazę InfluxDB?", "a": "Zainstaluj Docker Desktop, przejdź do katalogu projektu i uruchom: docker compose up -d. Baza startuje na porcie 8086 z automatyczną konfiguracją (org, bucket, token)."},
-          {"q": "Jakie dane są zapisywane?", "a": "Każdy punkt pomiarowy: pv1, pv2, sp1, mv, outAnalog, ch3, mfc1–mfc4 ze źródłem (ws/demo). Batching: 10 punktów lub co 5 sekund."},
+          {"q": "Jakie dane są zapisywane?", "a": "Każdy punkt pomiarowy: pv1 (temp. pieca), pv2 (temp. próbki), sp1 (nastawa), mv (moc), ch3, mfc1–mfc4 (przepływy), res (rezystancja sensora [Ω]), tm (temp. mieszaniny [°C]), rhm (wilgotność [%RH]), xlabzre/xlabzim/xlabr (dane XLab) ze źródłem (ws/demo). Batching: 10 punktów lub co 5 sekund."},
           {"q": "Czy dashboard działa bez Dockera?", "a": "Tak — brak połączenia z InfluxDB nie blokuje dashboardu. Dioda DB gaśnie, dane wyświetlają się z bufora pamięci (150 punktów). Zapytania historyczne (1h/6h/24h/7d) będą niedostępne."},
           {"q": "Jak otworzyć UI InfluxDB?", "a": "Kliknij «📊 InfluxDB UI» na zakładce Baza (P4) lub otwórz http://localhost:8086. Login: admin / thinfilm2026."}
         ]
@@ -91,7 +92,7 @@
   "en": {
     "meta": {
       "title": "Help & Support",
-      "subtitle": "Documentation & FAQ — ThinFilmLab Dashboard",
+      "subtitle": "Documentation & FAQ — Station 2 Thin Film Lab for Gas Sensors",
       "contact_label": "Contact Support",
       "contact_email": "support@thinfilm.lab",
       "contact_phone": "+48 123 456 789",
@@ -161,7 +162,7 @@
         "id": "influxdb", "title": "InfluxDB", "icon": "🗄️",
         "items": [
           {"q": "How to start the InfluxDB database?", "a": "Install Docker Desktop, navigate to the project directory and run: docker compose up -d. The database starts on port 8086 with automatic setup (org, bucket, token)."},
-          {"q": "What data is recorded?", "a": "Every measurement point: pv1, pv2, sp1, mv, outAnalog, ch3, mfc1–mfc4 with source tag (ws/demo). Batching: 10 points or every 5 seconds."},
+          {"q": "What data is recorded?", "a": "Every measurement point: pv1 (furnace temp), pv2 (sample temp), sp1 (setpoint), mv (power), ch3, mfc1–mfc4 (flows), res (sensor resistance [Ω]), tm (gas mix temp [°C]), rhm (humidity [%RH]), xlabzre/xlabzim/xlabr (XLab data) with source tag (ws/demo). Batching: 10 points or every 5 seconds."},
           {"q": "Does the dashboard work without Docker?", "a": "Yes — missing InfluxDB connection doesn't block the dashboard. The DB LED turns off, data is displayed from the in-memory buffer (150 points). Historical queries (1h/6h/24h/7d) will be unavailable."},
           {"q": "How to open the InfluxDB UI?", "a": "Click «📊 InfluxDB UI» on the Database tab (P4) or open http://localhost:8086. Login: admin / thinfilm2026."}
         ]
