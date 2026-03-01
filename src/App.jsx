@@ -196,7 +196,7 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
           <text x="728" y="207" fill={T.textA} fontFamily="Helvetica" fontSize="14px" textAnchor="middle" fontWeight="bold">{d?.gas||""}</text>
         </g>)})()}
         <rect x="273" y="580" width="200" height="72" fill="none" stroke={T.cardBorder} strokeWidth="2" rx="6"/>
-        <text x="373" y="598" fill={T.textM} fontFamily="Helvetica" fontSize="13px" textAnchor="middle">SENSIRION</text>
+        <text x="373" y="598" fill={T.textM} fontFamily="Helvetica" fontSize="10px" textAnchor="middle">PARAMETRY MIESZANINY GAZÓW</text>
         <text x="283" y="622" fill={T.text} fontFamily="Helvetica" fontSize="15px" fontWeight="bold">
           {"T: "}{mb.tm!=null?`${mb.tm.toFixed(1)} °C`:"— °C"}
         </text>
