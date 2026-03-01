@@ -196,15 +196,17 @@ Zapisuje punkt pomiarowy do InfluxDB.
   pv2: 45.2,            // Temperatura próbki (°C)
   sp1: 200.0,           // Setpoint 1 (°C)
   mv: 67.4,             // Moc regulatora (%)
-  outA: 12.8,           // Wyjście analogowe (mA)
   ch3: 100.7,           // Kanał 3
   mfc1: 120.5,          // Przepływ MFC-1 (sccm)
   mfc2: 85.0,           // Przepływ MFC-2 (sccm)
   mfc3: 0,              // Przepływ MFC-3 (sccm)
   mfc4: 0,              // Przepływ MFC-4 (sccm)
-  resistance: 125000,   // Stanowisko 2: Rezystancja sensora (Ω)
-  gasMixTemp: 24.8,     // Stanowisko 2: Temperatura mieszaniny gazowej (°C)
-  gasMixHumidity: 45.2, // Stanowisko 2: Wilgotność mieszaniny gazowej (%RH)
+  res: 125000,          // Rezystancja sensora gazoczułego (Ω)
+  tm: 24.8,             // Temperatura mieszaniny gazowej (°C) — Sensirion
+  rhm: 45.2,            // Wilgotność mieszaniny gazowej (%RH) — Sensirion
+  xlabzre: 51.2,        // XLab — impedancja Re(Z) (Ω)
+  xlabzim: -3.5,        // XLab — impedancja Im(Z) (Ω)
+  xlabr: 12500,         // XLab — rezystancja (Ω)
   _source: "ws"         // Tag: "ws" lub "demo"
 }
 ```

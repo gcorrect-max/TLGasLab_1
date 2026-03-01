@@ -503,8 +503,13 @@ LabVIEW wysyła co interwał (np. 1s).
     "ch3": 100.8,
     "sp1": 160.0,
     "mv": 67.4,
-    "outAnalog": 12.8,
     "manualMode": false,
+    "res": 125000.5,
+    "tm": 24.8,
+    "rhm": 45.2,
+    "xlabzre": 51.2,
+    "xlabzim": -3.5,
+    "xlabr": 12500,
     "mfc": [
       { "id": 1, "pv": 98.5, "sp": 100, "enabled": true },
       { "id": 2, "pv": 49.1, "sp": 50,  "enabled": true },
@@ -515,19 +520,24 @@ LabVIEW wysyła co interwał (np. 1s).
 }
 ```
 
-| Pole data | Typ | Opis |
-|-----------|-----|------|
-| `pv1` | float | Wartość procesu 1 — temperatura [°C] |
-| `pv2` | float | Wartość procesu 2 — przepływ [l/min] |
-| `ch3` | float | Kanał 3 (dowolny pomiar) |
-| `sp1` | float | Aktualny setpoint [°C] |
-| `mv` | float | Moc wyjściowa regulatora [%] |
-| `outAnalog` | float | Wyjście analogowe [mA] |
+| Pole data    | Typ     | Opis |
+|--------------|---------|------|
+| `pv1`        | float   | Wartość procesu 1 — temperatura [°C] |
+| `pv2`        | float   | Wartość procesu 2 — temperatura próbki [°C] |
+| `ch3`        | float   | Kanał 3 (dowolny pomiar) |
+| `sp1`        | float   | Aktualny setpoint [°C] |
+| `mv`         | float   | Moc wyjściowa regulatora [%] |
 | `manualMode` | boolean | Aktualny tryb |
-| `mfc` | array | Stan przepływomierzy MFC (opcjonalnie) |
-| `mfc[].id` | int | Numer MFC (1–4) |
-| `mfc[].pv` | float | Aktualny przepływ [sccm] |
-| `mfc[].sp` | float | Nastawa [sccm] |
+| `res`        | float   | Rezystancja sensora gazoczułego [Ω] |
+| `tm`         | float   | Temperatura mieszaniny gazowej [°C] (Sensirion) |
+| `rhm`        | float   | Wilgotność względna mieszaniny [%RH] (Sensirion) |
+| `xlabzre`    | float   | XLab — impedancja Re(Z) [Ω] |
+| `xlabzim`    | float   | XLab — impedancja Im(Z) [Ω] |
+| `xlabr`      | float   | XLab — rezystancja [Ω] |
+| `mfc`        | array   | Stan przepływomierzy MFC (opcjonalnie) |
+| `mfc[].id`   | int     | Numer MFC (1–4) |
+| `mfc[].pv`   | float   | Aktualny przepływ [sccm] |
+| `mfc[].sp`   | float   | Nastawa [sccm] |
 | `mfc[].enabled` | boolean | Czy MFC aktywny |
 
 **Efekt:** Aktualizuje wskaźniki, gauge'e, wykresy w czasie rzeczywistym. Dodaje punkt do historii (max 150). Zapisuje punkt do InfluxDB.
@@ -614,7 +624,6 @@ Wysyłany na żądanie lub po reconnect.
     "progStage": 0,
     "alarmSTB": false,
     "alarmLATCH": false,
-    "outAnalog": 10.2,
     "out1": true,
     "out2": false
   }

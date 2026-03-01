@@ -18,7 +18,7 @@ function dlBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.
 function nowISO(){return new Date().toISOString()}
 
 const JSON_LV2WEB=[
-  {type:"measurement_update",desc:"Pomiary co interwał",ex:{type:"measurement_update",ts:"ISO",data:{pv1:156.3,pv2:45.2,mv:67.4,out1:true,outAnalog:12.8,resistance:12500,gasMixTemp:23.4,gasMixHumidity:48.2,mfc:[{id:1,pv:120.5,sp:150,enabled:true},{id:2,pv:85.0,sp:100,enabled:true}]}}},
+  {type:"measurement_update",desc:"Pomiary co interwał",ex:{type:"measurement_update",ts:"ISO",data:{pv1:156.3,pv2:45.2,mv:67.4,out1:true,res:12500,tm:23.4,rhm:48.2,xlabzre:51.2,xlabzim:-3.5,xlabr:12500,mfc:[{id:1,pv:120.5,sp:150,enabled:true},{id:2,pv:85.0,sp:100,enabled:true}]}}},
   {type:"status_update",desc:"Status regulacji",ex:{type:"status_update",ts:"ISO",data:{regMode:"PID",regStatus:"RUN",progStage:2}}},
   {type:"alarm_event",desc:"Alarm",ex:{type:"alarm_event",ts:"ISO",data:{alarmId:"AL_HI",severity:"danger",pv1:210.5}}},
   {type:"profile_status",desc:"Status profilu",ex:{type:"profile_status",ts:"ISO",data:{profileName:"Spiekanie ZnO",stage:2,stageName:"Wygrzewanie"}}},
@@ -39,7 +39,7 @@ const JSON_WEB2LV=[
   {type:"config_request",desc:"Żądanie konfiguracji przy starcie",ex:{type:"config_request",ts:"ISO",data:{},user:"admin"}},
 ];
 
-function initMb(){return{pv1:25+Math.random()*2,pv2:23+Math.random()*2,pv1Name:"Termopara 1 (piec)",pv2Name:"Termopara 2 (próbka)",resistance:null,gasMixTemp:null,gasMixHumidity:null,ch3:0,mv:0,mvManual:50,manualMode:false,sp1:100,sp2:60,sp3:80,out1:false,out2:false,outAnalog:0,alarm1:false,alarm2:false,alarmSTB:false,alarmLATCH:false,regMode:"PID",regStatus:"RUN",pidPb:5,pidTi:120,pidTd:30,pidI:0,pidPrevE:0,limitPower:100,hyst:1,progStage:0,progStatus:"STOP",progElapsed:0,modbusAddr:1,baudRate:9600,charFmt:"8N1",ethIP:"192.168.1.100",ethPort:502,mqttBroker:"192.168.1.1",mqttPort:1883,mqttTopic:"LAB/ThinFilm",recStatus:"REC",recInterval:5,memUsed:42,rtc:new Date(),inType1:"TC-K",wsUrl:(()=>{try{return localStorage.getItem("tfl_wsurl")||"ws://localhost:6060"}catch{return"ws://localhost:6060"}})(),wsConnected:false,
+function initMb(){return{pv1:25+Math.random()*2,pv2:23+Math.random()*2,pv1Name:"Termopara 1 (piec)",pv2Name:"Termopara 2 (próbka)",res:null,tm:null,rhm:null,xlabzre:null,xlabzim:null,xlabr:null,ch3:0,mv:0,mvManual:50,manualMode:false,sp1:100,sp2:60,sp3:80,out1:false,out2:false,alarm1:false,alarm2:false,alarmSTB:false,alarmLATCH:false,regMode:"PID",regStatus:"RUN",pidPb:5,pidTi:120,pidTd:30,pidI:0,pidPrevE:0,limitPower:100,hyst:1,progStage:0,progStatus:"STOP",progElapsed:0,modbusAddr:1,baudRate:9600,charFmt:"8N1",ethIP:"192.168.1.100",ethPort:502,mqttBroker:"192.168.1.1",mqttPort:1883,mqttTopic:"LAB/ThinFilm",recStatus:"REC",recInterval:5,memUsed:42,rtc:new Date(),inType1:"TC-K",wsUrl:(()=>{try{return localStorage.getItem("tfl_wsurl")||"ws://localhost:6060"}catch{return"ws://localhost:6060"}})(),wsConnected:false,
 mfc:[
   {id:1,name:"MFC-1",gas:"N\u2082",gasComposition:"100% N\u2082",ip:"192.168.1.101",port:502,slaveAddr:1,maxFlow:500,unit:"sccm",pv:0,sp:0,enabled:false},
   {id:2,name:"MFC-2",gas:"Ar",gasComposition:"100% Ar",ip:"192.168.1.102",port:502,slaveAddr:1,maxFlow:200,unit:"sccm",pv:0,sp:0,enabled:false},
@@ -87,7 +87,7 @@ const crdL={...S.card,display:"flex",flexDirection:"column",overflow:"hidden"};
 const[showConfirm,setShowConfirm]=useState(false);
 const[pendingExp,setPendingExp]=useState(null);
 const fileRef=useRef(null);
-const[chartVis,setChartVis]=useState({profSP:true,pv1:true,pv2:true,sp1:true,mv:true,mfc1:true,mfc2:true,mfc3:true,mfc4:true,gasMixTemp:true,gasMixHumidity:true});
+const[chartVis,setChartVis]=useState({profSP:true,pv1:true,pv2:true,sp1:true,mv:true,mfc1:true,mfc2:true,mfc3:true,mfc4:true,tm:true,rhm:true,xlabzre:false,xlabzim:false,xlabr:true});
 const togVis=k=>setChartVis(v=>({...v,[k]:!v[k]}));
 const[histRange,setHistRange]=useState("live");
 const[histData,setHistData]=useState([]);
@@ -198,10 +198,10 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
         <rect x="273" y="580" width="200" height="72" fill="none" stroke={T.cardBorder} strokeWidth="2" rx="6"/>
         <text x="373" y="598" fill={T.textM} fontFamily="Helvetica" fontSize="13px" textAnchor="middle">SENSIRION</text>
         <text x="283" y="622" fill={T.text} fontFamily="Helvetica" fontSize="15px" fontWeight="bold">
-          {"T: "}{mb.gasMixTemp!=null?`${mb.gasMixTemp.toFixed(1)} °C`:"— °C"}
+          {"T: "}{mb.tm!=null?`${mb.tm.toFixed(1)} °C`:"— °C"}
         </text>
         <text x="283" y="644" fill={T.textA} fontFamily="Helvetica" fontSize="15px" fontWeight="bold">
-          {"RH: "}{mb.gasMixHumidity!=null?`${mb.gasMixHumidity.toFixed(1)} %`:"— %"}
+          {"RH: "}{mb.rhm!=null?`${mb.rhm.toFixed(1)} %`:"— %"}
         </text>
         <text x="81" y="335" fill={T.text} fontFamily="Helvetica" fontSize="16px" textAnchor="middle">Nawilzanie</text>
         <text x="81" y="355" fill={T.text} fontFamily="Helvetica" fontSize="16px" textAnchor="middle">powietrza</text>
@@ -224,8 +224,8 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
         <ellipse cx="248" cy="800" rx="80" ry="80" fill="none" stroke={T.text} strokeWidth="2"/>
         <rect x="188" y="766" width="120" height="64" fill="none" stroke={T.cardBorder} strokeWidth="3"/>
         <text x="248" y="782" fill={T.text} fontFamily="Helvetica" fontSize="16px" textAnchor="middle">Rezystancja</text>
-        {mb.resistance!=null
-          ?<text x="248" y="820" fill="#ff6666" fontFamily="Helvetica" fontSize="24px" textAnchor="middle" fontWeight="bold">{mb.resistance>=1e6?(mb.resistance/1e6).toFixed(2)+" MΩ":mb.resistance>=1e3?(mb.resistance/1e3).toFixed(1)+" kΩ":mb.resistance.toFixed(0)+" Ω"}</text>
+        {mb.res!=null
+          ?<text x="248" y="820" fill="#ff6666" fontFamily="Helvetica" fontSize="24px" textAnchor="middle" fontWeight="bold">{mb.res>=1e6?(mb.res/1e6).toFixed(2)+" MΩ":mb.res>=1e3?(mb.res/1e3).toFixed(1)+" kΩ":mb.res.toFixed(0)+" Ω"}</text>
           :<text x="248" y="820" fill={T.textD} fontFamily="Helvetica" fontSize="22px" textAnchor="middle">— Ω</text>
         }
         <rect x="78" y="720" width="60" height="20" fill="none" stroke={T.text} strokeWidth="3"/>
@@ -264,15 +264,16 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
       {chartVis.pv2&&<Line yAxisId="temp" type="monotone" dataKey="pv2" stroke="#aa44ff" strokeWidth={2} dot={false} name={mb.pv2Name||"PV2"} isAnimationActive={false}/>}
       {chartVis.sp1&&<Line yAxisId="temp" type="monotone" dataKey="sp1" stroke="#00cc66" strokeWidth={1.5} strokeDasharray="5 3" dot={false} name="Nastawa temp." isAnimationActive={false}/>}
       {chartVis.mv&&<Line yAxisId="temp" type="monotone" dataKey="mv" stroke="#ffaa00" strokeWidth={1} dot={false} name="MV%" isAnimationActive={false}/>}
-      {chartVis.gasMixTemp&&<Line yAxisId="temp" type="monotone" dataKey="gasMixTemp" stroke="#ff88cc" strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="T miesz." isAnimationActive={false}/>}
-      {chartVis.gasMixHumidity&&<Line yAxisId="rh" type="monotone" dataKey="gasMixHumidity" stroke="#44ddff" strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="RH miesz." isAnimationActive={false}/>}
+      {chartVis.tm&&<Line yAxisId="temp" type="monotone" dataKey="tm" stroke="#ff88cc" strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="T miesz." isAnimationActive={false}/>}
+      {chartVis.rhm&&<Line yAxisId="rh" type="monotone" dataKey="rhm" stroke="#44ddff" strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="RH miesz." isAnimationActive={false}/>}
+      {chartVis.xlabr&&<Line yAxisId="temp" type="monotone" dataKey="xlabr" stroke="#ffdd44" strokeWidth={1.5} strokeDasharray="2 3" dot={false} name="XLab R" isAnimationActive={false}/>}
       {chartVis.mfc1&&<Line yAxisId="flow" type="monotone" dataKey="mfc1" stroke="#00aaff" strokeWidth={2} dot={false} name={mb.mfc[0]?.gas||"MFC1"} isAnimationActive={false}/>}
       {chartVis.mfc2&&<Line yAxisId="flow" type="monotone" dataKey="mfc2" stroke="#ffaa00" strokeWidth={2} dot={false} name={mb.mfc[1]?.gas||"MFC2"} isAnimationActive={false}/>}
       {chartVis.mfc3&&<Line yAxisId="flow" type="monotone" dataKey="mfc3" stroke="#00cc66" strokeWidth={2} dot={false} name={mb.mfc[2]?.gas||"MFC3"} isAnimationActive={false}/>}
       {chartVis.mfc4&&<Line yAxisId="flow" type="monotone" dataKey="mfc4" stroke="#cc44ff" strokeWidth={2} dot={false} name={mb.mfc[3]?.gas||"MFC4"} isAnimationActive={false}/>}
     </ComposedChart></ResponsiveContainer></div>
     <div style={{display:"flex",gap:6,flexWrap:"wrap",padding:"4px 0",flexShrink:0,alignItems:"center"}}>
-      {[["profSP","#555577","Profil temp."],["pv1","#ff6644",mb.pv1Name||"PV1"],["pv2","#aa44ff",mb.pv2Name||"PV2"],["sp1","#00cc66","Nastawa temp."],["mv","#ffaa00","MV%"],["gasMixTemp","#ff88cc","T miesz."],["gasMixHumidity","#44ddff","RH miesz."]].map(([k,c,l])=>(
+      {[["profSP","#555577","Profil temp."],["pv1","#ff6644",mb.pv1Name||"PV1"],["pv2","#aa44ff",mb.pv2Name||"PV2"],["sp1","#00cc66","Nastawa temp."],["mv","#ffaa00","MV%"],["tm","#ff88cc","T miesz."],["rhm","#44ddff","RH miesz."],["xlabr","#ffdd44","XLab R"]].map(([k,c,l])=>(
         <label key={k} style={{display:"flex",alignItems:"center",gap:5,cursor:"pointer",fontSize:17,color:chartVis[k]?c:T.textD,opacity:chartVis[k]?1:.45,userSelect:"none"}}>
           <input type="checkbox" checked={chartVis[k]} onChange={()=>togVis(k)} style={{width:14,height:14,accentColor:c}}/>{l}</label>))}
       <span style={{color:T.titleB,margin:"0 4px"}}>│</span>
@@ -721,8 +722,8 @@ function P4({mb,setMb,toast,addLog,diagram,setDiagram,customSvg,setCustomSvg,use
 function P5({mb,hist,T}){const S=mkS(T);const[tab,sTab]=useState("lv2web");
   const[csvRange,setCsvRange]=useState("mem");const[csvBusy,setCsvBusy]=useState(false);
   const csvExport=async()=>{setCsvBusy(true);try{const src=csvRange==="mem"?hist:await queryHistory(csvRange);if(!src.length){setCsvBusy(false);return;}
-    const h="Czas,PV1,PV2,SP1,MV,OutAnalog,MFC1,MFC2,MFC3,MFC4\n";
-    const r=src.map(h=>`${h.t},${(h.pv1||0).toFixed(2)},${(h.pv2||0).toFixed(2)},${(h.sp1||0).toFixed(2)},${(h.mv||0).toFixed(1)},${(h.outA||0).toFixed(2)},${(h.mfc1||0).toFixed(1)},${(h.mfc2||0).toFixed(1)},${(h.mfc3||0).toFixed(1)},${(h.mfc4||0).toFixed(1)}`).join("\n");
+    const h="Czas,PV1,PV2,SP1,MV,Res_Ohm,T_mies_C,RH_mies_pct,XLab_Zre,XLab_Zim,XLab_R,MFC1,MFC2,MFC3,MFC4\n";
+    const r=src.map(h=>`${h.t},${(h.pv1||0).toFixed(2)},${(h.pv2||0).toFixed(2)},${(h.sp1||0).toFixed(2)},${(h.mv||0).toFixed(1)},${h.res!=null?h.res.toFixed(0):""},${h.tm!=null?h.tm.toFixed(2):""},${h.rhm!=null?h.rhm.toFixed(1):""},${h.xlabzre!=null?h.xlabzre.toFixed(3):""},${h.xlabzim!=null?h.xlabzim.toFixed(3):""},${h.xlabr!=null?h.xlabr.toFixed(0):""},${(h.mfc1||0).toFixed(1)},${(h.mfc2||0).toFixed(1)},${(h.mfc3||0).toFixed(1)},${(h.mfc4||0).toFixed(1)}`).join("\n");
     const b=new Blob([h+r],{type:"text/csv"});dlBlob(b,`thinfilm_${csvRange}_${Date.now()}.csv`)}catch{}setCsvBusy(false)};
   const schemas=tab==="lv2web"?JSON_LV2WEB:JSON_WEB2LV;
   return(<div style={{display:"grid",gap:12}}>
@@ -1129,7 +1130,7 @@ export default function App(){
         if(mfcData){next.mfc=m.mfc.map(d=>{const upd=mfcData.find(x=>x.id===d.id);return upd?{...d,pv:upd.pv??d.pv,sp:upd.sp??d.sp,enabled:upd.enabled??d.enabled}:d})}
         return next});
       const t=new Date();const label=`${String(t.getMinutes()).padStart(2,"0")}:${String(t.getSeconds()).padStart(2,"0")}`;
-      const hp={t:label,pv1:+(data.pv1??0),pv2:+(data.pv2??0),sp1:+(data.sp1??0),profSP:+(data.sp1??0),ch3:+(data.ch3??0),mv:+(data.mv??0),outA:+(data.outAnalog??0),gasMixTemp:data.gasMixTemp??null,gasMixHumidity:data.gasMixHumidity??null,resistance:data.resistance??null};
+      const hp={t:label,pv1:+(data.pv1??0),pv2:+(data.pv2??0),sp1:+(data.sp1??0),profSP:+(data.sp1??0),ch3:+(data.ch3??0),mv:+(data.mv??0),res:data.res??null,tm:data.tm??null,rhm:data.rhm??null,xlabzre:data.xlabzre??null,xlabzim:data.xlabzim??null,xlabr:data.xlabr??null};
       if(mfcData){mfcData.forEach(x=>{if(x.id>=1&&x.id<=4)hp[`mfc${x.id}`]=+(x.pv??0)})}
       setHist(h=>[...h,hp].slice(-150));writeDataPoint({...hp,_source:"ws"});return;}
     if(type==="status_update"){setMb(m=>({...m,...data}));return;}
@@ -1211,15 +1212,15 @@ export default function App(){
       if(pSt==="RUN"&&sg.length>0&&pStg>0&&pStg<=sg.length){const s=sg[pStg-1];sp1=s.sp;pEl+=1;const prev=pStg>1?sg[pStg-2].sp:25;const rt=Math.abs((s.sp-prev)/(Math.abs(s.ramp)||1))*60;if(pEl>=rt+s.hold*60){if(pStg<sg.length){pStg++;pEl=0}else{pSt="STOP";pStg=0;pEl=0}}}
       if(m.regStatus==="RUN"&&!m.manualMode){const e=sp1-pv1;const P=e/(m.pidPb||1);intg=m.pidTi>0?intg+(e*1)/m.pidTi:0;intg=Math.max(-50,Math.min(50,intg));const D=m.pidTd>0?((e-pErr)/1)*m.pidTd*.01:0;mv=Math.max(0,Math.min(m.limitPower,(P+intg+D)*20));pErr=e;pv1+=((mv/100)*.6-.12+n1*.15);}
       else if(m.regStatus==="RUN"&&m.manualMode){mv=m.mvManual;pv1+=(mv/100)*.6-.12+n1*.15;}else{pv1-=.08-n1*.1;mv=0;intg=0;}
-      const pv2=pv1-8+(Math.random()-.5)*3;const outAnalog=4+(Math.max(0,Math.min(1,pv1/500))*16);
+      const pv2=pv1-8+(Math.random()-.5)*3;
       const alarm1=pv1>sp1+m.hyst*5,alarm2=pv1<sp1-m.hyst*10,alarmSTB=alarm1||alarm2,alarmLATCH=m.alarmLATCH||alarmSTB;
       // MFC sim: use flow setpoints from current profile segment if running
       const segFlows=(pSt==="RUN"&&pStg>0&&pStg<=sg.length)?(sg[pStg-1].flow||[0,0,0,0]):null;
       const mfcSim=m.mfc.map((d,mi)=>{const sp=segFlows?segFlows[mi]:d.sp;if(!d.enabled&&!sp)return{...d,pv:0,sp:segFlows?sp:d.sp};const drift=(Math.random()-.5)*(d.maxFlow||100)*0.02;return{...d,sp:segFlows?sp:d.sp,pv:Math.max(0,Math.min(d.maxFlow||500,sp+drift))}});
-      return{...base,pv1,pv2,ch3:(pv1+pv2)/2,mv,sp1,out1:mv>3,out2:alarm1,outAnalog,alarm1,alarm2,alarmSTB,alarmLATCH,pidI:intg,pidPrevE:pErr,progStage:pStg,progStatus:pSt,progElapsed:pEl,mfc:mfcSim};});
+      return{...base,pv1,pv2,ch3:(pv1+pv2)/2,mv,sp1,out1:mv>3,out2:alarm1,alarm1,alarm2,alarmSTB,alarmLATCH,pidI:intg,pidPrevE:pErr,progStage:pStg,progStatus:pSt,progElapsed:pEl,mfc:mfcSim};});
     // History point (works for both demo and WS modes — WS updates via applyLvMessage also push history)
     const m=mbRef.current;if(!m.wsConnected){const now=new Date();const t=`${now.getMinutes().toString().padStart(2,"0")}:${now.getSeconds().toString().padStart(2,"0")}`;
-    const hp={t,pv1:m.pv1,pv2:m.pv2,sp1:m.sp1,profSP:m.sp1,ch3:m.ch3,mv:m.manualMode?m.mvManual:m.mv,outA:m.outAnalog};
+    const hp={t,pv1:m.pv1,pv2:m.pv2,sp1:m.sp1,profSP:m.sp1,ch3:m.ch3,mv:m.manualMode?m.mvManual:m.mv,res:m.res,tm:m.tm,rhm:m.rhm,xlabzre:m.xlabzre,xlabzim:m.xlabzim,xlabr:m.xlabr};
     m.mfc.forEach(d=>{hp[`mfc${d.id}`]=d.pv});
     setHist(h=>[...h.slice(-150),hp]);writeDataPoint({...hp,_source:"demo"});}
     if(m.alarm1&&!prevA.current.a1)addAlm(`HI: PV=${m.pv1.toFixed(1)}°C`,"danger");

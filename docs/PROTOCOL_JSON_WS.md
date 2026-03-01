@@ -552,12 +552,14 @@ Struktura identyczna jak `report_create`. Pole `id` identyfikuje istniejący rap
     "ch3": 100.8,
     "sp1": 160.0,
     "mv": 67.4,
-    "outAnalog": 12.8,
     "out1": true,
     "manualMode": false,
-    "resistance": 125000.5,
-    "gasMixTemp": 24.8,
-    "gasMixHumidity": 45.2,
+    "res": 125000.5,
+    "tm": 24.8,
+    "rhm": 45.2,
+    "xlabzre": 51.2,
+    "xlabzim": -3.5,
+    "xlabr": 12500,
     "mfc": [
       {"id": 1, "pv": 148.5, "sp": 150.0, "enabled": true},
       {"id": 2, "pv": 95.2, "sp": 100.0, "enabled": true}
@@ -566,32 +568,34 @@ Struktura identyczna jak `report_create`. Pole `id` identyfikuje istniejący rap
 }
 ```
 
-| Pole data         | Typ     | Jednostka | Opis                                              |
-|-------------------|---------|-----------|---------------------------------------------------|
-| `pv1`             | float   | °C        | Wartość procesu 1 — temperatura pieca              |
-| `pv2`             | float   | °C        | Wartość procesu 2 — temperatura próbki             |
-| `ch3`             | float   | —         | Kanał 3 (dowolny pomiar)                          |
-| `sp1`             | float   | °C        | Aktualny setpoint                                 |
-| `mv`              | float   | %         | Moc wyjściowa regulatora                          |
-| `outAnalog`       | float   | mA        | Wyjście analogowe (4–20 mA)                       |
-| `out1`            | boolean | —         | Wyjście cyfrowe 1 (grzanie)                       |
-| `manualMode`      | boolean | —         | Aktualny tryb                                     |
-| `resistance`      | float   | Ω         | **Stanowisko 2:** Rezystancja sensora gazoczułego  |
-| `gasMixTemp`      | float   | °C        | **Stanowisko 2:** Temperatura mieszaniny gazowej   |
-| `gasMixHumidity`  | float   | %RH       | **Stanowisko 2:** Wilgotność względna mieszaniny   |
-| `mfc`             | array   | —         | Tablica aktywnych MFC (opcjonalne)                |
-| `mfc[].id`        | number  | —         | ID przepływomierza (1–4)                          |
-| `mfc[].pv`        | float   | sccm      | Aktualny przepływ                                 |
-| `mfc[].sp`        | float   | sccm      | Setpoint przepływu                                |
-| `mfc[].enabled`   | boolean | —         | Czy aktywny                                       |
+| Pole data    | Typ     | Jednostka | Opis                                              |
+|--------------|---------|-----------|---------------------------------------------------|
+| `pv1`        | float   | °C        | Wartość procesu 1 — temperatura pieca              |
+| `pv2`        | float   | °C        | Wartość procesu 2 — temperatura próbki             |
+| `ch3`        | float   | —         | Kanał 3 (dowolny pomiar)                          |
+| `sp1`        | float   | °C        | Aktualny setpoint                                 |
+| `mv`         | float   | %         | Moc wyjściowa regulatora                          |
+| `out1`       | boolean | —         | Wyjście cyfrowe 1 (grzanie)                       |
+| `manualMode` | boolean | —         | Aktualny tryb                                     |
+| `res`        | float   | Ω         | Rezystancja sensora gazoczułego                   |
+| `tm`         | float   | °C        | Temperatura mieszaniny gazowej (Sensirion)        |
+| `rhm`        | float   | %RH       | Wilgotność względna mieszaniny gazowej (Sensirion)|
+| `xlabzre`    | float   | Ω         | XLab — impedancja część rzeczywista Re(Z)         |
+| `xlabzim`    | float   | Ω         | XLab — impedancja część urojona Im(Z)             |
+| `xlabr`      | float   | Ω         | XLab — rezystancja (moduł)                        |
+| `mfc`        | array   | —         | Tablica aktywnych MFC (opcjonalne)                |
+| `mfc[].id`   | number  | —         | ID przepływomierza (1–4)                          |
+| `mfc[].pv`   | float   | sccm      | Aktualny przepływ                                 |
+| `mfc[].sp`   | float   | sccm      | Setpoint przepływu                                |
+| `mfc[].enabled` | boolean | —      | Czy aktywny                                       |
 
 > Pole `mfc` jest **opcjonalne** — pojawia się tylko gdy przepływomierze MFC są skonfigurowane i aktywne.
-> Pola `resistance`, `gasMixTemp`, `gasMixHumidity` są specyficzne dla **Stanowiska 2** — Stanowisko 1 ich nie wysyła.
+> Pola `res`, `tm`, `rhm`, `xlabzre`, `xlabzim`, `xlabr` są specyficzne dla **obu stanowisk** z podłączonymi sensorami.
 
 **Efekt w UI:**
 - Aktualizuje wskaźniki, gauge'e, wykresy
 - Dodaje punkt do historii (ring buffer max 150 punktów)
-- Format punktu: `{t: "MM:SS", pv1, pv2, sp1, ch3, mv, outA, resistance, gasMixTemp, gasMixHumidity}`
+- Format punktu: `{t: "MM:SS", pv1, pv2, sp1, ch3, mv, res, tm, rhm, xlabzre, xlabzim, xlabr}`
 
 ---
 
@@ -717,7 +721,6 @@ Alias: `mb_snapshot`
     "alarmLATCH": false,
     "out1": true,
     "out2": false,
-    "outAnalog": 12.8,
     "alarm1": false,
     "alarm2": false
   }
@@ -881,9 +884,12 @@ Obiekt `mb` jest centralnym stanem sterującym całym UI. Poniżej wszystkie pol
 | `mv`              | float   | 0         | %         | Moc wyjściowa PID                                |
 | `mvManual`        | float   | 50        | %         | Moc ręczna (tryb MANUAL)                         |
 | `manualMode`      | boolean | false     | —         | `true` = tryb ręczny                             |
-| `resistance`      | float   | null      | Ω         | **Stanowisko 2:** Rezystancja sensora gazoczułego |
-| `gasMixTemp`      | float   | null      | °C        | **Stanowisko 2:** Temperatura mieszaniny gazowej  |
-| `gasMixHumidity`  | float   | null      | %RH       | **Stanowisko 2:** Wilgotność mieszaniny gazowej   |
+| `res`        | float   | null      | Ω         | Rezystancja sensora gazoczułego                   |
+| `tm`         | float   | null      | °C        | Temperatura mieszaniny gazowej (Sensirion)        |
+| `rhm`        | float   | null      | %RH       | Wilgotność względna mieszaniny gazowej (Sensirion)|
+| `xlabzre`    | float   | null      | Ω         | XLab — impedancja część rzeczywista Re(Z)         |
+| `xlabzim`    | float   | null      | Ω         | XLab — impedancja część urojona Im(Z)             |
+| `xlabr`      | float   | null      | Ω         | XLab — rezystancja (moduł)                        |
 
 ### Setpointy
 
@@ -895,11 +901,10 @@ Obiekt `mb` jest centralnym stanem sterującym całym UI. Poniżej wszystkie pol
 
 ### Wyjścia
 
-| Pole        | Typ     | Domyślnie | Opis                    |
-|-------------|---------|-----------|-------------------------|
-| `out1`      | boolean | false     | Wyjście cyfrowe 1       |
-| `out2`      | boolean | false     | Wyjście cyfrowe 2       |
-| `outAnalog` | float   | 0         | Wyjście analogowe [mA]  |
+| Pole   | Typ     | Domyślnie | Opis              |
+|--------|---------|-----------|-------------------|
+| `out1` | boolean | false     | Wyjście cyfrowe 1 |
+| `out2` | boolean | false     | Wyjście cyfrowe 2 |
 
 ### Alarmy
 

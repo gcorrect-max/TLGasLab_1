@@ -251,8 +251,7 @@ Po `hello` serwer powinien wysłać `state_snapshot` z aktualnym stanem:
     "alarmSTB": false,
     "alarmLATCH": false,
     "out1": true,
-    "out2": false,
-    "outAnalog": 12.8
+    "out2": false
   }
 }
 ```
@@ -401,7 +400,8 @@ Default:
 
 ```labview
 Odczytaj z SharedState:
-  pv1, pv2, ch3, sp1, mv, outAnalog, out1, manualMode
+  pv1, pv2, ch3, sp1, mv, out1, manualMode,
+  res, tm, rhm, xlabzre, xlabzim, xlabr
 
 Zbuduj JSON:
 {
@@ -413,9 +413,14 @@ Zbuduj JSON:
     "ch3": <ch3>,
     "sp1": <sp1>,
     "mv": <mv>,
-    "outAnalog": <outAnalog>,
     "out1": <out1>,
-    "manualMode": <manualMode>
+    "manualMode": <manualMode>,
+    "res": <res>,
+    "tm": <tm>,
+    "rhm": <rhm>,
+    "xlabzre": <xlabzre>,
+    "xlabzim": <xlabzim>,
+    "xlabr": <xlabr>
   }
 }
 
@@ -531,10 +536,9 @@ Zapisz do SharedState:
 
 Sterowanie wyjściami:
   out1 = (mv > 3)              // grzanie ON/OFF (SSR)
-  outAnalog = 4 + (pv1/500) × 16  // przeliczenie 4-20mA
 
 Zapisz do SharedState:
-  out1, out2, outAnalog
+  out1, out2
 ```
 
 ### Parametry dt

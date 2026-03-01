@@ -96,7 +96,7 @@ ale odpowiadają konkretnym funkcjom, które UI wymaga.
 8. **Ctrl_PID_Loop.vi**
    - PID + tryb MANUAL.
    - Aktualizacja MV, ograniczenia, histereza.
-   - Sterowanie wyjściami (out1/out2/outAnalog).
+   - Sterowanie wyjściami (out1/out2).
 
 9. **Ctrl_Profile_Engine.vi**
    - Obsługa etapów profilu (ramp/hold).
