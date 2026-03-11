@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart } from "recharts";
+import { createPortal } from "react-dom";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, ScatterChart, Scatter } from "recharts";
 import { writeDataPoint, queryHistory, influxHealth } from "./influx.js";
 
 const APP_NAME = "Stanowisko 2 badania cienkich warstw dla sensorów gazu";
@@ -10,7 +11,7 @@ const TH={
   light:{bg:"linear-gradient(180deg,#f0f4f8,#e8ecf0)",headerBg:"linear-gradient(90deg,#fff,#f5f7fa,#fff)",sidebarBg:"#f5f7fa",cardBg:"linear-gradient(145deg,#fff,#f8fafc)",cardBorder:"#d0d8e0",inputBg:"#fff",inputBorder:"#c0c8d0",inputText:"#2a3040",boxBg:"#f5f7fa",boxBorder:"#d0d8e0",text:"#2a3040",textM:"#5a6a7a",textD:"#8a9aaa",textB:"#1a2030",textA:"#0077b6",titleC:"#5a6a7a",titleB:"#e0e4e8",gTrack:"#e0e4e8",gText:"#1a2030",gUnit:"#6a7a8a",grid:"#e0e4e8",tick:"#8a9aaa",badgeOff:"#f0f2f4",badgeOffB:"#d8dce0",badgeOffT:"#a0a8b0",ledOff:"#d0d8e0",ledOffB:"#b0b8c0",ledOn:"#2a3040",ledOffT:"#8a9aaa",tblB:"#e8ecf0",tblH:"#f5f7fa",tblT:"#3a4a5a",scroll:"#c0c8d0",selBg:"#fff",logoBg:"linear-gradient(135deg,#0077b6,#005f8a)",userBg:"#e8ecf0",userB:"#d0d8e0",userT:"#4a6a8a",loBg:"#fff0f0",loB:"#f0c0c0",loT:"#cc4455",footBg:"#e8ecf0",footB:"#d0d8e0",footT:"#7a8a9a",footL:"#0077b6",svgBg:"#e8f0f8",svgS:"#b0c8d8",fFill:"#fff0ee",fStroke:"#d0a8a0",pv1:"#dd5522",pv1A:"#cc2233",pv2:"#2277cc",tEr:"#fff0f0",tOk:"#f0fff4",tIn:"#f0f6ff",loginBg:"linear-gradient(135deg,#e8ecf0,#f0f4f8,#e4e8ec)",loginCard:"linear-gradient(145deg,#fff,#f5f7fa)",loginCardB:"#d0d8e0",actTab:"linear-gradient(135deg,#e0f0ff,#d0e8f8)",ttBg:"#fff",codeBg:"#f5f7fa",codeB:"#d0d8e0",codeT:"#226644",logAlt:"#f5f7fa"}
 };
 
-const USERS_INIT={admin:{password:"admin123",role:"admin",name:"Administrator",firstName:"Jan",lastName:"Kowalski",email:"admin@lab.pl",phone:"+48 600 100 100",theme:"dark"},operator:{password:"oper123",role:"user",name:"Operator",firstName:"Anna",lastName:"Nowak",email:"operator@lab.pl",phone:"",theme:"dark"},student:{password:"stud123",role:"student",name:"Student",firstName:"",lastName:"",email:"",phone:"",theme:"dark"},guest:{password:"guest",role:"guest",name:"Gość",firstName:"",lastName:"",email:"",phone:"",theme:"dark"}};
+const USERS_INIT={admin:{password:"admin123",role:"admin",name:"Administrator",firstName:"Jan",lastName:"Kowalski",email:"admin@lab.pl",phone:"+48 600 100 100",theme:"light"},operator:{password:"oper123",role:"user",name:"Operator",firstName:"Anna",lastName:"Nowak",email:"operator@lab.pl",phone:"",theme:"light"},student:{password:"stud123",role:"student",name:"Student",firstName:"",lastName:"",email:"",phone:"",theme:"light"},guest:{password:"guest",role:"guest",name:"Gość",firstName:"",lastName:"",email:"",phone:"",theme:"light"}};
 const ROLE_ACCESS={admin:[1,2,3,7,8,4,5,6,9],user:[1,2,3,7,8,4,5,6,9],student:[1,2,3,7,8,9],guest:[1,9]};
 
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
@@ -353,7 +354,7 @@ return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRow
 </div>);}
 
 // ═══ P2 USTAWIENIA TEMP ═══
-function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPage,sendCmd,T}){const S=mkS(T);const TT={contentStyle:{background:T.ttBg,border:`1px solid ${T.cardBorder}`,borderRadius:8,fontSize:13,color:T.text}};
+function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPage,sendCmd,sample,activeExpIdRef,T}){const S=mkS(T);const TT={contentStyle:{background:T.ttBg,border:`1px solid ${T.cardBorder}`,borderRadius:8,fontSize:13,color:T.text}};
   const[showConfirm,setShowConfirm]=useState(false);
   const[nastawyOpen,setNastawyOpen]=useState(false);const[regulacjaOpen,setRegulacjaOpen]=useState(false);
   const[selSeg,setSelSeg]=useState(null);
@@ -364,8 +365,11 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
   const profH="calc(63vh - 60px)";const btmH="calc(27vh - 20px)";
   const doStart=(full)=>{setShowConfirm(false);setMb(m=>({...m,progStatus:"RUN",progStage:1,progElapsed:0,sp1:segs[0]?.sp||m.sp1}));
     sendCmd?.("profile_command",{action:"start",profileName:profileName||"Profil_1",segments:segs});
+    fetch("http://localhost:3001/api/experiments",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({station:"S2",profileName:profileName||"Profil_1",sampleId:sample?.sampleId||"",operator:sample?.operator||"",status:"RUN",segments:segs})}).then(r=>r.json()).then(j=>{if(j.ok&&activeExpIdRef){activeExpIdRef.current=j.id;addLog(`MySQL EXP zapisany id:${j.id}`,"data")}}).catch(()=>{});
     addLog(`${full?"Pełny pomiar":"Profil temp."} START: ${profileName} E1: ${segs[0]?.name||""}`,"mode");toast(full?"Pełny pomiar uruchomiony":"Profil temperatury uruchomiony","success");if(full)goPage(1)};
-  const doStop=()=>{setMb(m=>({...m,progStatus:"STOP",progStage:0,progElapsed:0}));sendCmd?.("profile_command",{action:"stop",profileName:profileName||"Profil_1"});addLog(`Program STOP: ${profileName}`,"mode");toast("STOP","info")};
+  const doStop=()=>{setMb(m=>({...m,progStatus:"STOP",progStage:0,progElapsed:0}));sendCmd?.("profile_command",{action:"stop",profileName:profileName||"Profil_1"});
+    if(activeExpIdRef?.current){const eid=activeExpIdRef.current;fetch(`http://localhost:3001/api/experiments/${eid}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"DONE",finishedAt:new Date()})}).catch(()=>{});activeExpIdRef.current=null}
+    addLog(`Program STOP: ${profileName}`,"mode");toast("STOP","info")};
   return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:`${profH} ${btmH}`,gap:10}}>
     <div style={{...S.card,gridColumn:"1/-1",display:"flex",flexDirection:"column",overflow:"hidden"}}><div style={{...S.title,flexShrink:0}}><span>Profil temperaturowy — {profileName}</span>
       <span style={{fontSize:12,color:mb.progStatus==="RUN"?"#00cc66":T.textD}}>{mb.progStatus==="RUN"?`▶ E${mb.progStage} ${segs[mb.progStage-1]?.name||""}`:"STOP"}</span></div>
@@ -458,17 +462,17 @@ function P3({sample,setSample,toast,addLog,sendCmd,T}){const S=mkS(T);
   const dbHealth=async()=>{try{const r=await fetch(`${API}/health`);const j=await r.json();setDbStatus(j.ok?"ok":"err");toast(j.ok?"MySQL: połączono":"MySQL: błąd",j.ok?"success":"error")}catch(e){setDbStatus("err");toast(`MySQL: ${e.message}`,"error")}};
 
   const dbInsert=async()=>{if(!sample.sampleId){toast("Podaj ID próbki","error");return;}setDbLoading(true);
-    try{const r=await fetch(`${API}/samples`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(sample)});const j=await r.json();
+    try{const r=await fetch(`${API}/samples`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...sample,station:"S2"})});const j=await r.json();
       if(j.ok){toast(`MySQL INSERT OK (id:${j.id})`,"success");addLog(`MySQL INSERT: ${sample.sampleId} → id:${j.id}`,"data");sendCmd?.("sample_info",sample)}
       else{toast(`MySQL: ${j.error}`,"error")}}catch(e){toast(`MySQL: ${e.message}`,"error")}finally{setDbLoading(false)}};
 
   const dbSearch=async(field,query)=>{if(!query?.trim()){toast("Podaj frazę wyszukiwania","error");return;}setDbLoading(true);setShowResults(true);
-    try{const r=await fetch(`${API}/samples/search?field=${encodeURIComponent(field)}&query=${encodeURIComponent(query)}`);const j=await r.json();
+    try{const r=await fetch(`${API}/samples/search?field=${encodeURIComponent(field)}&query=${encodeURIComponent(query)}&station=S2`);const j=await r.json();
       if(j.ok){setDbRes(j.data);toast(`Znaleziono: ${j.count}`,"success");addLog(`MySQL SEARCH: ${field}="${query}" → ${j.count}`,"data")}
       else{toast(`MySQL: ${j.error}`,"error");setDbRes([])}}catch(e){toast(`MySQL: ${e.message}`,"error");setDbRes([])}finally{setDbLoading(false)}};
 
   const dbLoadAll=async()=>{setDbLoading(true);setShowResults(true);
-    try{const r=await fetch(`${API}/samples`);const j=await r.json();
+    try{const r=await fetch(`${API}/samples?station=S2`);const j=await r.json();
       if(j.ok){setDbRes(j.data);toast(`Załadowano: ${j.count}`,"success");addLog(`MySQL ALL → ${j.count}`,"data")}
       else{toast(`MySQL: ${j.error}`,"error")}}catch(e){toast(`MySQL: ${e.message}`,"error")}finally{setDbLoading(false)}};
 
@@ -912,21 +916,187 @@ function WsConsole({open,onClose,wsCon,clearCon,T}){const S=mkS(T);const[tab,sTa
       <div style={{padding:"6px 14px",borderTop:`1px solid ${T.cardBorder}`,fontSize:11,color:T.textD,flexShrink:0}}>Tylko wiadomości JSON. Nowe na górze. Max 80 wpisów.</div>
     </div></div>);}
 
+// ═══ WindowPortal — pop-out do osobnego okna przeglądarki ═══
+function WindowPortal({children,onClose,title="Impedancja — Spektroskopia"}){
+  const elRef=useRef(null);if(!elRef.current)elRef.current=document.createElement("div");
+  const[ready,setReady]=useState(false);
+  useEffect(()=>{
+    const pw=window.open("","","width=1280,height=820,toolbar=0,menubar=0,scrollbars=0,resizable=1");
+    if(!pw){onClose();return;}
+    pw.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title><style>*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%;overflow:hidden;font-family:system-ui,-apple-system,sans-serif;background:#0a1018;color:#c0ccd8}</style></head><body></body></html>');
+    pw.document.close();
+    Array.from(document.querySelectorAll("style")).forEach(s=>{try{pw.document.head.appendChild(s.cloneNode(true))}catch{}});
+    elRef.current.style.cssText="width:100%;height:100vh;overflow:hidden";
+    pw.document.body.appendChild(elRef.current);
+    setReady(true);
+    pw.addEventListener("beforeunload",onClose);
+    return()=>{try{pw.removeEventListener("beforeunload",onClose);pw.close()}catch{}};
+  },[]);
+  return ready?createPortal(children,elRef.current):null;
+}
+
 // ═══ P8: IMPEDANCJA ═══
-function P8({mb,sendCmd,impData,T}){const S=mkS(T);const ifrRef=useRef(null);
-  // Forward impedance_data from LV to iframe
-  useEffect(()=>{if(impData&&ifrRef.current?.contentWindow){
-    ifrRef.current.contentWindow.postMessage({type:"impedance_data",data:impData},"*")}
-  },[impData]);
-  // Listen for requests from iframe
-  useEffect(()=>{const h=(ev)=>{if(ev.data?.type==="impedance_request"&&sendCmd){sendCmd("impedance_request",ev.data.data||{})}};
-    window.addEventListener("message",h);return()=>window.removeEventListener("message",h)},[sendCmd]);
-  return(<div style={S.card}>
-    <div style={{...S.title,marginBottom:0}}><span>Spektroskopia impedancyjna</span>
-      <div style={{display:"flex",alignItems:"center",gap:10}}>
-        <span style={{fontSize:12,color:mb.wsConnected?T.textA:T.textD}}>{mb.wsConnected?"● WS":"○ Offline"}</span>
-        <a href="/impedance.html" target="_blank" rel="noopener" style={{fontSize:12,color:T.textA,textDecoration:"none",fontWeight:500}}>↗ Nowe okno</a></div></div>
-    <iframe ref={ifrRef} src="/impedance.html" style={{width:"100%",height:"calc(100vh - 160px)",border:"none",borderRadius:8,marginTop:8,background:"#0a1929"}} title="Impedance Spectroscopy"/></div>);
+function P8({mb,sendCmd,impData,T}){const S=mkS(T);
+  const[params,setParams]=useState({R_sol:50,R_ct:200,C_dl:1e-6,sigma:100,f_min:0.01,f_max:1e6,N:60});
+  const[isLive,setIsLive]=useState(false);const[data,setData]=useState([]);
+  const[tblOpen,setTblOpen]=useState(false);const[sortCol,setSortCol]=useState("f");const[sortAsc,setSortAsc]=useState(true);
+  const[lastUpd,setLastUpd]=useState(null);const[poppedOut,setPoppedOut]=useState(false);
+
+  const calcRandles=useCallback((p)=>{
+    const{R_sol,R_ct,C_dl,sigma,f_min,f_max,N}=p;const res=[];
+    const logMin=Math.log10(f_min),logMax=Math.log10(f_max);
+    for(let i=0;i<N;i++){
+      const f=Math.pow(10,logMin+(logMax-logMin)*i/(N-1));const w=2*Math.PI*f;
+      const zw=sigma/Math.sqrt(w);const Yw2=2*zw*zw;
+      const Y_re=1/R_ct+zw/Yw2,Y_im=w*C_dl+zw/Yw2;
+      const Ym2=Y_re*Y_re+Y_im*Y_im;const Z_re=R_sol+Y_re/Ym2,Z_im=-Y_im/Ym2;
+      const Z_mag=Math.sqrt(Z_re*Z_re+Z_im*Z_im);const Z_ph=Math.atan2(Z_im,Z_re)*180/Math.PI;
+      res.push({f,lf:+Math.log10(f).toFixed(4),Z_re,Z_im,Z_mag,lZm:+Math.log10(Z_mag).toFixed(4),lZr:+Math.log10(Math.max(Z_re,1e-9)).toFixed(4),Z_phase:+Z_ph.toFixed(4),Z_im_neg:-Z_im});}
+    return res;},[]);
+
+  const fromRaw=useCallback((pts)=>pts.map(pt=>{
+    const f=pt.f,Z_re=pt.z_re,Z_im=pt.z_im;
+    const Z_mag=Math.sqrt(Z_re*Z_re+Z_im*Z_im);const Z_phase=Math.atan2(Z_im,Z_re)*180/Math.PI;
+    return{f,lf:+Math.log10(f).toFixed(4),Z_re,Z_im,Z_mag,lZm:+Math.log10(Z_mag).toFixed(4),lZr:+Math.log10(Math.max(Z_re,1e-9)).toFixed(4),Z_phase:+Z_phase.toFixed(4),Z_im_neg:-Z_im};}),[]);
+
+  useEffect(()=>{setData(calcRandles(params))},[]);
+  useEffect(()=>{
+    if(!isLive||!impData)return;
+    const pts=Array.isArray(impData.points)?impData.points:(Array.isArray(impData)?impData:null);
+    if(pts){setData(fromRaw(pts));setLastUpd(new Date().toLocaleTimeString("pl-PL"));}
+  },[impData,isLive]);
+
+  const doSim=()=>{const d=calcRandles(params);setData(d);setLastUpd(new Date().toLocaleTimeString("pl-PL"))};
+  const doReq=()=>{if(sendCmd)sendCmd("impedance_request",{f_min:params.f_min,f_max:params.f_max,n_points:params.N,mode:"sweep"})};
+  const handleMode=live=>{setIsLive(live);if(live)doReq();else doSim()};
+  const updP=(k,v)=>{const np={...params,[k]:v};setParams(np);if(!isLive)setData(calcRandles(np))};
+  const logTick=v=>{const m={"-2":"0.01","-1":"0.1","0":"1","1":"10","2":"100","3":"1k","4":"10k","5":"100k","6":"1M"};return m[String(Math.round(v))]||""};
+  const logYTick=v=>{const m={"0":"1","1":"10","2":"100","3":"1k","4":"10k","5":"100k","6":"1M"};return m[String(Math.round(v))]||""};
+  const sortedData=useMemo(()=>[...data].sort((a,b)=>(sortAsc?1:-1)*(a[sortCol]-b[sortCol])),[data,sortCol,sortAsc]);
+  const exportCSV=()=>{if(!data.length)return;
+    const hdr="f [Hz],|Z| [Ohm],Phase [deg],Re(Z) [Ohm],-Im(Z) [Ohm]\n";
+    const rows=data.map(d=>[d.f,d.Z_mag,d.Z_phase,d.Z_re,d.Z_im_neg].map(v=>Number(v).toExponential(6)).join(",")).join("\n");
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([hdr+rows],{type:"text/csv"}));
+    a.download=`impedance_${Date.now()}.csv`;a.click();URL.revokeObjectURL(a.href)};
+  const tt={background:T.ttBg,border:`1px solid ${T.cardBorder}`,padding:"5px 8px",borderRadius:6,fontSize:11,color:T.textM};
+  const sbRows=[["R_sol","R_sol","Ω",1],["R_ct","R_ct","Ω",1],["C_dl","C_dl","F",1e-8],["sigma","σ_w","Ω/√s",1],["f_min","f_min","Hz",0.001],["f_max","f_max","Hz",1000],["N","Pkt.","",1]];
+
+  const inner=(pop)=>(
+    <div style={{display:"grid",gridTemplateColumns:pop?"240px 1fr":"210px 1fr",height:pop?"100vh":"calc(100vh - 130px)",background:pop?T.sidebarBg:"transparent",overflow:"hidden"}}>
+      {/* ── Sidebar ── */}
+      <div style={{background:T.cardBg,borderRight:`1px solid ${T.cardBorder}`,padding:"10px 8px",overflowY:"auto",display:"flex",flexDirection:"column",gap:7,flexShrink:0}}>
+        <div style={{fontSize:10,fontWeight:700,color:T.textA,letterSpacing:.6,textTransform:"uppercase"}}>Obwód Randles</div>
+        {sbRows.map(([k,lbl,unit,step])=>(
+          <div key={k} style={{display:"flex",alignItems:"center",gap:4}}>
+            <div style={{fontSize:10,color:T.textD,fontWeight:600,minWidth:44,flexShrink:0}}>{lbl}</div>
+            <input type="number" value={params[k]} step={step} onChange={e=>updP(k,parseFloat(e.target.value)||0)}
+              style={{...S.input,flex:1,fontSize:11,padding:"3px 5px",fontFamily:"monospace"}}/>
+            {unit&&<span style={{fontSize:9,color:T.textD,minWidth:28,textAlign:"right",flexShrink:0}}>{unit}</span>}
+          </div>))}
+        <div style={{height:1,background:T.cardBorder}}/>
+        <div style={{display:"flex",gap:5,alignItems:"center"}}>
+          <button onClick={doSim} disabled={isLive} style={{...S.btn,flex:1,background:"#112840",color:"#6ab8e8",border:"none",fontSize:11,padding:"5px 0",opacity:isLive?.45:1}}>▶ Symuluj</button>
+          <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
+            <span style={{fontSize:9,color:isLive?T.textD:T.textB,fontWeight:!isLive?700:400}}>SIM</span>
+            <div onClick={()=>handleMode(!isLive)} style={{width:32,height:17,borderRadius:9,background:isLive?"#0a3020":"#141e2a",border:`1px solid ${T.cardBorder}`,cursor:"pointer",position:"relative",transition:".2s",flexShrink:0}}>
+              <div style={{position:"absolute",width:11,height:11,borderRadius:"50%",background:isLive?"#00cc66":"#3399ff",top:3,left:isLive?18:3,transition:".2s"}}/>
+            </div>
+            <span style={{fontSize:9,color:isLive?T.textB:T.textD,fontWeight:isLive?700:400}}>LIVE</span>
+          </div>
+        </div>
+        <button onClick={doReq} style={{...S.btn,background:T.boxBg,border:`1px solid ${T.boxBorder}`,fontSize:10,color:T.textM,padding:"5px 6px"}}>📡 Pobierz dane WS</button>
+        <div style={{fontSize:10,color:isLive?(mb.wsConnected?"#00cc66":"#ff4455"):T.textD,lineHeight:1.5}}>
+          {isLive?(mb.wsConnected?"● LIVE — połączono":"○ LIVE — brak WS"):"○ Symulacja"}
+          {lastUpd&&<div style={{color:T.textD,marginTop:1}}>Ost: {lastUpd}</div>}
+        </div>
+        <div style={{height:1,background:T.cardBorder}}/>
+        <div style={{display:"flex",gap:5}}>
+          <button onClick={exportCSV} style={{...S.btn,flex:1,background:T.boxBg,border:`1px solid ${T.boxBorder}`,fontSize:10,color:T.textM,padding:"5px 0"}}>📥 CSV</button>
+          {!pop
+            ?<button onClick={()=>setPoppedOut(true)} style={{...S.btn,flex:1,background:T.boxBg,border:`1px solid ${T.textA}55`,fontSize:10,color:T.textA,padding:"5px 0"}}>⧉ Okno</button>
+            :<button onClick={()=>setPoppedOut(false)} style={{...S.btn,flex:1,background:"#2a0808",border:"1px solid #aa2222",fontSize:10,color:"#ff8888",padding:"5px 0"}}>✕ Zamknij</button>}
+        </div>
+      </div>
+      {/* ── Wykresy + tabela ── */}
+      <div style={{display:"flex",flexDirection:"column",padding:8,gap:8,overflow:"hidden",minHeight:0}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,flex:1,minHeight:0}}>
+          {/* Bode */}
+          <div style={{...S.card,display:"flex",flexDirection:"column",minHeight:0,padding:"7px 6px"}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#ff6644",marginBottom:3,flexShrink:0}}>● Bode — |Z|·φ(f)</div>
+            <div style={{flex:1,minHeight:0}}><ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={data} margin={{top:2,right:34,bottom:14,left:2}}>
+                <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/>
+                <XAxis dataKey="lf" type="number" scale="linear" domain={[-2,6]} tickFormatter={logTick} ticks={[-2,-1,0,1,2,3,4,5,6]} tick={{fill:T.tick,fontSize:9}} stroke={T.grid} label={{value:"f [Hz]",position:"insideBottomRight",offset:-2,style:{fill:T.textD,fontSize:8}}}/>
+                <YAxis yAxisId="m" tickFormatter={logYTick} tick={{fill:"#ff6644",fontSize:9}} stroke={T.grid} label={{value:"|Z|[Ω]",angle:-90,position:"insideLeft",offset:14,style:{fill:"#ff6644",fontSize:8}}}/>
+                <YAxis yAxisId="p" orientation="right" domain={[-90,5]} tick={{fill:"#44aaff",fontSize:9}} stroke={T.grid} label={{value:"φ[°]",angle:90,position:"insideRight",offset:-4,style:{fill:"#44aaff",fontSize:8}}}/>
+                <Tooltip content={({payload,active})=>active&&payload?.[0]?<div style={tt}><div>f={payload[0].payload.f?.toExponential(2)} Hz</div><div style={{color:"#ff6644"}}>|Z|={payload[0].payload.Z_mag?.toExponential(3)} Ω</div><div style={{color:"#44aaff"}}>φ={payload[0].payload.Z_phase?.toFixed(2)}°</div></div>:null}/>
+                <Line yAxisId="m" dataKey="lZm" stroke="#ff6644" dot={false} strokeWidth={2} isAnimationActive={false} name="|Z|"/>
+                <Line yAxisId="p" dataKey="Z_phase" stroke="#44aaff" dot={false} strokeWidth={2} isAnimationActive={false} name="φ"/>
+              </ComposedChart></ResponsiveContainer></div>
+          </div>
+          {/* Nyquist */}
+          <div style={{...S.card,display:"flex",flexDirection:"column",minHeight:0,padding:"7px 6px"}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#00cc66",marginBottom:3,flexShrink:0}}>● Nyquist — Re vs −Im(Z)</div>
+            <div style={{flex:1,minHeight:0}}><ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{top:2,right:8,bottom:14,left:2}}>
+                <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/>
+                <XAxis dataKey="Z_re" type="number" name="Re(Z)" tick={{fill:T.tick,fontSize:9}} stroke={T.grid} label={{value:"Re(Z) [Ω]",position:"insideBottomRight",offset:-2,style:{fill:T.textD,fontSize:8}}}/>
+                <YAxis dataKey="Z_im_neg" type="number" name="−Im(Z)" tick={{fill:T.tick,fontSize:9}} stroke={T.grid} label={{value:"−Im(Z) [Ω]",angle:-90,position:"insideLeft",offset:12,style:{fill:T.textD,fontSize:8}}}/>
+                <Tooltip cursor={{strokeDasharray:"3 3"}} content={({payload,active})=>active&&payload?.[0]?<div style={tt}><div style={{color:"#00cc66"}}>Re={payload[0].payload.Z_re?.toFixed(2)} Ω</div><div style={{color:"#00cc66"}}>−Im={payload[0].payload.Z_im_neg?.toFixed(2)} Ω</div></div>:null}/>
+                <Scatter data={data} fill="#00cc66" line={{stroke:"#00cc66",strokeWidth:2}} lineType="joint" fillOpacity={0.4} isAnimationActive={false}/>
+              </ScatterChart></ResponsiveContainer></div>
+          </div>
+          {/* R(f) */}
+          <div style={{...S.card,display:"flex",flexDirection:"column",minHeight:0,padding:"7px 6px"}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#ffaa00",marginBottom:3,flexShrink:0}}>● Re(Z) vs f</div>
+            <div style={{flex:1,minHeight:0}}><ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={data} margin={{top:2,right:8,bottom:14,left:2}}>
+                <CartesianGrid strokeDasharray="3 3" stroke={T.grid}/>
+                <XAxis dataKey="lf" type="number" scale="linear" domain={[-2,6]} tickFormatter={logTick} ticks={[-2,-1,0,1,2,3,4,5,6]} tick={{fill:T.tick,fontSize:9}} stroke={T.grid} label={{value:"f [Hz]",position:"insideBottomRight",offset:-2,style:{fill:T.textD,fontSize:8}}}/>
+                <YAxis tickFormatter={logYTick} tick={{fill:"#ffaa00",fontSize:9}} stroke={T.grid} label={{value:"Re(Z)[Ω]",angle:-90,position:"insideLeft",offset:14,style:{fill:"#ffaa00",fontSize:8}}}/>
+                <Tooltip content={({payload,active})=>active&&payload?.[0]?<div style={tt}><div>f={payload[0].payload.f?.toExponential(2)} Hz</div><div style={{color:"#ffaa00"}}>Re(Z)={payload[0].payload.Z_re?.toExponential(3)} Ω</div></div>:null}/>
+                <Line dataKey="lZr" stroke="#ffaa00" dot={false} strokeWidth={2} isAnimationActive={false} name="Re(Z)"/>
+              </ComposedChart></ResponsiveContainer></div>
+          </div>
+        </div>
+        {/* Tabela danych */}
+        <div style={{...S.card,flexShrink:0,padding:"6px 8px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}} onClick={()=>setTblOpen(o=>!o)}>
+            <span style={{fontSize:11,fontWeight:700,color:T.textA}}>● Dane pomiarowe {tblOpen?"▼":"▶"} <span style={{color:T.textD,fontWeight:400}}>({data.length} pkt)</span></span>
+          </div>
+          {tblOpen&&<div style={{marginTop:6,maxHeight:175,overflowY:"auto",border:`1px solid ${T.cardBorder}`,borderRadius:4}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:10,fontFamily:"monospace"}}>
+              <thead><tr style={{background:T.tblH,position:"sticky",top:0}}>
+                {[["f","f [Hz]"],["Z_mag","|Z| [Ω]"],["Z_phase","φ [°]"],["Z_re","Re(Z)"],["Z_im_neg","−Im(Z)"]].map(([k,h])=>(
+                  <th key={k} onClick={()=>{if(sortCol===k)setSortAsc(a=>!a);else{setSortCol(k);setSortAsc(true)}}}
+                    style={{padding:"4px 6px",textAlign:"right",color:T.tblT,borderBottom:`2px solid ${T.cardBorder}`,cursor:"pointer",userSelect:"none",whiteSpace:"nowrap"}}>
+                    {h}{sortCol===k?sortAsc?" ▲":" ▼":""}</th>
+                ))}</tr></thead>
+              <tbody>{sortedData.map((d,i)=>(
+                <tr key={i} style={{background:i%2?T.logAlt:"transparent",borderBottom:`1px solid ${T.cardBorder}`}}>
+                  <td style={{padding:"3px 6px",textAlign:"right",color:T.textM}}>{d.f.toExponential(3)}</td>
+                  <td style={{padding:"3px 6px",textAlign:"right",color:T.textM}}>{d.Z_mag.toExponential(3)}</td>
+                  <td style={{padding:"3px 6px",textAlign:"right",color:T.textM}}>{d.Z_phase.toFixed(2)}</td>
+                  <td style={{padding:"3px 6px",textAlign:"right",color:T.textM}}>{d.Z_re.toExponential(3)}</td>
+                  <td style={{padding:"3px 6px",textAlign:"right",color:T.textM}}>{d.Z_im_neg.toExponential(3)}</td>
+                </tr>))}</tbody>
+            </table>
+          </div>}
+        </div>
+      </div>
+    </div>);
+
+  return(<div style={{...S.card,padding:0,overflow:"hidden"}}>
+    {poppedOut
+      ?<><div style={{padding:"6px 14px",background:T.cardBg,borderBottom:`1px solid ${T.cardBorder}`,display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:12,color:T.textD}}>〰 Impedancja — otwarta w osobnym oknie przeglądarki</span>
+          <button onClick={()=>setPoppedOut(false)} style={{...S.btn,fontSize:11,padding:"2px 12px",background:T.boxBg,border:`1px solid ${T.boxBorder}`}}>↩ Wróć do dashboardu</button>
+        </div>
+        <WindowPortal onClose={()=>setPoppedOut(false)} title="Impedancja — Spektroskopia impedancyjna">
+          {inner(true)}
+        </WindowPortal></>
+      :inner(false)}
+  </div>);
 }
 
 // ═══ P9: HELP / POMOC ═══
@@ -1088,7 +1258,7 @@ function Footer({T}){return(<footer style={{background:T.footBg,borderTop:`1px s
 
 // ═══ MAIN APP ═══
 export default function App(){
-  const[user,setUser]=useState(null);const[dark,setDark]=useState(true);const[ac,sAc]=useState(1);
+  const[user,setUser]=useState(null);const[dark,setDark]=useState(false);const[ac,sAc]=useState(1);
   const[mb,setMb]=useState(initMb);const[hist,setHist]=useState([]);const[alog,sAlog]=useState([]);
   const[toasts,sToasts]=useState([]);const[logs,sLogs]=useState([]);const[influxOk,setInfluxOk]=useState(false);
   const[segs,setSegs]=useState([{name:"Rampa grzania",sp:200,ramp:5,hold:0,flow:[0,0,0,0]},{name:"Wygrzewanie",sp:400,ramp:3,hold:60,flow:[0,0,0,0]},{name:"Chłodzenie",sp:25,ramp:-10,hold:0,flow:[0,0,0,0]}]);
@@ -1102,6 +1272,7 @@ export default function App(){
   const[wsCon,setWsCon]=useState({rx:[],tx:[]});const[showWsCon,setShowWsCon]=useState(false);const[showUserMenu,setShowUserMenu]=useState(false);const[impData,setImpData]=useState(null);
   const mbRef=useRef(mb);mbRef.current=mb;const segRef=useRef(segs);segRef.current=segs;const prevA=useRef({a1:false,a2:false});
   const wsRef=useRef(null);const wsUrlRef=useRef(mb.wsUrl);const wsLastMsg=useRef(Date.now());const wsRecon=useRef({tries:0,timer:null});
+  const activeExpIdRef=useRef(null); // ID bieżącego eksperymentu w MySQL (S2)
   const T=dark?TH.dark:TH.light;const curUser=useRef("system");
 
   // ── Load cached config from localStorage (offline fallback) ──
@@ -1135,7 +1306,9 @@ export default function App(){
       setHist(h=>[...h,hp].slice(-150));writeDataPoint({...hp,_source:"ws"});return;}
     if(type==="status_update"){setMb(m=>({...m,...data}));return;}
     if(type==="alarm_event"){const sev=data?.sev||"warning";const msgT=data?.msg||"alarm";const latch=!!data?.latch;
-      setMb(m=>({...m,alarmSTB:true,alarmLATCH:latch?true:m.alarmLATCH}));sAlog(a=>[...a,{time:new Date().toLocaleTimeString("pl-PL"),sev,msg:msgT}].slice(-100));return;}
+      setMb(m=>({...m,alarmSTB:true,alarmLATCH:latch?true:m.alarmLATCH}));sAlog(a=>[...a,{time:new Date().toLocaleTimeString("pl-PL"),sev,msg:msgT}].slice(-100));
+      fetch("http://localhost:3001/api/alarms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({station:"S2",experimentId:activeExpIdRef.current,severity:sev,msg:msgT})}).catch(()=>{});
+      return;}
     if(type==="state_snapshot"||type==="mb_snapshot"){setMb(m=>({...m,...data}));return;}
     if(type==="impedance_data"){setImpData(data);return;}
     if(type==="config_data"){
@@ -1310,7 +1483,7 @@ export default function App(){
             </div></div></nav>
         <main style={{flex:1,padding:12,minHeight:0,overflowY:"auto",overflowX:"hidden"}}>
           {ac===1&&<P1 mb={mb} setMb={setMb} hist={hist} alog={alog} profileName={profileName} setProfileName={setProfileName} diagram={diagram} customSvg={customSvg} segs={segs} setSegs={setSegs} sample={sample} setSample={setSample} user={user} addLog={addLog} toast={toast} goPage={sAc} sendCmd={sendCmd} experiments={experiments} setExperiments={setExperiments} T={T}/>}
-          {ac===2&&<P2 mb={mb} setMb={setMb} toast={toast} segs={segs} setSegs={setSegs} profileName={profileName} setProfileName={setProfileName} addLog={addLog} goPage={sAc} sendCmd={sendCmd} T={T}/>}
+          {ac===2&&<P2 mb={mb} setMb={setMb} toast={toast} segs={segs} setSegs={setSegs} profileName={profileName} setProfileName={setProfileName} addLog={addLog} goPage={sAc} sendCmd={sendCmd} sample={sample} activeExpIdRef={activeExpIdRef} T={T}/>}
           {ac===3&&<P3 sample={sample} setSample={setSample} toast={toast} addLog={addLog} sendCmd={sendCmd} T={T}/>}
           {ac===4&&<P4 mb={mb} setMb={setMb} toast={toast} addLog={addLog} diagram={diagram} setDiagram={setDiagram} customSvg={customSvg} setCustomSvg={setCustomSvg} user={user} users={users} setUsers={setUsers} connectWs={connectWs} disconnectWs={disconnectWs} influxOk={influxOk} setInfluxOk={setInfluxOk} T={T}/>}
           {ac===5&&<P5 mb={mb} hist={hist} T={T}/>}
