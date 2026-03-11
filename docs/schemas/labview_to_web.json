@@ -1,67 +1,169 @@
 [
   {
     "type": "measurement_update",
-    "desc": "Telemetria z LabVIEW do dashboardu (PV/SP/MV, wyjścia, statusy).",
+    "desc": "Telemetria procesowa wysyłana cyklicznie (~co 1s). Zawiera PV/MV/wyjścia, pomiary czujników oraz stany MFC.",
     "example": {
       "type": "measurement_update",
-      "ts": "2026-02-09T12:00:00Z",
-      "stationId": "TF-GAS-01",
-      "seq": 123,
+      "ts": "2026-03-11T10:00:01.000Z",
       "data": {
-        "pv1_C": 245.3,
-        "pv2_Lmin": 1.25,
-        "sp1_C": 250.0,
-        "mv_pct": 62.0,
-        "out1_heat": true,
+        "pv1": 156.3,
+        "pv2": 45.2,
+        "sp1": 160.0,
+        "mv": 67.4,
+        "out1": true,
+        "manualMode": false,
         "res": 125000.5,
         "tm": 24.8,
         "rhm": 45.2,
         "xlabzre": 51.2,
         "xlabzim": -3.5,
         "xlabr": 12500,
+        "mfc": [
+          { "id": 1, "pv": 148.5, "sp": 150.0, "enabled": true  },
+          { "id": 2, "pv":  95.2, "sp": 100.0, "enabled": true  },
+          { "id": 3, "pv":   0.0, "sp":   0.0, "enabled": false },
+          { "id": 4, "pv":   0.0, "sp":   0.0, "enabled": false }
+        ]
+      }
+    }
+  },
+  {
+    "type": "status_update",
+    "desc": "Aktualizacja stanu regulacji i programu. Pola są scalane (merge) z bieżącym stanem dashboardu.",
+    "example": {
+      "type": "status_update",
+      "ts": "2026-03-11T10:00:02.000Z",
+      "data": {
+        "regMode": "PID",
         "regStatus": "RUN",
         "manualMode": false,
-        "progStatus": "STOP",
-        "progStage": 0,
-        "alarms": {
-          "hi": false,
-          "lo": false,
-          "stb": false,
-          "latch": false
-        }
+        "progStatus": "RUN",
+        "progStage": 2,
+        "progElapsed": 120,
+        "limitPower": 85,
+        "pidPb": 4.2,
+        "pidTi": 95,
+        "pidTd": 24
       }
     }
   },
   {
     "type": "alarm_event",
-    "desc": "Zdarzenie alarmowe (np. HI/LO/STB/LATCH).",
+    "desc": "Zdarzenie alarmowe (HI/LO/STB/LATCH). Dashboard loguje alarm i wyświetla powiadomienie.",
     "example": {
       "type": "alarm_event",
-      "ts": "2026-02-09T12:00:05Z",
-      "stationId": "TF-GAS-01",
-      "seq": 124,
+      "ts": "2026-03-11T10:00:05.000Z",
       "data": {
-        "code": "HI",
-        "message": "PV1 above SP1 + threshold",
+        "alarmId": "AL_HI",
         "severity": "danger",
-        "pv1_C": 262.1,
-        "sp1_C": 250.0
+        "sev": "danger",
+        "pv1": 210.5,
+        "msg": "HI: PV1 przekroczone 210.5°C > SP1 + 10°C",
+        "latch": true
       }
     }
   },
   {
     "type": "profile_status",
-    "desc": "Status wykonywania profilu temperaturowego.",
+    "desc": "Status realizacji profilu temperaturowego (numer i nazwa aktywnego segmentu).",
     "example": {
       "type": "profile_status",
-      "ts": "2026-02-09T12:10:00Z",
-      "stationId": "TF-GAS-01",
-      "seq": 200,
+      "ts": "2026-03-11T10:10:00.000Z",
       "data": {
-        "profileName": "Default profile",
+        "profileName": "Spiekanie ZnO",
+        "stage": 2,
+        "stageName": "Wygrzewanie",
+        "progStatus": "RUN",
+        "progElapsed": 420
+      }
+    }
+  },
+  {
+    "type": "state_snapshot",
+    "desc": "Pełny snapshot stanu systemu (wysyłany po reconnect lub na żądanie). Alias: mb_snapshot — oba są obsługiwane.",
+    "note": "Wszystkie pola są opcjonalne — dashboard scala otrzymane wartości z aktualnym stanem.",
+    "example": {
+      "type": "state_snapshot",
+      "ts": "2026-03-11T10:00:00.500Z",
+      "data": {
+        "pv1": 156.3,
+        "pv2": 45.2,
+        "sp1": 160.0,
+        "mv": 67.4,
+        "out1": true,
+        "out2": false,
+        "manualMode": false,
+        "mvManual": 40,
+        "regMode": "PID",
+        "regStatus": "RUN",
         "progStatus": "RUN",
         "progStage": 2,
-        "progElapsed_s": 420
+        "progElapsed": 300,
+        "alarmSTB": false,
+        "alarmLATCH": false,
+        "pidPb": 4.2,
+        "pidTi": 95,
+        "pidTd": 24,
+        "hyst": 1.2,
+        "limitPower": 85
+      }
+    }
+  },
+  {
+    "type": "impedance_data",
+    "desc": "Wyniki pomiaru spektroskopii impedancyjnej. Odpowiedź na impedance_request.",
+    "example": {
+      "type": "impedance_data",
+      "ts": "2026-03-11T10:12:05.000Z",
+      "data": {
+        "sweepId": 1,
+        "f_min": 0.01,
+        "f_max": 1000000,
+        "n_points": 60,
+        "duration_ms": 4500,
+        "points": [
+          { "f": 1000000, "z_re": 51.2,  "z_im":   -3.5 },
+          { "f":  630957, "z_re": 52.1,  "z_im":   -5.8 },
+          { "f":    1000, "z_re": 185.3, "z_im":  -62.4 },
+          { "f":    0.01, "z_re": 285.3, "z_im": -112.7 }
+        ]
+      }
+    }
+  },
+  {
+    "type": "config_data",
+    "desc": "Pełna konfiguracja systemu — odpowiedź na config_request wysyłany po nawiązaniu połączenia.",
+    "example": {
+      "type": "config_data",
+      "ts": "2026-03-11T10:00:00.200Z",
+      "data": {
+        "wsUrl": "ws://localhost:8080",
+        "ethIP": "192.168.1.100",
+        "ethPort": 502,
+        "modbusAddr": 1,
+        "users": {
+          "admin":    { "role": "admin",   "name": "Administrator" },
+          "operator": { "role": "user",    "name": "Operator"      },
+          "student":  { "role": "student", "name": "Student"       },
+          "guest":    { "role": "guest",   "name": "Gość"          }
+        },
+        "mfc": [
+          { "id": 1, "name": "MFC-1", "gas": "N\u2082", "enabled": false },
+          { "id": 2, "name": "MFC-2", "gas": "Ar",  "enabled": false },
+          { "id": 3, "name": "MFC-3", "gas": "O\u2082", "enabled": false },
+          { "id": 4, "name": "MFC-4", "gas": "H\u2082S","enabled": false }
+        ],
+        "pages": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "paramNames": {
+          "pv1":    "TC1 (piec)",
+          "pv2":    "TC2 (próbka)",
+          "res":    "Rezystancja",
+          "tm":     "T pow.",
+          "rhm":    "RH pow.",
+          "xlabzre":"XLab Zre",
+          "xlabzim":"XLab Zim",
+          "xlabr":  "XLab R"
+        }
       }
     }
   }

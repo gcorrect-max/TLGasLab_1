@@ -1,117 +1,249 @@
 [
   {
+    "type": "hello",
+    "desc": "Handshake wysyłany natychmiast po otwarciu połączenia WebSocket.",
+    "note": "Wysyłany przez ws.send (nie przez sendCmd) — brak pola data.",
+    "example": {
+      "type": "hello",
+      "ts": "2026-03-11T10:00:00.000Z",
+      "user": { "username": "operator", "role": "user", "name": "Operator" },
+      "app": "Stanowisko 1 badania cienkich warstw dla sensorów gazu",
+      "ver": "3.0"
+    }
+  },
+  {
+    "type": "config_request",
+    "desc": "Żądanie pełnej konfiguracji systemu. Wysyłane automatycznie zaraz po hello.",
+    "note": "Wysyłany przez ws.send (nie przez sendCmd).",
+    "example": {
+      "type": "config_request",
+      "ts": "2026-03-11T10:00:00.100Z",
+      "user": { "username": "operator", "role": "user" },
+      "data": {}
+    }
+  },
+  {
     "type": "setpoint_command",
-    "desc": "Ustawienie SP (głównie SP1) oraz opcjonalnie SP2/SP3.",
+    "desc": "Zmiana jednego setpointu (SP1, SP2 lub SP3). Każde pole wysyłane osobno.",
+    "note": "data zawiera dokładnie jedno pole: sp1 LUB sp2 LUB sp3 z wartością w °C.",
     "example": {
       "type": "setpoint_command",
-      "ts": "2026-02-09T12:00:10Z",
-      "user": "operator",
-      "data": {
-        "sp1_C": 250.0,
-        "sp2": 0,
-        "sp3": 0
-      }
+      "ts": "2026-03-11T10:01:00.000Z",
+      "user": { "username": "operator", "role": "user", "name": "Operator" },
+      "data": { "sp1": 250.0 }
     }
   },
   {
     "type": "mode_command",
-    "desc": "START/STOP regulacji + przełączenie AUTO/MANUAL.",
+    "desc": "Zmiana trybu pracy: START/STOP regulacji LUB AUTO/MANUAL.",
+    "note": "Dwa warianty data — LabVIEW powinien obsługiwać każdy z kluczy niezależnie.",
+    "variants": [
+      {
+        "desc": "Przełączenie AUTO ↔ MANUAL",
+        "data": { "manualMode": true }
+      },
+      {
+        "desc": "START / STOP regulatora",
+        "data": { "regStatus": "RUN" }
+      }
+    ],
     "example": {
       "type": "mode_command",
-      "ts": "2026-02-09T12:00:11Z",
-      "user": "operator",
-      "data": {
-        "regStatus": "RUN",
-        "manualMode": false
-      }
+      "ts": "2026-03-11T10:02:00.000Z",
+      "user": { "username": "operator", "role": "user", "name": "Operator" },
+      "data": { "regStatus": "RUN" }
     }
   },
   {
     "type": "manual_mv",
-    "desc": "Ręczne ustawienie MV w trybie MANUAL (0–100%).",
+    "desc": "Ręczne ustawienie mocy wyjściowej MV w trybie MANUAL (0–100%).",
     "example": {
       "type": "manual_mv",
-      "ts": "2026-02-09T12:00:12Z",
-      "user": "operator",
-      "data": {
-        "mv_pct": 35.0
-      }
+      "ts": "2026-03-11T10:03:00.000Z",
+      "user": { "username": "operator", "role": "user", "name": "Operator" },
+      "data": { "mvManual": 55.0 }
     }
   },
   {
     "type": "pid_command",
-    "desc": "Aktualizacja parametrów regulatora PID.",
+    "desc": "Aktualizacja parametrów regulatora PID oraz ograniczeń alarmowych.",
     "example": {
       "type": "pid_command",
-      "ts": "2026-02-09T12:00:13Z",
-      "user": "admin",
+      "ts": "2026-03-11T10:04:00.000Z",
+      "user": { "username": "admin", "role": "admin", "name": "Administrator" },
       "data": {
-        "pidPb": 12.0,
-        "pidTi": 140.0,
-        "pidTd": 20.0,
+        "pidPb": 4.2,
+        "pidTi": 95,
+        "pidTd": 24,
         "hyst": 1.2,
         "limitPower": 85.0
       }
     }
   },
   {
+    "type": "alarm_clear",
+    "desc": "Kasowanie zatrzaśniętego alarmu LATCH.",
+    "example": {
+      "type": "alarm_clear",
+      "ts": "2026-03-11T10:05:00.000Z",
+      "user": { "username": "operator", "role": "user", "name": "Operator" },
+      "data": { "latch": true }
+    }
+  },
+  {
     "type": "profile_command",
-    "desc": "Wysłanie profilu oraz START/STOP programu.",
+    "desc": "Wysłanie profilu temperaturowego z listą segmentów oraz START lub STOP programu.",
+    "note": "Przy action=stop pole segments jest pomijane.",
     "example": {
       "type": "profile_command",
-      "ts": "2026-02-09T12:00:20Z",
-      "user": "operator",
+      "ts": "2026-03-11T10:06:00.000Z",
+      "user": { "username": "admin", "role": "admin", "name": "Administrator" },
       "data": {
-        "profileName": "Thin-film cycle A",
-        "action": "START",
+        "action": "start",
+        "profileName": "Spiekanie ZnO",
         "segments": [
-          {
-            "name": "RampUp",
-            "sp_C": 200,
-            "ramp_C_per_min": 10,
-            "hold_min": 5
-          },
-          {
-            "name": "Soak",
-            "sp_C": 250,
-            "ramp_C_per_min": 5,
-            "hold_min": 30
-          }
+          { "name": "Rampa",       "sp": 200, "ramp": 5,  "hold": 0,  "flow": [100, 50, 0, 0] },
+          { "name": "Wygrzewanie", "sp": 400, "ramp": 3,  "hold": 60, "flow": [50, 100, 0, 0] },
+          { "name": "Chłodzenie",  "sp": 25,  "ramp": -10,"hold": 0,  "flow": [0, 0, 0, 0] }
         ]
       }
     }
   },
   {
     "type": "sample_info",
-    "desc": "Metadane próbki i procesu (do logowania / bazy).",
+    "desc": "Pełne metadane próbki i procesu (zapis do bazy danych MySQL i logów LabVIEW).",
     "example": {
       "type": "sample_info",
-      "ts": "2026-02-09T12:05:00Z",
-      "user": "student",
+      "ts": "2026-03-11T10:07:00.000Z",
+      "user": { "username": "operator", "role": "user", "name": "Operator" },
       "data": {
-        "sampleId": "S-2026-02-09-01",
-        "material": "SnO2",
-        "substrate": "Al2O3",
-        "method": "Sol-gel",
-        "thickness_nm": 200,
-        "targetGas": "NO2",
-        "notes": "First run"
+        "sampleId": "ZnO-2026-001",
+        "material": "ZnO",
+        "substrate": "SiO\u2082/Si",
+        "method": "PVD",
+        "thickness": "150",
+        "targetGas": "NO\u2082",
+        "processTemp": "400",
+        "pressure": "5e-3",
+        "atmosphere": "Ar",
+        "sourcePower": "100",
+        "processTime": "60",
+        "gasFlow": "50",
+        "operator": "Jan Kowalski",
+        "batchNo": "BATCH-2026-01",
+        "goal": "Optymalizacja czułości",
+        "notes": "",
+        "photos": []
+      }
+    }
+  },
+  {
+    "type": "report_create",
+    "desc": "Nowy raport procesu (P7). Pole id = timestamp ms (unikalne ID raportu).",
+    "example": {
+      "type": "report_create",
+      "ts": "2026-03-11T10:08:00.000Z",
+      "user": { "username": "operator", "role": "user", "name": "Operator" },
+      "data": {
+        "id": 1741694880000,
+        "date": "2026-03-11",
+        "title": "Wygrzewanie ZnO #1",
+        "sampleId": "ZnO-2026-001",
+        "material": "ZnO",
+        "substrate": "SiO\u2082/Si",
+        "method": "PVD",
+        "tempMax": "400",
+        "result": "Warstwa jednorodna",
+        "notes": "Bez odchyłek",
+        "photos": [],
+        "profile": "Spiekanie ZnO"
+      }
+    }
+  },
+  {
+    "type": "report_update",
+    "desc": "Edycja istniejącego raportu. Pole id identyfikuje raport do zaktualizowania.",
+    "note": "Struktura identyczna jak report_create. LabVIEW nadpisuje rekord o tym samym id.",
+    "example": {
+      "type": "report_update",
+      "ts": "2026-03-11T11:00:00.000Z",
+      "user": { "username": "admin", "role": "admin", "name": "Administrator" },
+      "data": {
+        "id": 1741694880000,
+        "date": "2026-03-11",
+        "title": "Wygrzewanie ZnO #1 (poprawiony)",
+        "sampleId": "ZnO-2026-001",
+        "material": "ZnO",
+        "substrate": "SiO\u2082/Si",
+        "method": "PVD",
+        "tempMax": "400",
+        "result": "Warstwa jednorodna — potwierdzono XRD",
+        "notes": "Zaktualizowano po analizie",
+        "photos": [],
+        "profile": "Spiekanie ZnO"
       }
     }
   },
   {
     "type": "config_update",
-    "desc": "Aktualizacja konfiguracji komunikacji (Modbus/ETH/MQTT/WS).",
+    "desc": "Aktualizacja nazw wyświetlanych parametrów (etykiety na dashboardzie i w LabVIEW).",
     "example": {
       "type": "config_update",
-      "ts": "2026-02-09T12:06:00Z",
-      "user": "admin",
+      "ts": "2026-03-11T10:09:00.000Z",
+      "user": { "username": "admin", "role": "admin", "name": "Administrator" },
       "data": {
-        "wsUrl": "ws://127.0.0.1:8081/ws",
-        "modbusAddr": 1,
-        "baudRate": 9600,
-        "ethIP": "192.168.1.10",
-        "ethPort": 502
+        "paramNames": {
+          "pv1":    "TC1 (piec)",
+          "pv2":    "TC2 (próbka)",
+          "res":    "Rezystancja",
+          "tm":     "T pow.",
+          "rhm":    "RH pow.",
+          "xlabzre":"XLab Zre",
+          "xlabzim":"XLab Zim",
+          "xlabr":  "XLab R"
+        }
+      }
+    }
+  },
+  {
+    "type": "mfc_config",
+    "desc": "Pełna konfiguracja czterech przepływomierzy masowych (MFC). Wysyłana z P4.",
+    "example": {
+      "type": "mfc_config",
+      "ts": "2026-03-11T10:10:00.000Z",
+      "user": { "username": "admin", "role": "admin", "name": "Administrator" },
+      "data": {
+        "mfc": [
+          { "id": 1, "name": "MFC-1", "gas": "N\u2082", "gasComposition": "100% N\u2082", "ip": "192.168.1.101", "port": 502, "slaveAddr": 1, "maxFlow": 500, "unit": "sccm", "enabled": false },
+          { "id": 2, "name": "MFC-2", "gas": "Ar",  "gasComposition": "100% Ar",  "ip": "192.168.1.102", "port": 502, "slaveAddr": 1, "maxFlow": 200, "unit": "sccm", "enabled": false },
+          { "id": 3, "name": "MFC-3", "gas": "O\u2082", "gasComposition": "100% O\u2082", "ip": "192.168.1.103", "port": 502, "slaveAddr": 1, "maxFlow": 100, "unit": "sccm", "enabled": false },
+          { "id": 4, "name": "MFC-4", "gas": "H\u2082S","gasComposition": "10 ppm H\u2082S/N\u2082","ip": "192.168.1.104", "port": 502, "slaveAddr": 1, "maxFlow":  50, "unit": "sccm", "enabled": false }
+        ]
+      }
+    }
+  },
+  {
+    "type": "mfc_setpoint",
+    "desc": "Nastawa setpointu przepływu dla pojedynczego MFC (identyfikowany przez id).",
+    "example": {
+      "type": "mfc_setpoint",
+      "ts": "2026-03-11T10:11:00.000Z",
+      "user": { "username": "operator", "role": "user", "name": "Operator" },
+      "data": { "id": 1, "sp": 150.0 }
+    }
+  },
+  {
+    "type": "impedance_request",
+    "desc": "Żądanie pomiaru spektroskopii impedancyjnej (sweep częstotliwości). Odpowiedź: impedance_data.",
+    "example": {
+      "type": "impedance_request",
+      "ts": "2026-03-11T10:12:00.000Z",
+      "user": { "username": "operator", "role": "user", "name": "Operator" },
+      "data": {
+        "f_min": 0.01,
+        "f_max": 1000000,
+        "n_points": 60,
+        "mode": "sweep"
       }
     }
   }
