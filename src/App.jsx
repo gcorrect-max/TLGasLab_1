@@ -365,10 +365,10 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
   const profH="calc(63vh - 60px)";const btmH="calc(27vh - 20px)";
   const doStart=(full)=>{setShowConfirm(false);setMb(m=>({...m,progStatus:"RUN",progStage:1,progElapsed:0,sp1:segs[0]?.sp||m.sp1}));
     sendCmd?.("profile_command",{action:"start",profileName:profileName||"Profil_1",segments:segs});
-    fetch("http://localhost:3001/api/experiments",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({station:"S2",profileName:profileName||"Profil_1",sampleId:sample?.sampleId||"",operator:sample?.operator||"",status:"RUN",segments:segs})}).then(r=>r.json()).then(j=>{if(j.ok&&activeExpIdRef){activeExpIdRef.current=j.id;addLog(`MySQL EXP zapisany id:${j.id}`,"data")}}).catch(()=>{});
+    fetch("http://localhost:3005/api/experiments",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({station:"S2",profileName:profileName||"Profil_1",sampleId:sample?.sampleId||"",operator:sample?.operator||"",status:"RUN",segments:segs})}).then(r=>r.json()).then(j=>{if(j.ok&&activeExpIdRef){activeExpIdRef.current=j.id;addLog(`MySQL EXP zapisany id:${j.id}`,"data")}}).catch(()=>{});
     addLog(`${full?"Pełny pomiar":"Profil temp."} START: ${profileName} E1: ${segs[0]?.name||""}`,"mode");toast(full?"Pełny pomiar uruchomiony":"Profil temperatury uruchomiony","success");if(full)goPage(1)};
   const doStop=()=>{setMb(m=>({...m,progStatus:"STOP",progStage:0,progElapsed:0}));sendCmd?.("profile_command",{action:"stop",profileName:profileName||"Profil_1"});
-    if(activeExpIdRef?.current){const eid=activeExpIdRef.current;fetch(`http://localhost:3001/api/experiments/${eid}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"DONE",finishedAt:new Date()})}).catch(()=>{});activeExpIdRef.current=null}
+    if(activeExpIdRef?.current){const eid=activeExpIdRef.current;fetch(`http://localhost:3005/api/experiments/${eid}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"DONE",finishedAt:new Date()})}).catch(()=>{});activeExpIdRef.current=null}
     addLog(`Program STOP: ${profileName}`,"mode");toast("STOP","info")};
   return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:`${profH} ${btmH}`,gap:10}}>
     <div style={{...S.card,gridColumn:"1/-1",display:"flex",flexDirection:"column",overflow:"hidden"}}><div style={{...S.title,flexShrink:0}}><span>Profil temperaturowy — {profileName}</span>
@@ -446,7 +446,7 @@ function P2({mb,setMb,toast,segs,setSegs,profileName,setProfileName,addLog,goPag
 
 // ═══ P3 PRÓBKA I PROCES ═══
 function P3({sample,setSample,toast,addLog,sendCmd,T}){const S=mkS(T);
-  const API="http://localhost:3001/api";
+  const API="http://localhost:3005/api";
   const[dbRes,setDbRes]=useState([]);const[dbLoading,setDbLoading]=useState(false);const[dbStatus,setDbStatus]=useState(null);
   const[srchField,setSrchField]=useState("sampleId");const[srchQuery,setSrchQuery]=useState("");const[showResults,setShowResults]=useState(false);
   const[newPhoto,setNewPhoto]=useState("");
@@ -1307,7 +1307,7 @@ export default function App(){
     if(type==="status_update"){setMb(m=>({...m,...data}));return;}
     if(type==="alarm_event"){const sev=data?.sev||"warning";const msgT=data?.msg||"alarm";const latch=!!data?.latch;
       setMb(m=>({...m,alarmSTB:true,alarmLATCH:latch?true:m.alarmLATCH}));sAlog(a=>[...a,{time:new Date().toLocaleTimeString("pl-PL"),sev,msg:msgT}].slice(-100));
-      fetch("http://localhost:3001/api/alarms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({station:"S2",experimentId:activeExpIdRef.current,severity:sev,msg:msgT})}).catch(()=>{});
+      fetch("http://localhost:3005/api/alarms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({station:"S2",experimentId:activeExpIdRef.current,severity:sev,msg:msgT})}).catch(()=>{});
       return;}
     if(type==="state_snapshot"||type==="mb_snapshot"){setMb(m=>({...m,...data}));return;}
     if(type==="impedance_data"){setImpData(data);return;}

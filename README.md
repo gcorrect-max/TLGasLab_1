@@ -59,14 +59,9 @@ cd E:\BasiaLab1
 npm run dev           # serwer deweloperski Vite → http://localhost:3002
 npm run build         # build produkcyjny do dist/
 npm run preview       # podgląd buildu → http://localhost:4173
+npm run server        # backend Express + MySQL → http://localhost:3005
+npm run server:dev    # jw. z auto-reload (--watch)
 ```
-
-> **Backend MySQL** nie jest częścią tego projektu — uruchamiany z projektu **S1**:
-> ```bat
-> cd E:\Basia\ThinFilmLab
-> npm run server        # backend Express + MySQL → http://localhost:3001
-> npm run server:dev    # jw. z auto-reload (--watch)
-> ```
 
 ---
 
@@ -78,14 +73,37 @@ cd E:\BasiaLab1
 npm install
 ```
 
-**2. Uruchom backend z projektu S1 (osobny terminal):**
+**2. Zainstaluj zależności backendu:**
 ```bat
-cd E:\Basia\ThinFilmLab
+cd E:\BasiaLab1\server
+npm install
+cd ..
+```
+
+**3. Utwórz plik konfiguracyjny backendu:**
+```bat
+copy server\.env.example server\.env
+```
+Edytuj `server\.env` — uzupełnij dane autoryzacji MySQL:
+```env
+# ── Autoryzacja bazy danych MySQL ──────────────────────────────
+DB_HOST=mysql.agh.edu.pl
+DB_PORT=3306
+DB_NAME=sobkow2
+DB_USER=sobkow2
+DB_PASS=<twoje_haslo>
+
+# ── Konfiguracja serwera API ────────────────────────────────────
+API_PORT=3005
+```
+> MySQL dostępny tylko z sieci AGH lub przez VPN AGH. Bez połączenia dashboard działa normalnie (graceful degradation).
+
+**4. Uruchom backend S2 (osobny terminal):**
+```bat
+cd E:\BasiaLab1
 npm run server
 ```
-Sprawdź: http://localhost:3001/api/health → `{ "ok": true }`
-
-> MySQL dostępny tylko z sieci AGH lub przez VPN AGH. Bez połączenia dashboard działa normalnie (graceful degradation).
+Sprawdź: http://localhost:3005/api/health → `{ "ok": true }`
 
 **3. (Opcjonalnie) Uruchom InfluxDB:**
 ```bat
@@ -95,7 +113,7 @@ docker compose up -d
 Poczekaj ~10 s, sprawdź: http://localhost:8086
 Login: `admin` / Hasło: `thinfilm2026`
 
-**4. Uruchom frontend:**
+**5. Uruchom frontend:**
 ```bat
 cd E:\BasiaLab1
 npm run dev
@@ -106,19 +124,22 @@ Otwórz: http://localhost:3002
 
 ### Uruchomienie obu stanowisk jednocześnie (S1 + S2)
 
-Backend jest **wspólny** — uruchamiany tylko raz z projektu S1.
-Otwórz 3 terminale:
+Każde stanowisko ma **własny backend** — uruchamiamy 4 terminale:
 
 ```bat
-REM Terminal 1 — Backend (wspólny dla S1 i S2)
+REM Terminal 1 — Backend S1 (ThinFilmLab 1)
 cd E:\Basia\ThinFilmLab
 npm run server
 
-REM Terminal 2 — Frontend S1 (ThinFilmLab 1)
+REM Terminal 2 — Backend S2 (ThinFilmLab 2)
+cd E:\BasiaLab1
+npm run server
+
+REM Terminal 3 — Frontend S1
 cd E:\Basia\ThinFilmLab
 npx vite --port 3004
 
-REM Terminal 3 — Frontend S2 (ThinFilmLab 2)
+REM Terminal 4 — Frontend S2
 cd E:\BasiaLab1
 npx vite --port 3002
 ```
@@ -127,7 +148,8 @@ npx vite --port 3002
 |--------|-----|------|
 | Frontend S1 | http://localhost:3004 | ThinFilmLab 1 |
 | Frontend S2 | http://localhost:3002 | ThinFilmLab 2 |
-| Backend API | http://localhost:3001 | Express + MySQL (wspólny) |
+| Backend S1 API | http://localhost:3001 | Express + MySQL (sobkow) |
+| Backend S2 API | http://localhost:3005 | Express + MySQL (sobkow2) |
 | InfluxDB | http://localhost:8086 | Time-series (opcjonalny) |
 
 ---
@@ -462,5 +484,6 @@ Szczegóły: [docs/LABVIEW_INTEGRATION.md](docs/LABVIEW_INTEGRATION.md), [docs/L
 - Dashboard obsługuje **własne diagramy SVG** — wgraj eksport z draw.io przez P4
 - Motywy **ciemny i jasny** — SVG automatycznie dostosowuje kolory przez zmienne motywu (`T.*`)
 - Handler `measurement_update` merge'uje wszystkie pola z LabVIEW — nowe pola są automatycznie obsługiwane bez zmian w dashboardzie
-- Serwer MySQL musi być uruchomiony z projektu S1: `cd E:\Basia\ThinFilmLab && npm run server`
+- Backend S2 uruchamiany z własnego projektu: `cd E:\BasiaLab1 && npm run server` → http://localhost:3005
+- Konfiguracja bazy danych w `server\.env` (DB_NAME, DB_USER, DB_PASS, API_PORT)
 - MySQL dostępny tylko z sieci AGH lub przez VPN AGH; bez połączenia dashboard działa normalnie (graceful degradation)

@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "server": "node server/server.js",
+    "server:dev": "node --watch server/server.js"
   },
   "dependencies": {
     "@influxdata/influxdb-client-browser": "^1.35.0",
