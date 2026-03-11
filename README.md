@@ -12,14 +12,18 @@ Dashboard SCADA/HMI do sterowania i monitorowania stanowiska laboratoryjnego do 
 
 ```
 ┌────────────────────┐    WebSocket (JSON)    ┌──────────────────────────┐
-│  React Dashboard    │ ◄────────────────────► │  LabVIEW WS Server       │
-│  http://host:3000  │                        │  AR200.B + DAQ           │
-│  Stanowisko 2       │   TX: komendy WEB→LV  │  Regulatory PID          │
+│  React Dashboard   │ ◄────────────────────► │  LabVIEW WS Server       │
+│  S2 :3003          │                        │  AR200.B + DAQ           │
+│  Stanowisko 2      │   TX: komendy WEB→LV   │  Regulatory PID          │
 └────────────────────┘   RX: dane LV→WEB      │  4x MFC MKS (MODBUS)    │
         │                                     │  Czujniki środowiskowe   │
-        ▼                                     └──────────────────────────┘
- InfluxDB v2 (Docker)
- bucket: measurements
+        ├──► InfluxDB v2 (Docker :8086)       └──────────────────────────┘
+        │    bucket: measurements
+        │
+        └──► Express API (:3001)  ──► MySQL mysql.agh.edu.pl:3306
+             server/server.js          baza: sobkow  station='S2'
+             (serwer z projektu S1,    tabele: tfl_samples, tfl_experiments,
+              wspólny dla obu stacji)           tfl_alarms
 ```
 
 ## Stos technologiczny
@@ -34,31 +38,177 @@ Dashboard SCADA/HMI do sterowania i monitorowania stanowiska laboratoryjnego do 
 
 ---
 
-## Szybki start
+## Uruchomienie
 
-```bash
-npm install
-npm run dev        # serwer dev (domyślnie: http://localhost:5173)
-npm run build      # build produkcyjny
-npm run preview    # podgląd buildu
-```
+### Wymagania systemowe
 
-### Domyślne konta (konfigurowalne w `USERS_INIT`)
+| Wymaganie | Wersja min. | Sprawdzenie | Uwagi |
+|-----------|-------------|-------------|-------|
+| Node.js | ≥ 18 LTS | `node -v` | https://nodejs.org |
+| npm | ≥ 9 | `npm -v` | instalowany z Node.js |
+| Docker Desktop | dowolna | `docker -v` | tylko do InfluxDB (opcjonalne) |
+| VPN AGH | — | — | wymagany do MySQL (`mysql.agh.edu.pl`) |
 
-| Użytkownik | Hasło | Rola |
-|------------|-------|------|
-| admin | admin123 | admin |
-| operator | oper123 | user |
-| student | stud123 | student |
-| guest | guest | guest |
+---
 
-### InfluxDB (opcjonalne)
+### Wszystkie dostępne komendy npm
 
 ```bat
-docker compose up -d
+cd E:\BasiaLab1
+
+npm run dev           # serwer deweloperski Vite → http://localhost:3002
+npm run build         # build produkcyjny do dist/
+npm run preview       # podgląd buildu → http://localhost:4173
 ```
 
-Dostęp: http://localhost:8086 | login: admin | hasło: thinfilm2026
+> **Backend MySQL** nie jest częścią tego projektu — uruchamiany z projektu **S1**:
+> ```bat
+> cd E:\Basia\ThinFilmLab
+> npm run server        # backend Express + MySQL → http://localhost:3001
+> npm run server:dev    # jw. z auto-reload (--watch)
+> ```
+
+---
+
+### Krok po kroku — pierwsze uruchomienie
+
+**1. Zainstaluj zależności frontendu:**
+```bat
+cd E:\BasiaLab1
+npm install
+```
+
+**2. Uruchom backend z projektu S1 (osobny terminal):**
+```bat
+cd E:\Basia\ThinFilmLab
+npm run server
+```
+Sprawdź: http://localhost:3001/api/health → `{ "ok": true }`
+
+> MySQL dostępny tylko z sieci AGH lub przez VPN AGH. Bez połączenia dashboard działa normalnie (graceful degradation).
+
+**3. (Opcjonalnie) Uruchom InfluxDB:**
+```bat
+cd E:\BasiaLab1
+docker compose up -d
+```
+Poczekaj ~10 s, sprawdź: http://localhost:8086
+Login: `admin` / Hasło: `thinfilm2026`
+
+**4. Uruchom frontend:**
+```bat
+cd E:\BasiaLab1
+npm run dev
+```
+Otwórz: http://localhost:3002
+
+---
+
+### Uruchomienie obu stanowisk jednocześnie (S1 + S2)
+
+Backend jest **wspólny** — uruchamiany tylko raz z projektu S1.
+Otwórz 3 terminale:
+
+```bat
+REM Terminal 1 — Backend (wspólny dla S1 i S2)
+cd E:\Basia\ThinFilmLab
+npm run server
+
+REM Terminal 2 — Frontend S1 (ThinFilmLab 1)
+cd E:\Basia\ThinFilmLab
+npx vite --port 3004
+
+REM Terminal 3 — Frontend S2 (ThinFilmLab 2)
+cd E:\BasiaLab1
+npx vite --port 3002
+```
+
+| Usługa | URL | Opis |
+|--------|-----|------|
+| Frontend S1 | http://localhost:3004 | ThinFilmLab 1 |
+| Frontend S2 | http://localhost:3002 | ThinFilmLab 2 |
+| Backend API | http://localhost:3001 | Express + MySQL (wspólny) |
+| InfluxDB | http://localhost:8086 | Time-series (opcjonalny) |
+
+---
+
+### Build produkcyjny
+
+```bat
+cd E:\BasiaLab1
+
+REM Zbuduj aplikację
+npm run build
+
+REM Podgląd lokalny buildu
+npm run preview
+
+REM Serwowanie buildu na wybranym porcie
+npx serve -s dist -l 3002
+```
+
+Pliki wyjściowe w `dist/`:
+```
+dist/
+├── index.html
+├── help.json
+└── assets/
+    └── index-*.js    (~400 KB, minified + gzipped)
+```
+
+---
+
+### InfluxDB — pełna obsługa
+
+```bat
+cd E:\BasiaLab1
+
+docker compose up -d             # uruchom w tle
+docker compose down              # zatrzymaj
+docker compose restart influxdb  # restart kontenera
+docker compose logs influxdb     # logi kontenera
+docker compose ps                # status kontenerów
+```
+
+Konfiguracja (`docker-compose.yml`):
+
+| Parametr | Wartość |
+|----------|---------|
+| URL | http://localhost:8086 |
+| Login | admin |
+| Hasło | thinfilm2026 |
+| Organizacja | ThinFilmLab |
+| Bucket | measurements |
+| Token | tfl-dev-token-2026 |
+| Retencja | 30 dni |
+
+---
+
+### Uruchomienie w LabVIEW WebView2
+
+```bat
+REM Zbuduj aplikację
+cd E:\BasiaLab1
+npm run build
+
+REM Opcja A — plik lokalny (bez serwera)
+REM W LabVIEW ustaw URL: file:///E:/BasiaLab1/dist/index.html
+
+REM Opcja B — serwer lokalny (zalecane)
+npx serve -s dist -l 3002
+REM W LabVIEW ustaw URL: http://localhost:3002
+```
+
+---
+
+### Domyślne konta
+
+| Użytkownik | Hasło | Rola | Dostęp |
+|------------|-------|------|--------|
+| admin | admin123 | admin | P1–P9 (pełny) |
+| operator | oper123 | user | P1–P9 |
+| student | stud123 | student | P1, P2, P3, P7, P8, P9 |
+| guest | guest | guest | P1, P9 |
 
 ---
 
@@ -70,13 +220,14 @@ BasiaLab1/
 │   ├── App.jsx          # Główna aplikacja React (monolityczna)
 │   └── influx.js        # Klient InfluxDB (zapis + odczyt historii)
 ├── public/
-│   ├── help.json        # FAQ PL/EN (strona P9)
-│   └── impedance.html   # Moduł spektroskopii impedancyjnej (iframe, P8)
+│   └── help.json        # FAQ PL/EN (strona P9)
 ├── docs/                # Dokumentacja techniczna
 ├── docker-compose.yml   # InfluxDB v2 w Dockerze
 ├── index.html           # Browser tab: ThinFilmLab 2
 └── package.json
 ```
+
+> Backend MySQL (`server/server.js`) znajduje się w projekcie S1 (ThinFilmLab).
 
 ---
 
@@ -86,13 +237,29 @@ BasiaLab1/
 |--------|-------|------|
 | P1 | Monitorowanie | Schemat stanowiska (GasLab SVG), wykresy PV/SP/MV live, sterowanie eksperymentem, wykres rezystancji sensora i warunków środowiskowych |
 | P2 | Ustawienia | Setpointy SP1/SP2/SP3, tryb MAN/AUTO, suwak MV, PID, profil segmentowy |
-| P3 | Próbka | Formularz metadanych próbki, zapis do MySQL i WebSocket |
+| P3 | Próbka | Formularz metadanych próbki, zapis do MySQL (`station='S2'`) i WebSocket |
 | P4 | Konfiguracja | WS URL, MODBUS, konfiguracja 4 MFC MKS, import SVG |
 | P5 | Konsola WS | Log TX/RX, eksport CSV historii pomiarów |
 | P6 | Logi | Dziennik zdarzeń aplikacji |
 | P7 | Raporty | Tworzenie i edycja raportów pomiarowych ze zdjęciami |
-| P8 | Impedancja | Spektroskopia impedancyjna — wykresy Bode, Nyquist, R(f) |
+| P8 | Impedancja | Spektroskopia impedancyjna — React (bez iframe): Bode, Nyquist, R(f), pop-out ⧉ |
 | P9 | Pomoc | FAQ PL/EN |
+
+---
+
+## Integracja MySQL (Stanowisko 2)
+
+S2 korzysta z tego samego serwera Express (`:3001`) co S1.
+Wszystkie zapisy do bazy zawierają `station = "S2"`.
+
+| Zdarzenie | Akcja MySQL |
+|-----------|-------------|
+| Kliknięcie **▶ Start** (P2) | `POST /api/experiments` → `{station:"S2", profileName, sampleId, status:"RUN"}` |
+| Kliknięcie **⏹ Stop** (P2) | `PATCH /api/experiments/:id` → `{status:"DONE", finishedAt}` |
+| Przychodzący `alarm_event` (WS) | `POST /api/alarms` → `{station:"S2", experimentId, severity, msg}` |
+| Kliknięcie **Zapisz próbkę** (P3) | `POST /api/samples` → `{...sample, station:"S2"}` |
+| Wyszukiwanie próbek (P3) | `GET /api/samples/search?…&station=S2` |
+| Załaduj wszystkie próbki (P3) | `GET /api/samples?station=S2` |
 
 ---
 
@@ -295,3 +462,5 @@ Szczegóły: [docs/LABVIEW_INTEGRATION.md](docs/LABVIEW_INTEGRATION.md), [docs/L
 - Dashboard obsługuje **własne diagramy SVG** — wgraj eksport z draw.io przez P4
 - Motywy **ciemny i jasny** — SVG automatycznie dostosowuje kolory przez zmienne motywu (`T.*`)
 - Handler `measurement_update` merge'uje wszystkie pola z LabVIEW — nowe pola są automatycznie obsługiwane bez zmian w dashboardzie
+- Serwer MySQL musi być uruchomiony z projektu S1: `cd E:\Basia\ThinFilmLab && npm run server`
+- MySQL dostępny tylko z sieci AGH lub przez VPN AGH; bez połączenia dashboard działa normalnie (graceful degradation)
