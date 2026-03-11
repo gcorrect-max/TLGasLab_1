@@ -43,7 +43,9 @@
         "id": "sample", "title": "Próbka i proces (P3)", "icon": "🧪",
         "items": [
           {"q": "Jakie dane opisują próbkę?", "a": "ID próbki, materiał warstwy, podłoże, metoda osadzania (PVD/CVD/Sol-Gel), grubość [nm], gaz docelowy, temperatura procesu, ciśnienie, atmosfera, moc źródła, czas procesu, przepływ gazu, operator, numer serii i cel eksperymentu."},
-          {"q": "Gdzie zapisywane są dane próbki?", "a": "Lokalnie w stanie aplikacji oraz wysyłane do LabVIEW przez komendę sample_info. W przyszłości planowane jest zapisywanie do bazy danych."}
+          {"q": "Gdzie zapisywane są dane próbki?", "a": "W trzech miejscach jednocześnie: (1) stan lokalny aplikacji, (2) baza MySQL sobkow2 (tabela tfl_samples) przez serwer Express :3005, (3) komenda sample_info wysyłana do LabVIEW przez WebSocket. Jeśli MySQL jest niedostępny, dane wciąż trafiają do LabVIEW."},
+          {"q": "Jak wyszukać próbkę w bazie MySQL?", "a": "Na P3 użyj ikony 🔍 przy polu (np. materiał, operator) i kliknij — dashboard wyszuka próbki wg wartości tego pola. Możesz też załadować wszystkie próbki przyciskiem «Załaduj wszystkie», a następnie kliknąć «Załaduj do formularza» aby wypełnić dane poprzednio zapisanej próbki."},
+          {"q": "Co zapisywane jest w MySQL podczas eksperymentu?", "a": "Start profilu (▶): zapis eksperymentu ze statusem RUN i segmentami profilu. Stop (⏹): zmiana statusu na DONE z czasem zakończenia. Alarmy: każdy alarm_event z LabVIEW jest zapisywany w tabeli tfl_alarms z powiązaniem do bieżącego eksperymentu."}
         ]
       },
       {
@@ -65,8 +67,11 @@
       {
         "id": "impedance", "title": "Impedancja (P8)", "icon": "〰️",
         "items": [
-          {"q": "Jak działa moduł impedancji?", "a": "P8 ładuje iframe z /impedance.html — osobną aplikację do spektroskopii impedancyjnej. Komunikacja z LabVIEW odbywa się przez main WebSocket (impedance_request → impedance_data)."},
-          {"q": "Jakie wykresy generuje moduł?", "a": "Wykres Bodego (|Z| i faza vs f), wykres Nyquista (-Z'' vs Z'), wykres R(f). Dane można symulować modelem Randles (Rs + Rp||Cdl) lub pobrać z urządzenia pomiarowego."}
+          {"q": "Jak działa moduł impedancji?", "a": "P8 to w pełni zintegrowany komponent React (bez zewnętrznego pliku HTML). Składa się z panelu bocznego z parametrami i trzech wykresów Recharts: Bode, Nyquist i Re(Z)(f). Komunikacja z LabVIEW odbywa się przez główny WebSocket (impedance_request → impedance_data)."},
+          {"q": "Jakie wykresy generuje moduł?", "a": "Wykres Bodego (|Z| i faza φ vs częstotliwość — skala logarytmiczna na osi X i Y), wykres Nyquista (Re(Z) vs −Im(Z) jako scatter z linią łączącą), wykres Re(Z)(f) (opór vs częstotliwość — skala log). Dane można symulować modelem Randles (R_sol + R_ct||C_dl||Warburg) lub pobrać z urządzenia."},
+          {"q": "Jak przełączyć tryb SIM / LIVE?", "a": "Użyj przełącznika SIM/LIVE w panelu bocznym. Tryb SIM: dane generowane lokalnie przez symulację obwodu Randles na podstawie parametrów R_sol, R_ct, C_dl, σ_w. Tryb LIVE: dashboard wysyła impedance_request do LabVIEW i czeka na dane impedance_data przez WebSocket."},
+          {"q": "Jak otworzyć wykresy impedancji w osobnym oknie?", "a": "Kliknij przycisk «⧉ Okno» w panelu bocznym — wykresy otwierają się w nowym oknie przeglądarki jako React portal (WindowPortal). Stan jest zsynchronizowany z dashboardem: zmiany parametrów i dane LIVE aktualizują się w obu miejscach jednocześnie. Zamknij osobne okno przyciskiem ✕ lub przez przycisk «↩ Wróć do dashboardu»."},
+          {"q": "Jak wyeksportować dane pomiarowe?", "a": "Kliknij «📥 CSV» w panelu bocznym — pobierany jest plik CSV z kolumnami: f [Hz], |Z| [Ω], φ [°], Re(Z) [Ω], −Im(Z) [Ω]. Tabela danych jest dostępna po kliknięciu «● Dane pomiarowe» na dole strony (z sortowaniem)."}
         ]
       },
       {
@@ -79,10 +84,32 @@
         ]
       },
       {
+        "id": "autostart", "title": "Uruchamianie i autostart", "icon": "🚀",
+        "items": [
+          {"q": "Jak uruchomić wszystko jedną komendą?", "a": "W PowerShell uruchom: .\\start-s2.ps1. Skrypt uruchamia kolejno: InfluxDB (Docker Compose), backend Express (:3005, baza sobkow2) i frontend Vite (:3002) w zminimalizowanych oknach. Po każdym kroku czeka na gotowość usługi (health check na porcie)."},
+          {"q": "Jak skonfigurować autostart przy logowaniu?", "a": "Uruchom raz jako Administrator skrypt z katalogu S1: .\\register-autostart.ps1. Rejestruje zadania ThinFilmLab-S1-Autostart i ThinFilmLab-S2-Autostart w Windows Task Scheduler (trigger: AtLogon + opóźnienie 10s, RunLevel: Highest, auto-restart 3×). Flagi: -S1Only, -S2Only, -Unregister (usunięcie)."},
+          {"q": "Gdzie są logi startu i backendu?", "a": "W katalogu E:\\BasiaLab1\\logs\\: startup_s2_YYYY-MM-DD.log (sekwencja uruchamiania) i backend_s2_YYYY-MM-DD.log (logi serwera Express). Katalog tworzony automatycznie przy pierwszym uruchomieniu."},
+          {"q": "Czy skrypt nadpisuje już działające usługi?", "a": "Nie — każdy krok sprawdza czy port jest zajęty. Jeśli backend (:3005) lub frontend (:3002) już działa, skrypt pomija ten krok i kontynuuje. Można wywoływać wielokrotnie bez ryzyka duplikatów."},
+          {"q": "Skrypt PowerShell nie uruchamia się", "a": "Sprawdź politykę wykonywania: Get-ExecutionPolicy -Scope CurrentUser. Jeśli Restricted, ustaw: Set-ExecutionPolicy RemoteSigned -Scope CurrentUser. Upewnij się że Node.js jest zainstalowany w C:\\Program Files\\nodejs\\. Szczegóły błędów znajdziesz w katalogu logs/."}
+        ]
+      },
+      {
+        "id": "mysql", "title": "Baza danych MySQL", "icon": "🗄️",
+        "items": [
+          {"q": "Jak uruchomić serwer bazy danych?", "a": "Stanowisko 2 ma własny, niezależny backend. Uruchom: npm run server z katalogu BasiaLab1 (port 3005, baza: sobkow2). Szybki start całości: .\\start-s2.ps1. MySQL dostępny tylko z sieci AGH lub przez VPN AGH."},
+          {"q": "Jakie tabele są w bazie MySQL?", "a": "tfl_samples — metadane próbek (P3). tfl_experiments — rejestr uruchomień profili (start/stop). tfl_alarms — zdarzenia alarmowe z LabVIEW. Każda tabela ma kolumnę station. Stanowisko 2 zapisuje station='S2' do bazy sobkow2."},
+          {"q": "Co to kolumna station i po co?", "a": "Stanowisko 2 używa bazy sobkow2 i backendu na porcie :3005. Kolumna station='S2' identyfikuje rekordy tego stanowiska. Wszystkie zapytania API przyjmują parametr ?station=S2. Dane są oddzielone od S1 zarówno bazą jak i portem API."},
+          {"q": "Jak wgrać dane demonstracyjne?", "a": "Z katalogu ThinFilmLab (S1) uruchom: node server/seed-demo.js. Wgrywa dane testowe dla S1 i S2. Flaga --force resetuje poprzednie demo. Uwaga: seed-demo działa przez bazę S1 (sobkow) — upewnij się że oba backendy znają te same sampleId."},
+          {"q": "MySQL nie jest dostępny — co się stanie?", "a": "Dashboard działa normalnie — MySQL jest opcjonalny. Serwer Express startuje natychmiast i próbuje połączyć się z MySQL w tle (retry: 15s → 30s → 60s → max 120s). W logach zobaczysz ostrzeżenia, ale WS, InfluxDB i UI działają bez zakłóceń."}
+        ]
+      },
+      {
         "id": "troubleshooting", "title": "Rozwiązywanie problemów", "icon": "🔍",
         "items": [
           {"q": "Dashboard nie łączy się z LabVIEW", "a": "Sprawdź: 1) czy serwer LabVIEW WS jest uruchomiony, 2) adres ws://IP:PORT w P4, 3) firewall/VPN, 4) konsolę deweloperską przeglądarki (F12 → Console). Dashboard próbuje reconnekcji automatycznie."},
+          {"q": "Backend S2 nie uruchamia się przez skrypt autostart", "a": "Sprawdź: 1) czy VPN AGH jest aktywny (MySQL wymaga VPN, ale backend startuje bez MySQL), 2) logi w E:\\BasiaLab1\\logs\\backend_s2_*.log, 3) czy port 3005 jest wolny (netstat -ano | findstr :3005), 4) czy node_modules serwera są zainstalowane (npm install w E:\\BasiaLab1\\server\\)."},
           {"q": "InfluxDB nie odpowiada (dioda DB wyłączona)", "a": "Sprawdź: 1) docker ps — czy kontener tfl-influxdb działa, 2) docker compose up -d aby go uruchomić, 3) czy port 8086 nie jest zajęty. Logi: docker logs tfl-influxdb."},
+          {"q": "MySQL niedostępny — błąd w konsoli", "a": "MySQL jest dostępny tylko przez sieć AGH lub VPN. Uruchom VPN AGH i odczekaj — serwer ponawia połączenie automatycznie. Endpoint /api/health poinformuje o statusie. Dashboard i WS działają niezależnie od MySQL."},
           {"q": "Wykresy są puste", "a": "W trybie «Na żywo» potrzeba kilku sekund na zebranie danych. Przy zakresach historycznych (1h+) sprawdź połączenie z InfluxDB. Upewnij się że symulacja DEMO jest aktywna (brak WS = automatyczna symulacja)."},
           {"q": "MFC nie reaguje na nastawy", "a": "Sprawdź: 1) czy MFC jest oznaczony jako «enabled» w P4, 2) konfigurację IP/port/slave MODBUS, 3) fizyczne połączenie Ethernet z przepływomierzem MKS."}
         ]
@@ -132,7 +159,9 @@
         "id": "sample", "title": "Sample & Process (P3)", "icon": "🧪",
         "items": [
           {"q": "What data describes a sample?", "a": "Sample ID, layer material, substrate, deposition method (PVD/CVD/Sol-Gel), thickness [nm], target gas, process temperature, pressure, atmosphere, source power, process time, gas flow, operator, batch number and experiment goal."},
-          {"q": "Where is sample data saved?", "a": "Locally in the application state and sent to LabVIEW via the sample_info command. Database persistence is planned for the future."}
+          {"q": "Where is sample data saved?", "a": "In three places simultaneously: (1) local application state, (2) MySQL database sobkow2 (tfl_samples table) via the Express server on port 3005, (3) sample_info command sent to LabVIEW via WebSocket. If MySQL is unavailable, data still reaches LabVIEW."},
+          {"q": "How to search for a sample in MySQL?", "a": "On P3 use the 🔍 icon next to any field (e.g. material, operator) — the dashboard searches MySQL for samples matching that field. You can also load all samples with the «Load all» button, then click «Load to form» to populate fields from a previously saved sample."},
+          {"q": "What is recorded in MySQL during an experiment?", "a": "Profile start (▶): saves an experiment record with status RUN and segment data. Stop (⏹): updates status to DONE with finish timestamp. Alarms: every alarm_event from LabVIEW is saved to tfl_alarms linked to the current experiment ID."}
         ]
       },
       {
@@ -154,8 +183,11 @@
       {
         "id": "impedance", "title": "Impedance (P8)", "icon": "〰️",
         "items": [
-          {"q": "How does the impedance module work?", "a": "P8 loads an iframe with /impedance.html — a separate impedance spectroscopy app. Communication with LabVIEW uses the main WebSocket (impedance_request → impedance_data)."},
-          {"q": "What charts does the module generate?", "a": "Bode plot (|Z| and phase vs f), Nyquist plot (-Z'' vs Z'), R(f) chart. Data can be simulated with a Randles model (Rs + Rp||Cdl) or fetched from the measurement device."}
+          {"q": "How does the impedance module work?", "a": "P8 is a fully integrated React component (no external HTML file). It consists of a sidebar panel with parameters and three Recharts plots: Bode, Nyquist and Re(Z)(f). LabVIEW communication uses the main WebSocket (impedance_request → impedance_data)."},
+          {"q": "What charts does the module generate?", "a": "Bode plot (|Z| and phase φ vs frequency — logarithmic X and Y axes), Nyquist plot (Re(Z) vs −Im(Z) as scatter with connecting line), Re(Z)(f) chart (resistance vs frequency — log scale). Data can be simulated with a Randles model (R_sol + R_ct||C_dl||Warburg) or fetched from the measurement device."},
+          {"q": "How to switch between SIM and LIVE mode?", "a": "Use the SIM/LIVE toggle in the sidebar panel. SIM mode: data is generated locally by the Randles circuit simulation using the parameters R_sol, R_ct, C_dl, σ_w. LIVE mode: the dashboard sends impedance_request to LabVIEW and waits for impedance_data via WebSocket."},
+          {"q": "How to open impedance charts in a separate window?", "a": "Click the «⧉ Okno» button in the sidebar — charts open in a new browser window as a React portal (WindowPortal). State is synchronized with the dashboard: parameter changes and LIVE data update in both windows simultaneously. Close with ✕ or the «↩ Return to dashboard» button."},
+          {"q": "How to export measurement data?", "a": "Click «📥 CSV» in the sidebar — a CSV file is downloaded with columns: f [Hz], |Z| [Ω], φ [°], Re(Z) [Ω], −Im(Z) [Ω]. The full data table is available by clicking «● Dane pomiarowe» at the bottom (with sortable columns)."}
         ]
       },
       {
@@ -168,10 +200,32 @@
         ]
       },
       {
+        "id": "autostart", "title": "Startup & Autostart", "icon": "🚀",
+        "items": [
+          {"q": "How to start everything with one command?", "a": "In PowerShell run: .\\start-s2.ps1. The script launches sequentially: InfluxDB (Docker Compose), Express backend (:3005, database sobkow2) and Vite frontend (:3002) in minimized windows. After each step it waits for the service to become ready (port health check)."},
+          {"q": "How to configure auto-start at Windows login?", "a": "Run once as Administrator from the S1 directory: .\\register-autostart.ps1. Registers ThinFilmLab-S1-Autostart and ThinFilmLab-S2-Autostart tasks in Windows Task Scheduler (trigger: AtLogon + 10s delay, RunLevel: Highest, auto-restart 3×). Flags: -S1Only, -S2Only, -Unregister (to remove)."},
+          {"q": "Where are the startup and backend logs?", "a": "In E:\\BasiaLab1\\logs\\: startup_s2_YYYY-MM-DD.log (startup sequence) and backend_s2_YYYY-MM-DD.log (Express server logs). The directory is created automatically on first run."},
+          {"q": "Does the script override already running services?", "a": "No — each step checks whether the port is already in use. If the backend (:3005) or frontend (:3002) is already running, the script skips that step and continues. Safe to run multiple times."},
+          {"q": "PowerShell script won't run", "a": "Check the execution policy: Get-ExecutionPolicy -Scope CurrentUser. If Restricted, set it: Set-ExecutionPolicy RemoteSigned -Scope CurrentUser. Make sure Node.js is installed at C:\\Program Files\\nodejs\\. Check the logs/ directory for detailed errors."}
+        ]
+      },
+      {
+        "id": "mysql", "title": "MySQL Database", "icon": "🗄️",
+        "items": [
+          {"q": "How to start the database server?", "a": "Station 2 has its own independent backend. Run: npm run server from the BasiaLab1 directory (port 3005, database: sobkow2). Quick full start: .\\start-s2.ps1. MySQL is only accessible from the AGH network or via VPN."},
+          {"q": "What tables are in the MySQL database?", "a": "tfl_samples — sample metadata (P3). tfl_experiments — profile run log (start/stop). tfl_alarms — alarm events from LabVIEW. Each table has a station column. Station 2 stores all records with station='S2' in the sobkow2 database."},
+          {"q": "What is the station column and why?", "a": "Station 2 uses its own database (sobkow2) and backend on port :3005. The station='S2' column identifies records for this workstation. All API queries accept a ?station=S2 parameter. Data is isolated from S1 at both the database and API port level."},
+          {"q": "How to load demo data?", "a": "From the ThinFilmLab (S1) directory run: node server/seed-demo.js. Loads test data for both S1 and S2. Use --force flag to reset previous demo data. Note: seed-demo operates via the S1 database (sobkow) — ensure both backends share the same sampleId references."},
+          {"q": "MySQL is unavailable — what happens?", "a": "The dashboard works normally — MySQL is optional. The Express server starts immediately and retries MySQL in the background (15s → 30s → 60s → max 120s). You will see warnings in the logs, but WebSocket, InfluxDB and the UI all function without interruption."}
+        ]
+      },
+      {
         "id": "troubleshooting", "title": "Troubleshooting", "icon": "🔍",
         "items": [
           {"q": "Dashboard won't connect to LabVIEW", "a": "Check: 1) LabVIEW WS server is running, 2) ws://IP:PORT address in P4, 3) firewall/VPN, 4) browser dev console (F12 → Console). The dashboard retries automatically."},
+          {"q": "S2 backend doesn't start via autostart script", "a": "Check: 1) AGH VPN is active (MySQL requires VPN, but the backend starts without it), 2) logs at E:\\BasiaLab1\\logs\\backend_s2_*.log, 3) port 3005 is free (netstat -ano | findstr :3005), 4) server node_modules are installed (npm install in E:\\BasiaLab1\\server\\)."},
           {"q": "InfluxDB not responding (DB LED off)", "a": "Check: 1) docker ps — is tfl-influxdb container running, 2) docker compose up -d to start it, 3) is port 8086 occupied. Logs: docker logs tfl-influxdb."},
+          {"q": "MySQL unavailable — errors in console", "a": "MySQL is only accessible via the AGH network or VPN. Start AGH VPN and wait — the server retries automatically. The /api/health endpoint shows current MySQL status. Dashboard and WebSocket work independently of MySQL."},
           {"q": "Charts are empty", "a": "In «Live» mode, wait a few seconds for data. For historical ranges (1h+) check InfluxDB connection. Make sure DEMO simulation is active (no WS = automatic simulation)."},
           {"q": "MFC doesn't respond to setpoints", "a": "Check: 1) MFC is marked «enabled» in P4, 2) IP/port/slave MODBUS configuration, 3) physical Ethernet connection to the MKS flow controller."}
         ]
