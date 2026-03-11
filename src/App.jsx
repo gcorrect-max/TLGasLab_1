@@ -1,5 +1,4 @@
 ﻿import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
-import { createPortal } from "react-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, ScatterChart, Scatter } from "recharts";
 import { writeDataPoint, queryHistory, influxHealth } from "./influx.js";
 
@@ -916,31 +915,12 @@ function WsConsole({open,onClose,wsCon,clearCon,T}){const S=mkS(T);const[tab,sTa
       <div style={{padding:"6px 14px",borderTop:`1px solid ${T.cardBorder}`,fontSize:11,color:T.textD,flexShrink:0}}>Tylko wiadomości JSON. Nowe na górze. Max 80 wpisów.</div>
     </div></div>);}
 
-// ═══ WindowPortal — pop-out do osobnego okna przeglądarki ═══
-function WindowPortal({children,onClose,title="Impedancja — Spektroskopia"}){
-  const elRef=useRef(null);if(!elRef.current)elRef.current=document.createElement("div");
-  const[ready,setReady]=useState(false);
-  useEffect(()=>{
-    const pw=window.open("","","width=1280,height=820,toolbar=0,menubar=0,scrollbars=0,resizable=1");
-    if(!pw){onClose();return;}
-    pw.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title><style>*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%;overflow:hidden;font-family:system-ui,-apple-system,sans-serif;background:#0a1018;color:#c0ccd8}</style></head><body></body></html>');
-    pw.document.close();
-    Array.from(document.querySelectorAll("style")).forEach(s=>{try{pw.document.head.appendChild(s.cloneNode(true))}catch{}});
-    elRef.current.style.cssText="width:100%;height:100vh;overflow:hidden";
-    pw.document.body.appendChild(elRef.current);
-    setReady(true);
-    pw.addEventListener("beforeunload",onClose);
-    return()=>{try{pw.removeEventListener("beforeunload",onClose);pw.close()}catch{}};
-  },[]);
-  return ready?createPortal(children,elRef.current):null;
-}
-
 // ═══ P8: IMPEDANCJA ═══
 function P8({mb,sendCmd,impData,T}){const S=mkS(T);
   const[params,setParams]=useState({R_sol:50,R_ct:200,C_dl:1e-6,sigma:100,f_min:0.01,f_max:1e6,N:60});
   const[isLive,setIsLive]=useState(false);const[data,setData]=useState([]);
   const[tblOpen,setTblOpen]=useState(false);const[sortCol,setSortCol]=useState("f");const[sortAsc,setSortAsc]=useState(true);
-  const[lastUpd,setLastUpd]=useState(null);const[poppedOut,setPoppedOut]=useState(false);
+  const[lastUpd,setLastUpd]=useState(null);
 
   const calcRandles=useCallback((p)=>{
     const{R_sol,R_ct,C_dl,sigma,f_min,f_max,N}=p;const res=[];
@@ -981,8 +961,8 @@ function P8({mb,sendCmd,impData,T}){const S=mkS(T);
   const tt={background:T.ttBg,border:`1px solid ${T.cardBorder}`,padding:"5px 8px",borderRadius:6,fontSize:11,color:T.textM};
   const sbRows=[["R_sol","R_sol","Ω",1],["R_ct","R_ct","Ω",1],["C_dl","C_dl","F",1e-8],["sigma","σ_w","Ω/√s",1],["f_min","f_min","Hz",0.001],["f_max","f_max","Hz",1000],["N","Pkt.","",1]];
 
-  const inner=(pop)=>(
-    <div style={{display:"grid",gridTemplateColumns:pop?"240px 1fr":"210px 1fr",height:pop?"100vh":"calc(100vh - 130px)",background:pop?T.sidebarBg:"transparent",overflow:"hidden"}}>
+  const inner=()=>(
+    <div style={{display:"grid",gridTemplateColumns:"210px 1fr",height:"calc(100vh - 130px)",background:"transparent",overflow:"hidden"}}>
       {/* ── Sidebar ── */}
       <div style={{background:T.cardBg,borderRight:`1px solid ${T.cardBorder}`,padding:"10px 8px",overflowY:"auto",display:"flex",flexDirection:"column",gap:7,flexShrink:0}}>
         <div style={{fontSize:10,fontWeight:700,color:T.textA,letterSpacing:.6,textTransform:"uppercase"}}>Obwód Randles</div>
@@ -1010,12 +990,7 @@ function P8({mb,sendCmd,impData,T}){const S=mkS(T);
           {lastUpd&&<div style={{color:T.textD,marginTop:1}}>Ost: {lastUpd}</div>}
         </div>
         <div style={{height:1,background:T.cardBorder}}/>
-        <div style={{display:"flex",gap:5}}>
-          <button onClick={exportCSV} style={{...S.btn,flex:1,background:T.boxBg,border:`1px solid ${T.boxBorder}`,fontSize:10,color:T.textM,padding:"5px 0"}}>📥 CSV</button>
-          {!pop
-            ?<button onClick={()=>setPoppedOut(true)} style={{...S.btn,flex:1,background:T.boxBg,border:`1px solid ${T.textA}55`,fontSize:10,color:T.textA,padding:"5px 0"}}>⧉ Okno</button>
-            :<button onClick={()=>setPoppedOut(false)} style={{...S.btn,flex:1,background:"#2a0808",border:"1px solid #aa2222",fontSize:10,color:"#ff8888",padding:"5px 0"}}>✕ Zamknij</button>}
-        </div>
+        <button onClick={exportCSV} style={{...S.btn,background:T.boxBg,border:`1px solid ${T.boxBorder}`,fontSize:10,color:T.textM,padding:"5px 0"}}>📥 CSV</button>
       </div>
       {/* ── Wykresy + tabela ── */}
       <div style={{display:"flex",flexDirection:"column",padding:8,gap:8,overflow:"hidden",minHeight:0}}>
@@ -1087,15 +1062,7 @@ function P8({mb,sendCmd,impData,T}){const S=mkS(T);
     </div>);
 
   return(<div style={{...S.card,padding:0,overflow:"hidden"}}>
-    {poppedOut
-      ?<><div style={{padding:"6px 14px",background:T.cardBg,borderBottom:`1px solid ${T.cardBorder}`,display:"flex",alignItems:"center",gap:10}}>
-          <span style={{fontSize:12,color:T.textD}}>〰 Impedancja — otwarta w osobnym oknie przeglądarki</span>
-          <button onClick={()=>setPoppedOut(false)} style={{...S.btn,fontSize:11,padding:"2px 12px",background:T.boxBg,border:`1px solid ${T.boxBorder}`}}>↩ Wróć do dashboardu</button>
-        </div>
-        <WindowPortal onClose={()=>setPoppedOut(false)} title="Impedancja — Spektroskopia impedancyjna">
-          {inner(true)}
-        </WindowPortal></>
-      :inner(false)}
+    {inner()}
   </div>);
 }
 
